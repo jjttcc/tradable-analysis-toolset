@@ -21,6 +21,8 @@ group :assets do
 end
 
 gem 'jquery-rails'
+# For design-by-contract support:
+gem 'ruby_contracts'
 
 # To use ActiveModel has_secure_password
 # gem 'bcrypt-ruby', '~> 3.0.0'
