@@ -24,6 +24,11 @@ gem 'jquery-rails'
 # For design-by-contract support:
 gem 'ruby_contracts'
 
+group :test do
+  gem 'minitest'
+  gem "minitest-rails", "~> 1.0"
+end
+
 # To use ActiveModel has_secure_password
 # gem 'bcrypt-ruby', '~> 3.0.0'
 
