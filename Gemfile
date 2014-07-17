@@ -24,7 +24,7 @@ gem 'jquery-rails'
 # For design-by-contract support:
 gem 'ruby_contracts'
 
-group :test do
+group :development, :test do
   gem 'minitest'
   gem "minitest-rails", "~> 1.0"
 end
