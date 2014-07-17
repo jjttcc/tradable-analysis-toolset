@@ -1,11 +1,11 @@
 class PagesController < ApplicationController
   def home
     @title = "Home"
-    @msg = MOTD.new.message
+    @motd = MOTD.new
   end
 
   def about
     @title = "About"
-    @msg = MOTD.new.message
+    @motd = MOTD.new
   end
 end
