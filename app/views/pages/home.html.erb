@@ -2,4 +2,5 @@
 <p>Home page for Tradable Analysis Toolset</p>
 <h1>MOTD test</h1>
 <p><%= @motd.message %></p>
-<%= link_to "Sign up ...[tbd]", '#', :class => "signup_button round" %>
+<%= link_to "Create new login", signup_path,
+  :class => "signup_button round" %>

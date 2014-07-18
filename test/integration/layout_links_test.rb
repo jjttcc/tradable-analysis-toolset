@@ -18,4 +18,16 @@ class LayoutLinksTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_select 'title', /Help/
   end
+
+  test "should have new login page at '/signup'" do
+    get '/signup'
+    assert_response :success
+    assert_select 'title', /login/
+  end
+
+  test "should have the right links on the layout" do
+    get '/'
+#    click_link "Help"
+  end
+
 end
