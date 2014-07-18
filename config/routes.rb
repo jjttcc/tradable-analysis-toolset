@@ -1,7 +1,8 @@
 TradableAnalysisToolset::Application.routes.draw do
-  get "pages/home"
+  root :to => 'pages#home'
+  match '/help', :to => 'pages#help'
+  match '/about', :to => 'pages#about'
 
-  get "pages/about"
 
   # The priority is based upon order of creation:
   # first created -> highest priority.
