@@ -29,6 +29,10 @@ group :development, :test do
   gem "minitest-rails", "~> 1.0"
 end
 
+group :development do
+  gem 'annotate'
+end
+
 # To use ActiveModel has_secure_password
 # gem 'bcrypt-ruby', '~> 3.0.0'
 
