@@ -12,7 +12,7 @@
 # http://api.rubyonrails.org/classes/ActiveRecord/Fixtures.html
 
 one:
-  email_addr: MyString
+  email_addr: email-one@example.com
 
 two:
-  email_addr: MyString
+  email_addr: email-two@example.com

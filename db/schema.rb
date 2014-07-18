@@ -11,12 +11,14 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20140718145913) do
+ActiveRecord::Schema.define(:version => 20140718201809) do
 
   create_table "users", :force => true do |t|
     t.string   "email_addr"
     t.datetime "created_at", :null => false
     t.datetime "updated_at", :null => false
   end
+
+  add_index "users", ["email_addr"], :name => "index_users_on_email_addr", :unique => true
 
 end
