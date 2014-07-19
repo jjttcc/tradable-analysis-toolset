@@ -2,20 +2,22 @@
 #
 # Table name: users
 #
-#  id         :integer          not null, primary key
-#  email_addr :string(255)
-#  created_at :datetime         not null
-#  updated_at :datetime         not null
+#  id                 :integer          not null, primary key
+#  email_addr         :string(255)
+#  created_at         :datetime         not null
+#  updated_at         :datetime         not null
+#  encrypted_password :string(255)
 #
 
 require "test_helper"
 
 class UserTest < ActiveSupport::TestCase
 
-  GOOD_ARGS1 = {:email_addr => 'user1@example.org', :password => 'foobar',
-                :password_confirmation => 'foobar'}
+  GOOD_ARGS1 = {:email_addr => 'user1@example.org', :password => 'eggfoobar',
+                :password_confirmation => 'eggfoobar'}
   GOOD_ARGS2 = {:email_addr => 'tester@professional-testers.org',
-                :password => 'barfoo', :password_confirmation => 'barfoo'}
+                :password => 'barfoobing',
+                :password_confirmation => 'barfoobing'}
   BAD_EMAIL1 = {:email_addr => 'tester@professional#testers.org'}
 
   def valid_user
@@ -92,7 +94,7 @@ class UserTest < ActiveSupport::TestCase
   ### Password validation ###
 
   def new_user(e)
-    result = User.create!(GOOD_ARGS1.merge(:email_addr => e))
+    result = User.new(GOOD_ARGS1.merge(:email_addr => e))
     result
   end
 
@@ -105,9 +107,35 @@ class UserTest < ActiveSupport::TestCase
 
   def test_valid_pw_conf
     u = new_user('foo2@foo.org')
-    u.password = 'foo'
-    u.password_confirmation = 'bar'
+    u.password = 'foobarfoo'
+    u.password_confirmation = 'barbarbar'
     assert(! u.valid?, "invalid without matching password_conf")
+  end
+
+  def test_reject_short_pw
+    u = new_user('foo3@foo.org')
+    shortpw = 'foo'
+    u.password = shortpw
+    u.password_confirmation = shortpw
+    assert(! u.valid?, "short passwords invalid")
+  end
+
+  def test_reject_long_pw
+    u = new_user('foo3@foo.org')
+    longpw = 'foo' + 'X' * 62
+    u.password = longpw
+    u.password_confirmation = longpw
+    assert(! u.valid?, "long passwords invalid")
+  end
+
+  ### Password encryption ###
+
+  def setup
+    @pw_user ||= User.create!(GOOD_ARGS2)
+  end
+
+  def test_pw_encryption
+    assert @pw_user.respond_to?(:encrypted_password)
   end
 
 end

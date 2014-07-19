@@ -18,3 +18,7 @@
 work/
 
 library
+
+.env
+
+files
