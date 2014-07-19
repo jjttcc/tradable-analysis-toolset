@@ -134,8 +134,51 @@ class UserTest < ActiveSupport::TestCase
     @pw_user ||= User.create!(GOOD_ARGS2)
   end
 
-  def test_pw_encryption
+  def test_has_encrypted_password
     assert @pw_user.respond_to?(:encrypted_password)
+  end
+
+  def test_encrypted_pw_set
+    assert(@pw_user.encrypted_password != nil &&
+           @pw_user.encrypted_password.length > 0, "encrypted password set")
+  end
+
+  ### Password-related ###
+
+  def test_has_password_match_query
+    assert @pw_user.respond_to?(:password_matches?),
+      "has password_matches query"
+  end
+
+  def test_for_password_match
+    assert @pw_user.password_matches?('barfoobing'), "pw should match"
+  end
+
+  def test_negative_password_match
+    assert ! @pw_user.password_matches?('abcdcba'), "pw should NOT match"
+  end
+
+  def test_has_salt
+    assert @pw_user.respond_to?(:salt), "has 'salt' attribute"
+  end
+
+  ### User/Password authentication
+
+  def test_has_auth_method
+    assert User.respond_to?(:authenticate), "has 'authenticate' method"
+  end
+
+  def test_email_pw_mismatch
+    assert User.authenticate(GOOD_ARGS2[:email_addr], 'invalid_pw') == nil
+  end
+
+  def test_wrong_email
+    assert User.authenticate('barbar@foo.org', GOOD_ARGS2[:password]) == nil
+  end
+
+  def test_good_auth
+    assert User.authenticate(GOOD_ARGS2[:email_addr],
+                             GOOD_ARGS2[:password]) == @pw_user, "good auth"
   end
 
 end
