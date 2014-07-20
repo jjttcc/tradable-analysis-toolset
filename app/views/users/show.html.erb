@@ -1,1 +1,11 @@
-<h1><%= @user.email_addr %></h1>
+<table class="profile" summary="Profile information">
+  <tr>
+    <td class="main">
+      <h1><%= @user.email_addr %></h1>
+    </td>
+    <td class="sidebar round">
+      <strong>email address: </strong><%= @user.email_addr %><br/>
+      <strong>URL: </strong><%= link_to user_path(@user), @user %>
+    </td>
+  </tr>
+</table>
