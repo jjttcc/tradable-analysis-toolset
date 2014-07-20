@@ -32,7 +32,17 @@ class UsersControllerTest < ActionController::TestCase
 
   def test_show_correct_user
     get :show, :id => @user.id
-    assert assigns(:user) == @user, "assigns user"
+    assert assigns(:user) == @user, "correct user"
+  end
+
+  def test_show_correct_title
+    get :show, :id => @user.id
+    assert_select 'title', /#{@user.email_addr}/, 'correct title'
+  end
+
+  def test_show_correct_h1
+    get :show, :id => @user.id
+    assert_select 'h1', /#{@user.email_addr}/, 'correct h1'
   end
 
 end
