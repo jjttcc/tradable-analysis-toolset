@@ -27,6 +27,7 @@ gem 'ruby_contracts'
 group :development, :test do
   gem 'minitest'
   gem "minitest-rails", "~> 1.0"
+  gem 'factory_girl_rails', '1.0'
 end
 
 group :development do
