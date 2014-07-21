@@ -39,9 +39,9 @@ class User < ActiveRecord::Base
     encrypted_password == encrypted(submitted_pw)
   end
 
-  # Authenticate - return the user with 'email', 'submitted_pw' (password)
-  # or, if no match is found, nil.
-  def self.authenticate(email, submitted_pw)
+  # The authenticated user, retrieved from the database, identified by
+  # 'email', 'submitted_pw' - nil if no such user is found.
+  def self.authenticated(email, submitted_pw)
     result = nil
     u = find_by_email_addr(email)
     if u != nil and u.password_matches?(submitted_pw)

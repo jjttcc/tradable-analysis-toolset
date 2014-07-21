@@ -165,19 +165,19 @@ class UserTest < ActiveSupport::TestCase
   ### User/Password authentication
 
   def test_has_auth_method
-    assert User.respond_to?(:authenticate), "has 'authenticate' method"
+    assert User.respond_to?(:authenticated), "has 'authenticated' method"
   end
 
   def test_email_pw_mismatch
-    assert User.authenticate(GOOD_ARGS2[:email_addr], 'invalid_pw') == nil
+    assert User.authenticated(GOOD_ARGS2[:email_addr], 'invalid_pw') == nil
   end
 
   def test_wrong_email
-    assert User.authenticate('barbar@foo.org', GOOD_ARGS2[:password]) == nil
+    assert User.authenticated('barbar@foo.org', GOOD_ARGS2[:password]) == nil
   end
 
   def test_good_auth
-    assert User.authenticate(GOOD_ARGS2[:email_addr],
+    assert User.authenticated(GOOD_ARGS2[:email_addr],
                              GOOD_ARGS2[:password]) == @pw_user, "good auth"
   end
 
