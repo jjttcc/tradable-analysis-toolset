@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# vim: expandtab
+
+db_only=
+no_db=
+case $1 in
+    db*) db_only=true ;;
+    nodb*) no_db=true
+esac
+
+if type banner >/dev/null 2>&1; then
+    :
+else
+    banner() {
+        echo $@|tr [a-z] [A-Z]
+    }
+fi
+
+opts='-v'
+status=0
+if [ ! "$no_db" ]; then
+    if TESTOPTS="$opts" rake; then
+        echo First set SUCCEEDED
+    else
+        status=$?
+        echo First set FAILED
+    fi
+fi
+#if [ "$db_only" ]; then exit $status; fi
+
+if [ ! "$db_only" ]; then
+    if TESTOPTS="$opts" rake test; then
+        echo Second set SUCCEEDED
+    else
+        status=$?
+        echo Second set FAILED
+    fi
+fi
+
+if [ $status -ne 0 ]; then
+    echo "<<<<<<<FAILED at least one test.>>>>>>>"
+fi
+
+if [ "$status" -eq 0 ]; then banner good; else banner fail; fi
+exit $status
