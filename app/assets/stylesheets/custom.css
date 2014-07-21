@@ -23,7 +23,23 @@ section {
 }
 
 section h1 {
-  font-size: 130%;
+  font-size: 135%;
+}
+
+section h2 {
+  font-size: 125%;
+}
+
+section h3 {
+  font-size: 115%;
+}
+
+section h4 {
+  font-size: 105%;
+}
+
+section h5 {
+  font-size: 102%;
 }
 
 /* links */
@@ -113,3 +129,38 @@ td.sidebar {
 div.field, div.actions {
   margin-bottom: 7px;
 }
+
+div.flash {
+  padding: 1em;
+  vertical-align: top;
+  background: #ffc;
+}
+
+#error_explanation {
+  color:#f00;
+  ul {
+    list-style: none;
+    margin: 0 0 18px 0;
+  }
+}
+
+.field_with_errors {
+  @extend .control-group;
+  @extend .error;
+}
+
+ /* users index */
+
+.users {
+  list-style: none;
+  margin: 0;
+  li {
+    overflow: auto;
+    padding: 10px 0;
+    border-top: 1px solid $grayLighter;
+    &:last-child {
+      border-bottom: 1px solid $grayLighter
+    }
+  }
+}
+

@@ -35,6 +35,12 @@ GEM
     arel (3.0.3)
     bigdecimal (1.2.0)
     builder (3.1.4)
+    capybara (2.1.0)
+      mime-types (>= 1.16)
+      nokogiri (>= 1.3.3)
+      rack (>= 1.0.0)
+      rack-test (>= 0.5.4)
+      xpath (~> 2.0)
     coffee-rails (3.2.2)
       coffee-script (>= 2.2.0)
       railties (~> 3.2.0)
@@ -59,14 +65,28 @@ GEM
       mime-types (~> 1.16)
       treetop (~> 1.4.8)
     mime-types (1.25.1)
+    mini_portile (0.6.0)
     minitest (4.7.5)
+    minitest-capybara (0.5.0)
+      capybara (~> 2.1.0)
+      minitest (~> 4.0)
+      rake
+    minitest-metadata (0.5.3)
+      minitest (>= 4.7, < 6.0)
     minitest-rails (1.0.1)
       minitest (~> 4.7)
       minitest-test (~> 1.0)
       railties (>= 3.0, < 4.1)
+    minitest-rails-capybara (1.0.0)
+      capybara (~> 2.0)
+      minitest-capybara (~> 0.5.0)
+      minitest-metadata (~> 0.5.0)
+      minitest-rails (~> 1.0)
     minitest-test (1.1.0)
       minitest (~> 4.0)
     multi_json (1.10.1)
+    nokogiri (1.6.2.1)
+      mini_portile (= 0.6.0)
     polyglot (0.3.5)
     rack (1.4.5)
     rack-cache (1.2)
@@ -114,6 +134,8 @@ GEM
     uglifier (2.5.1)
       execjs (>= 0.3.0)
       json (>= 1.8.0)
+    xpath (2.0.0)
+      nokogiri (~> 1.3)
 
 PLATFORMS
   ruby
@@ -125,6 +147,7 @@ DEPENDENCIES
   jquery-rails
   minitest
   minitest-rails (~> 1.0)
+  minitest-rails-capybara
   rails (= 3.2.13)
   ruby_contracts
   sass-rails (~> 3.2.3)

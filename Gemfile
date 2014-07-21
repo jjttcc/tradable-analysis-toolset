@@ -28,6 +28,7 @@ group :development, :test do
   gem 'minitest'
   gem "minitest-rails", "~> 1.0"
   gem 'factory_girl_rails', '1.0'
+  gem 'minitest-rails-capybara'
 end
 
 group :development do

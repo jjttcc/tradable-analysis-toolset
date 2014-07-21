@@ -9,8 +9,16 @@ class UsersController < ApplicationController
     @title = @user.email_addr
   end
 
-  def create(*args)
-    p args
+  def create
+    @user = User.new(params[:user])
+    if @user.save
+      appname = Rails.configuration.application_name
+      flash[:success] = "Welcome to #{appname}"
+      redirect_to @user
+    else
+      @title = 'Create login'
+      render 'new'
+    end
   end
 
 end
