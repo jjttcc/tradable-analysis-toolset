@@ -88,4 +88,10 @@ class UsersControllerTest < ActionController::TestCase
     assert flash[:success] =~ /Welcome.*Toolset/, 'correct flash message'
   end
 
+  def test_signed_in
+    init_create
+    post :create, :user => @good_attr
+    assert @controller.signed_in?
+  end
+
 end

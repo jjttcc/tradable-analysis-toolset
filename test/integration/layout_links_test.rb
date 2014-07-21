@@ -51,4 +51,29 @@ implementation_ready=false  #!!!!!!FIXME!!!!!
     click_link 'Sign in'
   end
 
+  describe "when not logged in" do
+    test 'should have a sign-in link' do
+      get '/'
+      assert_select 'a[href=?]', "#{signin_path}",
+        { :count => 1, :text => 'Sign in' }
+    end
+  end
+
+  def sign_in
+    @user = Factory(:user)
+    visit signin_path
+    fill_in 'Email address', :with => @user.email_addr
+    fill_in 'Password', :with => @user.password
+    click_button 'Submit'
+  end
+
+  describe "when logged in" do
+    test 'should have a sign-out link' do
+      sign_in
+      get '/'
+      assert_select 'a[href=?]', "#{signout_path}",
+        { :count => 1, :text => 'Sign out' }
+    end
+  end
+
 end

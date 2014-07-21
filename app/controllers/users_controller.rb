@@ -14,6 +14,7 @@ class UsersController < ApplicationController
     if @user.save
       appname = Rails.configuration.application_name
       flash[:success] = "Welcome to #{appname}"
+      sign_in(@user)
       redirect_to @user
     else
       @title = 'Create login'

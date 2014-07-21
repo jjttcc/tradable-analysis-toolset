@@ -72,6 +72,7 @@ class User < ActiveRecord::Base
 
   # 's' encrypted
   type :in => String, :out => String
+  post :result_exists do |result| result != nil && ! result.empty? end
   def encrypted(s)
     secure_hash("#{salt}--#{s}")
   end

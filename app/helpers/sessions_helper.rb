@@ -1,14 +1,27 @@
+require 'ruby_contracts'
+
 module SessionsHelper
+  include Contracts::DSL
+
   public
 
+  attr_reader :current_user
+
+  pre :user_exists do user != nil end
+  post :signed_in do signed_in? end
   def sign_in(user)
     #!!!!!!!!WARNING: cookie-based sessions - to be replaced by DB-based
     cookies.permanent.signed[:remember_token] = [user.id, user.salt]
-    current_user = user
+    @current_user = user
+    throw "! signed_in" if ! signed_in?
   end
 
-  def current_user=(user)
-    @current_user = user
+  pre :signed_in do signed_in? end
+  post :not_signed_in do ! signed_in? end
+  def sign_out
+    cookies.delete(:remember_token)
+#!!!![when using database, delete the session here]
+    @current_user = nil
   end
 
   def current_user
@@ -17,7 +30,12 @@ module SessionsHelper
 
   # Is 'current_user' signed in?
   def signed_in?
-    @current_user != nil
+    @why = ''
+    result = current_user != nil
+    if not result
+      @why = 'current_user was nil'
+    end
+    result
   end
 
   private
