@@ -7,6 +7,7 @@
 #  created_at         :datetime         not null
 #  updated_at         :datetime         not null
 #  encrypted_password :string(255)
+#  salt               :string(255)
 #
 
 require 'digest'
@@ -46,6 +47,15 @@ class User < ActiveRecord::Base
     u = find_by_email_addr(email)
     if u != nil and u.password_matches?(submitted_pw)
       result = u
+    end
+    result
+  end
+
+  def self.authenticated_with_salt(id, cookie_salt)
+    result = nil
+    user = find_by_id(id)
+    if user != nil && user.salt == cookie_salt
+      user
     end
     result
   end

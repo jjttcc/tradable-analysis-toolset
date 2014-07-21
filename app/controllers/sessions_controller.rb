@@ -1,17 +1,21 @@
+require 'ruby_contracts'
+
 class SessionsController < ApplicationController
+  include Contracts::DSL
+
   SIGN_IN_TITLE = 'Sign in'
 
   def new
     @title = SIGN_IN_TITLE
   end
 
+  pre :params_session_exists do params != nil && params[:session] != nil end
   def create
-p 'PARAMS:', params
-p 'PARAMS[:session]:', params[:session]
-    user = User.authenticated(params[:session][:email],
+    user = User.authenticated(params[:session][:email_addr],
                               params[:session][:password])
     if user != nil
-      ####
+      sign_in user
+      redirect_to user
     else
       flash.now[:error] = "Invalid email/password combination"
       @title = SIGN_IN_TITLE
