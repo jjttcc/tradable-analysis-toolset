@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # vim: expandtab
 
-db_only=
-no_db=
+part1_only=
+part2_only=
 case $1 in
-    db*) db_only=true ;;
-    nodb*) no_db=true
+    part1*) part1_only=true ;;
+    part2*) part2_only=true
 esac
 
 if type banner >/dev/null 2>&1; then
@@ -18,7 +18,7 @@ fi
 
 opts='-v'
 status=0
-if [ ! "$no_db" ]; then
+if [ ! "$part2_only" ]; then
     if TESTOPTS="$opts" rake; then
         echo First set SUCCEEDED
     else
@@ -26,9 +26,8 @@ if [ ! "$no_db" ]; then
         echo First set FAILED
     fi
 fi
-#if [ "$db_only" ]; then exit $status; fi
 
-if [ ! "$db_only" ]; then
+if [ ! "$part1_only" ]; then
     if TESTOPTS="$opts" rake test; then
         echo Second set SUCCEEDED
     else
