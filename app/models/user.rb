@@ -28,7 +28,7 @@ class User < ActiveRecord::Base
   validates :password, :presence => true,
                        :confirmation => true,
                        :length => { :within => 8..64 }
-  before_save :encrypt_password
+  before_save :encrypt_password, :create_remember_token
 
   public
 
@@ -68,6 +68,10 @@ class User < ActiveRecord::Base
       self.salt = new_salt
     end
     self.encrypted_password = encrypted(password)
+  end
+
+  def create_remember_token
+    self.remember_token = SecureRandom.urlsafe_base64
   end
 
   # 's' encrypted
