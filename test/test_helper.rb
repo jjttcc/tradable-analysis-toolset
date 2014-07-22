@@ -19,4 +19,27 @@ class ActiveSupport::TestCase
   fixtures :all
 
   # Add more helper methods to be used by all tests here...
+
+  # Return an array with 3 elements:
+  #   - a hash-table of valid user-attribute settings [<good-hash>]
+  #   - a hash-table of invalid user-attribute settings
+  #   - A new, valid (stored in DB) User object created with <good-hash>
+  def setup_test_user
+    bad_attr = {:email_addr => '', :password => ''}
+    good_attr = {
+      :email_addr            => 'iexist@test.org',
+      :password              => 'existence-is-futile',
+      :password_confirmation => 'existence-is-futile',
+    }
+    dbuser = User.find_by_email_addr(good_attr[:email_addr])
+    if dbuser == nil
+      # The user is not yet in the database.
+      dbuser = User.create!(good_attr)
+      if dbuser == nil
+        throw "Retrieval of user at #{good_attr[:email_addr]} failed."
+      end
+    end
+    [good_attr, bad_attr, dbuser]
+  end
+
 end

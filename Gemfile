@@ -29,6 +29,8 @@ group :development, :test do
   gem "minitest-rails", "~> 1.0"
   gem 'factory_girl_rails', '1.0'
   gem 'minitest-rails-capybara'
+  gem 'capybara_minitest_spec'  # for capybara integration and spec matchers
+  gem 'turn'                    # for report prettification
 end
 
 group :development do

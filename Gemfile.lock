@@ -32,6 +32,7 @@ GEM
     annotate (2.6.5)
       activerecord (>= 2.3.0)
       rake (>= 0.8.7)
+    ansi (1.4.3)
     arel (3.0.3)
     bigdecimal (1.2.0)
     builder (3.1.4)
@@ -41,6 +42,9 @@ GEM
       rack (>= 1.0.0)
       rack-test (>= 0.5.4)
       xpath (~> 2.0)
+    capybara_minitest_spec (1.0.2)
+      capybara (>= 2)
+      minitest (>= 2)
     coffee-rails (3.2.2)
       coffee-script (>= 2.2.0)
       railties (~> 3.2.0)
@@ -130,6 +134,9 @@ GEM
     treetop (1.4.15)
       polyglot
       polyglot (>= 0.3.1)
+    turn (0.9.7)
+      ansi
+      minitest (~> 4)
     tzinfo (0.3.39)
     uglifier (2.5.1)
       execjs (>= 0.3.0)
@@ -142,6 +149,7 @@ PLATFORMS
 
 DEPENDENCIES
   annotate
+  capybara_minitest_spec
   coffee-rails (~> 3.2.1)
   factory_girl_rails (= 1.0)
   jquery-rails
@@ -152,4 +160,5 @@ DEPENDENCIES
   ruby_contracts
   sass-rails (~> 3.2.3)
   sqlite3
+  turn
   uglifier (>= 1.0.3)

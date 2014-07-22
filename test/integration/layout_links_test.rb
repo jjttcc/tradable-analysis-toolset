@@ -34,13 +34,8 @@ class LayoutLinksTest < ActionDispatch::IntegrationTest
   end
 
   test "should have sign-out page at '/signout'" do
-implementation_ready=false  #!!!!!!FIXME!!!!!
-    if implementation_ready
-      get '/signout'
-      assert_response :success
-#!!!!!!!bogus, i believe:
-      assert_select 'title', /Sign out/
-    end
+    get '/signout'
+    assert_redirected_to root_path
   end
 
   test "should have the right links on the layout" do
@@ -59,20 +54,28 @@ implementation_ready=false  #!!!!!!FIXME!!!!!
     end
   end
 
+  def setup
+    @good_attr, @bad_attr, @good_user = setup_test_user
+  end
+
   def sign_in
-    @user = Factory(:user)
     visit signin_path
-    fill_in 'Email address', :with => @user.email_addr
-    fill_in 'Password', :with => @user.password
+    fill_in 'Email address', :with => @good_user.email_addr
+    fill_in 'Password', :with => @good_user.password
     click_button 'Submit'
   end
 
-  describe "when logged in" do
+  describe "while signed in" do
     test 'should have a sign-out link' do
       sign_in
-      get '/'
-      assert_select 'a[href=?]', "#{signout_path}",
-        { :count => 1, :text => 'Sign out' }
+      visit root_path
+      page.find_link('Sign out').wont_be_nil
+    end
+
+    test 'should have a profile link' do
+      sign_in
+      visit root_path
+      page.find_link('Profile').wont_be_nil
     end
   end
 

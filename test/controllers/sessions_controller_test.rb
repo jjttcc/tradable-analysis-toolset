@@ -14,21 +14,7 @@ class SessionsControllerTest < ActionController::TestCase
   end
 
   def setup
-    @bad_attr = {:email_addr => '', :password => ''}
-    @good_attr = {
-      :email_addr            => 'iexist@test.org',
-      :password              => 'existence-is-futile',
-      :password_confirmation => 'existence-is-futile',
-    }
-    @dbuser = User.find_by_email_addr(@good_attr[:email_addr])
-    if @dbuser == nil
-      # The user is not yet in the database.
-      @dbuser = User.create!(@good_attr)
-      if @dbuser == nil
-        @dbuser = @user
-        throw "Retrieval of user at #{@good_attr[:email_addr]} failed."
-      end
-    end
+    @good_attr, @bad_attr, @good_user = setup_test_user
   end
 
   ### UNsuccessful login
@@ -45,7 +31,7 @@ class SessionsControllerTest < ActionController::TestCase
 
   def test_good_redirect
     post :create, :session => @good_attr
-    assert_redirected_to user_path(@dbuser), "successful login redirect"
+    assert_redirected_to user_path(@good_user), "successful login redirect"
     assert @controller.signed_in?, 'signed in'
   end
 
@@ -53,7 +39,7 @@ class SessionsControllerTest < ActionController::TestCase
 
   def test_logout
     post :create, :session => @good_attr
-    delete :destroy, :session => @good_attr
+    delete :destroy
     assert_redirected_to root_path, "successful logout completion"
     assert ! @controller.signed_in?, 'signed out'
   end
