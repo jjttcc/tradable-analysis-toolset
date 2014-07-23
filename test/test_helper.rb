@@ -42,4 +42,12 @@ class ActiveSupport::TestCase
     [good_attr, bad_attr, dbuser]
   end
 
+  # Go to the "sign-in" page and log 'user' in.
+  def sign_in(user)
+    visit signin_path
+    fill_in 'Email address', :with => user.email_addr
+    fill_in 'Password', :with => user.password
+    click_button 'Submit'
+  end
+
 end

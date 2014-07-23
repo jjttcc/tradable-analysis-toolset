@@ -94,4 +94,50 @@ class UsersControllerTest < ActionController::TestCase
     assert @controller.signed_in?
   end
 
+  ### GET 'edit' ###
+
+  def test_begin_edit
+    _, _, user = setup_test_user
+    @controller.sign_in(user)
+    get :edit, :id => user
+    assert_response :success
+  end
+
+  def test_edit_title
+    _, _, user = setup_test_user
+    @controller.sign_in(user)
+    get :edit, :id => user
+    assert_select 'title', /Edit\s+user/
+  end
+
+  ### update ###
+
+  GOOD_ATTRS1 = {
+    :email_addr            => 'newtester@tester.org',
+    :password              => 'newpwpwpw',
+    :password_confirmation => 'newpwpwpw',
+  }
+
+  def test_bad_update
+    _, badattr, user = setup_test_user
+    @controller.sign_in(user)
+    put :update, :id => user, :user => badattr
+    assert_select 'title', /Edit\s+user/
+  end
+
+  def test_good_update
+    _, _, user = setup_test_user
+    @controller.sign_in(user)
+    put :update, :id => user, :user => GOOD_ATTRS1
+    user.reload
+    assert user.email_addr == GOOD_ATTRS1[:email_addr], 'emails match'
+  end
+
+  def test_update_flash
+    _, _, user = setup_test_user
+    @controller.sign_in(user)
+    put :update, :id => user, :user => GOOD_ATTRS1
+    assert flash[:success] =~ /Updated/i, 'correct flash message'
+  end
+
 end

@@ -58,25 +58,25 @@ class LayoutLinksTest < ActionDispatch::IntegrationTest
     @good_attr, @bad_attr, @good_user = setup_test_user
   end
 
-  def sign_in
-    visit signin_path
-    fill_in 'Email address', :with => @good_user.email_addr
-    fill_in 'Password', :with => @good_user.password
-    click_button 'Submit'
-  end
-
   describe "while signed in" do
     test 'should have a sign-out link' do
-      sign_in
+      sign_in(@good_user)
       visit root_path
       page.find_link('Sign out').wont_be_nil
     end
 
     test 'should have a profile link' do
-      sign_in
+      sign_in(@good_user)
       visit root_path
       page.find_link('Profile').wont_be_nil
     end
+
+    test 'should have a settings link' do
+      sign_in(@good_user)
+      visit root_path
+      page.find_link('Settings').wont_be_nil
+    end
+
   end
 
 end

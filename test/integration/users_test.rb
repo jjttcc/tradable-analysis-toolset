@@ -49,11 +49,8 @@ class UsersTest < ActionDispatch::IntegrationTest
 
       describe "success" do
         it "should sign a user in and out" do
-          a, b, user = setup_test_user
-          visit signin_path
-          fill_in "Email address", :with => user.email_addr
-          fill_in "Password",      :with => user.password
-          click_button 'Submit'
+          _, _, user = setup_test_user
+          sign_in(user)
           click_link 'Sign out'   # prove signed in
           click_link 'Sign in'    # prove signed out
         end
