@@ -1,7 +1,7 @@
 <style type="text/css">
 <!--
 table {
-  background: #aac0c9;
+  background: #dfdef9;
   width : 106%;
   table-layout: fixed;
   margin-left: -20px;
@@ -19,13 +19,14 @@ td {
   float: left;
   padding: 5px 20px 00px 00px;
   margin-left: 40px;
-  background: #ffffbf;
+  /*background: #ffffbf;*/
 }
 td:last-child {
   margin-right: 0;
 }
 -->
 </style>
+<%= will_paginate %>
 <table class="round" summary="User list">
   <tr>
     <th>
@@ -40,3 +41,4 @@ td:last-child {
     <% end %>
   </tr>
 </table>
+<%= will_paginate %>

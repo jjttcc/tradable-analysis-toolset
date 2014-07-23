@@ -1,4 +1,5 @@
 source 'https://rubygems.org'
+# vim: expandtab ts=2 sw=2
 
 gem 'rails', '3.2.13'
 
@@ -6,6 +7,8 @@ gem 'rails', '3.2.13'
 # gem 'rails', :git => 'git://github.com/rails/rails.git'
 
 gem 'sqlite3'
+#gem 'will_paginate', '3.0.pre'
+gem 'will_paginate'
 
 
 # Gems used only for assets and not required
@@ -34,6 +37,7 @@ group :development, :test do
 end
 
 group :development do
+  gem 'faker', '0.3.1'
   gem 'annotate'
 end
 

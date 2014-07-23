@@ -7,9 +7,10 @@ class UsersController < ApplicationController
 
   pre :signed_in do signed_in? end
   post :title do @title == 'User list' end
-  post :users do @users != nil and @users.kind_of?(Array) end
+  post :users do @users != nil end
   def index
-    @users = User.all
+#    @users = User.all
+    @users = User.paginate(:page => params[:page])
     @title = 'User list'
   end
 

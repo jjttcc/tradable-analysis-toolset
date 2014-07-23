@@ -30,6 +30,9 @@ class UsersControllerTest < ActionController::TestCase
     @stored_user2 = setup_test_user_with_eaddr('ibeuser2@users.org')[2]
     @stored_user3 = setup_test_user_with_eaddr('ibeuser3@users.org')[2]
     @user = @stored_user1
+    35.times do
+      Factory(:user, :email_addr => Factory.next(:email))
+    end
   end
 
   def test_show
@@ -76,7 +79,7 @@ class UsersControllerTest < ActionController::TestCase
   def test_find_stored_users
     @user = signed_in_user
     get :index
-    User.all.each do |u|
+    User.paginate(:page => 1).each do |u|
       assert_select 'body', /#{u.email_addr}/, 'body contains user'
     end
   end
