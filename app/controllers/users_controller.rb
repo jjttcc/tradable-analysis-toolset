@@ -2,8 +2,16 @@ require 'ruby_contracts'
 
 class UsersController < ApplicationController
   include Contracts::DSL
-  before_filter :authenticate,        :only => [:edit, :update, :show]
+  before_filter :authenticate,        :only => [:edit, :update, :show, :index]
   before_filter :ensure_correct_user, :only => [:edit, :update, :show]
+
+  pre :signed_in do signed_in? end
+  post :title do @title == 'User list' end
+  post :users do @users != nil and @users.kind_of?(Array) end
+  def index
+    @users = User.all
+    @title = 'User list'
+  end
 
   def new
     @user = User.new

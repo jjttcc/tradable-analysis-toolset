@@ -77,6 +77,12 @@ class LayoutLinksTest < ActionDispatch::IntegrationTest
       page.find_link('Settings').wont_be_nil
     end
 
+    test 'should have a users link' do
+      sign_in(@good_user)
+      visit root_path
+      page.find_link('Users').wont_be_nil
+    end
+
   end
 
 end

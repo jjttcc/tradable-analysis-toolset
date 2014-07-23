@@ -22,7 +22,14 @@ class UsersControllerTest < ActionController::TestCase
   ### GET 'show' ###
 
   def setup
-    @user = Factory(:user)
+    # Requre that contract-checking is enabled:
+    if not ENV['ENABLE_ASSERTION']
+      raise "ENABLE_ASSERTION environment variable needs to be set."
+    end
+    @stored_user1 = setup_test_user_with_eaddr('ibeuser1@users.org')[2]
+    @stored_user2 = setup_test_user_with_eaddr('ibeuser2@users.org')[2]
+    @stored_user3 = setup_test_user_with_eaddr('ibeuser3@users.org')[2]
+    @user = @stored_user1
   end
 
   def test_show
@@ -51,6 +58,36 @@ class UsersControllerTest < ActionController::TestCase
   def test_show_not_logged_in
     get :show, :id => @user
     assert_redirected_to signin_path
+  end
+
+  ### GET 'index' ###
+
+  def test_index
+    get :index, :id => signed_in_user
+    assert_response :success
+  end
+
+  def test_index_title
+    @user = signed_in_user
+    get :index
+    assert_select 'title', /user\s+list/i
+  end
+
+  def test_find_stored_users
+    @user = signed_in_user
+    get :index
+    User.all.each do |u|
+      assert_select 'body', /#{u.email_addr}/, 'body contains user'
+    end
+  end
+
+  def test_index_not_logged_in
+    begin
+      get :index
+      assert_redirected_to signin_path
+    rescue Contracts::Error => e
+      puts "[caught expected contract violation: #{e}]"
+    end
   end
 
   ### POST 'create' ###
@@ -104,8 +141,12 @@ class UsersControllerTest < ActionController::TestCase
 
   ### GET 'edit' ###
 
-  def signed_in_user
+  def signed_in_user(u = nil)
+    if u != nil
+      user = u
+    else
     _, _, user = setup_test_user
+    end
     @controller.sign_in(user)
     user
   end

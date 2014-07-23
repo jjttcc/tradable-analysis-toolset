@@ -78,6 +78,13 @@ class ActiveSupport::TestCase
     user
   end
 
+  # A new, signed in user with the specified email address
+  def signed_in_user_with_eaddr(e)
+    _, _, user = setup_test_user_with_eaddr(e)
+    sign_in(user)
+    user
+  end
+
   # Assume we're already on the sign-in page and attempt to log 'user' in.
   def sign_in_without_visiting(user)
     fill_in 'Email address', :with => user.email_addr

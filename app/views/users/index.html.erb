@@ -1,0 +1,42 @@
+<style type="text/css">
+<!--
+table {
+  background: #aac0c9;
+  width : 106%;
+  table-layout: fixed;
+  margin-left: -20px;
+}
+/*
+tr td:first-child {
+  padding-left: 10px;
+}
+*/
+td {
+/*    display: block; */
+  font-size: 100%;
+  width: 35%;
+  overflow: hidden;
+  float: left;
+  padding: 5px 20px 00px 00px;
+  margin-left: 40px;
+  background: #ffffbf;
+}
+td:last-child {
+  margin-right: 0;
+}
+-->
+</style>
+<table class="round" summary="User list">
+  <tr>
+    <th>
+      <%= "#{@users.count} users" %>
+    </th>
+    <% @users.each do |u| %>
+      <!--<tr class="sidebar round">-->
+    <tr>
+      <td><%= u.email_addr %></td>
+      <td><%= link_to user_path(u), u %></td>
+    </tr>
+    <% end %>
+  </tr>
+</table>
