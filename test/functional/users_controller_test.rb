@@ -26,23 +26,31 @@ class UsersControllerTest < ActionController::TestCase
   end
 
   def test_show
-    get :show, :id => @user
+    get :show, :id => signed_in_user
     assert_response :success
   end
 
   def test_show_correct_user
-    get :show, :id => @user.id
-    assert assigns(:user) == @user, "correct user"
+    user = signed_in_user
+    get :show, :id => user.id
+    assert assigns(:user) == user, "correct user"
   end
 
   def test_show_correct_title
-    get :show, :id => @user.id
-    assert_select 'title', /#{@user.email_addr}/, 'correct title'
+    user = signed_in_user
+    get :show, :id => user.id
+    assert_select 'title', /#{user.email_addr}/, 'correct title'
   end
 
   def test_show_correct_h1
-    get :show, :id => @user.id
-    assert_select 'h1', /#{@user.email_addr}/, 'correct h1'
+    user = signed_in_user
+    get :show, :id => user.id
+    assert_select 'h1', /#{user.email_addr}/, 'correct h1'
+  end
+
+  def test_show_not_logged_in
+    get :show, :id => @user
+    assert_redirected_to signin_path
   end
 
   ### POST 'create' ###
@@ -143,7 +151,7 @@ class UsersControllerTest < ActionController::TestCase
     assert flash[:success] =~ /Updated/i, 'correct flash message'
   end
 
-  ### restricted GET-'edit'/update access ###
+  ### restricted GET-'edit'/update access - for non-signed-in users ###
 
   def test_deny_access_to_edit
     user = signed_in_user
@@ -158,6 +166,24 @@ class UsersControllerTest < ActionController::TestCase
     put :update, :id => user, :user => {}
     assert_redirected_to signin_path
     assert flash[:notice] =~ /sign\s+in/i, 'correct flash message'
+  end
+
+  ### restricted GET-'edit'/update access - for non-signed-in users ###
+
+  def test_edit_wrong_user
+    _, _, user = setup_test_user
+    user[:email_addr] = 'otheruser@example.net'
+    @controller.sign_in(user)
+    get :edit, :id => @user
+    assert_redirected_to root_path
+  end
+
+  def test_update_wrong_user
+    _, _, user = setup_test_user
+    user[:email_addr] = 'otheruser@example.net'
+    @controller.sign_in(user)
+    put :update, :id => @user, :user => {}
+    assert_redirected_to root_path
   end
 
 end

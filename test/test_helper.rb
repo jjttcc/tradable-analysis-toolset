@@ -42,9 +42,44 @@ class ActiveSupport::TestCase
     [good_attr, bad_attr, dbuser]
   end
 
+  # Same as 'setup_test_user' except the user will have the specified email
+  # address, and the invalid hash (2nd result/element) will have 'email' as
+  # its email address and an empty password.
+  def setup_test_user_with_eaddr(email)
+    bad_attr = {:email_addr => email, :password => ''}
+    good_attr = {
+      :email_addr            => email,
+      :password              => 'this-be-secret',
+    }
+    good_attr[:password_confirmation] = good_attr[:password]
+    dbuser = User.find_by_email_addr(good_attr[:email_addr])
+    if dbuser == nil
+      # The user is not yet in the database.
+      dbuser = User.create!(good_attr)
+      if dbuser == nil
+        throw "Retrieval of user at #{good_attr[:email_addr]} failed."
+      end
+    end
+    [good_attr, bad_attr, dbuser]
+  end
+
   # Go to the "sign-in" page and log 'user' in.
   def sign_in(user)
     visit signin_path
+    fill_in 'Email address', :with => user.email_addr
+    fill_in 'Password', :with => user.password
+    click_button 'Submit'
+  end
+
+  # A valid, signed in (setup_test_user) user
+  def signed_in_user
+    _, _, user = setup_test_user
+    sign_in(user)
+    user
+  end
+
+  # Assume we're already on the sign-in page and attempt to log 'user' in.
+  def sign_in_without_visiting(user)
     fill_in 'Email address', :with => user.email_addr
     fill_in 'Password', :with => user.password
     click_button 'Submit'

@@ -1,5 +1,10 @@
-module SessionsHelper
+require 'ruby_contracts'
 
+module SessionsHelper
+  include Contracts::DSL
+
+  pre :user_exists do |user| user != nil end
+  #post :signed_in do |user| current_user == user and signed_in? end
   def sign_in(user)
     cookies.permanent[:remember_token] = user.remember_token
     current_user = user
@@ -33,7 +38,7 @@ module SessionsHelper
     cookies.delete(:remember_token)
   end
 
-  def redirect_back_or(default)
+  def redirect_back_or_to(default)
     redirect_to(session[:return_to] || default)
     clear_return_to
   end
@@ -43,18 +48,19 @@ module SessionsHelper
   end
 
   def deny_access
+    store_location
     redirect_to signin_path, :notice => "Please sign in."
   end
 
   private
 
-    def user_from_remember_token
-      remember_token = cookies[:remember_token]
-      User.find_by_remember_token(remember_token) unless remember_token.nil?
-    end
+  def user_from_remember_token
+    remember_token = cookies[:remember_token]
+    User.find_by_remember_token(remember_token) unless remember_token.nil?
+  end
 
-    def clear_return_to
-      session.delete(:return_to)
-    end
+  def clear_return_to
+    session.delete(:return_to)
+  end
 
 end
