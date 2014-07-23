@@ -5,4 +5,5 @@ class ApplicationController < ActionController::Base
   def index
     @motd = MOTD.new
   end
+
 end

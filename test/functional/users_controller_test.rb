@@ -96,17 +96,23 @@ class UsersControllerTest < ActionController::TestCase
 
   ### GET 'edit' ###
 
-  def test_begin_edit
+  def signed_in_user
     _, _, user = setup_test_user
     @controller.sign_in(user)
-    get :edit, :id => user
+    user
+  end
+
+  def sign_out
+    @controller.sign_out
+  end
+
+  def test_begin_edit
+    get :edit, :id => signed_in_user
     assert_response :success
   end
 
   def test_edit_title
-    _, _, user = setup_test_user
-    @controller.sign_in(user)
-    get :edit, :id => user
+    get :edit, :id => signed_in_user
     assert_select 'title', /Edit\s+user/
   end
 
@@ -126,18 +132,32 @@ class UsersControllerTest < ActionController::TestCase
   end
 
   def test_good_update
-    _, _, user = setup_test_user
-    @controller.sign_in(user)
+    user = signed_in_user
     put :update, :id => user, :user => GOOD_ATTRS1
     user.reload
     assert user.email_addr == GOOD_ATTRS1[:email_addr], 'emails match'
   end
 
   def test_update_flash
-    _, _, user = setup_test_user
-    @controller.sign_in(user)
-    put :update, :id => user, :user => GOOD_ATTRS1
+    put :update, :id => signed_in_user, :user => GOOD_ATTRS1
     assert flash[:success] =~ /Updated/i, 'correct flash message'
+  end
+
+  ### restricted GET-'edit'/update access ###
+
+  def test_deny_access_to_edit
+    user = signed_in_user
+    sign_out
+    get :edit, :id => user
+    assert_redirected_to signin_path
+  end
+
+  def test_deny_access_to_update
+    user = signed_in_user
+    sign_out
+    put :update, :id => user, :user => {}
+    assert_redirected_to signin_path
+    assert flash[:notice] =~ /sign\s+in/i, 'correct flash message'
   end
 
 end
