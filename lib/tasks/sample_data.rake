@@ -9,9 +9,13 @@ namespace :db do
     100.times do |n|
       eaddr = "#{email_base}-#{n+1}@users.org"
       password = "drowssap"
-      User.create!(:email_addr => eaddr,
+      u = User.create!(:email_addr => eaddr,
                    :password => password,
                    :password_confirmation => password)
+      if n == 0   # Force user 1 to be admin.
+        u.toggle!(:admin)
+        u.save
+      end
     end
   end
 end

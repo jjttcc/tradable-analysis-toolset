@@ -62,7 +62,7 @@ a:visited {
 
 nav {
   float: right;
-  background: white;
+  /*background: white;*/
   padding: 0 0.7em
   white-space: nowrap;
 }
@@ -92,9 +92,11 @@ nav ul li a:hover {
 }
 
 .round {
-  -moz-border-radius:      10px;
-  -webkit-border-radius:   10px;
-  border-radius:           10px
+  -moz-border-radius:     10px;
+  -webkit-border-radius:  10px;
+  border-radius:          10px;
+  background: #cfd0e0;
+  background: #d4d5bf;
 }
 
 footer {

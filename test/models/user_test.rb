@@ -8,6 +8,8 @@
 #  updated_at         :datetime         not null
 #  encrypted_password :string(255)
 #  salt               :string(255)
+#  remember_token     :string(255)
+#  admin              :boolean          default(FALSE)
 #
 
 require "test_helper"
@@ -163,7 +165,7 @@ class UserTest < ActiveSupport::TestCase
     assert @pw_user.respond_to?(:salt), "has 'salt' attribute"
   end
 
-  ### User/Password authentication
+  ### User/Password authentication ###
 
   def test_has_auth_method
     assert User.respond_to?(:authenticated), "has 'authenticated' method"
@@ -180,6 +182,23 @@ class UserTest < ActiveSupport::TestCase
   def test_good_auth
     assert User.authenticated(GOOD_ARGS2[:email_addr],
                              GOOD_ARGS2[:password]) == @pw_user, "good auth"
+  end
+
+  ### User administrative authorization ###
+
+  def test_admin_query
+    assert valid_user.respond_to?(:admin?), 'has admin? query'
+  end
+
+  def test_not_default_admin
+    assert ! valid_user.admin?, 'not admin? by default'
+  end
+
+  def test_convert_to_admin
+    valid_user.toggle!(:admin)
+    assert @valid_user.admin?, 'admin? after toggle'
+    @valid_user.toggle!(:admin)
+    assert ! @valid_user.admin?, 'non-admin? after second toggle'
   end
 
 end

@@ -2,8 +2,10 @@ require 'ruby_contracts'
 
 class UsersController < ApplicationController
   include Contracts::DSL
-  before_filter :authenticate,        :only => [:edit, :update, :show, :index]
+  before_filter :authenticate,        :only => [:edit, :update, :show,
+                                                :index, :destroy]
   before_filter :ensure_correct_user, :only => [:edit, :update, :show]
+  before_filter :ensure_admin,        :only => :destroy
 
   pre :signed_in do signed_in? end
   post :title do @title == 'User list' end
@@ -60,6 +62,21 @@ class UsersController < ApplicationController
     end
   end
 
+  pre :user_is_admin do signed_in? and current_user.admin? end
+  pre :target_exists do User.find_by_id(params[:id]) != nil end
+  post :user_removed do tgt = User.find_by_id(params[:id])
+                        tgt == current_user || tgt == nil end
+  def destroy
+    u = User.find(params[:id])
+    if u != current_user
+      u.destroy
+      flash[:success] = "#{u.email_addr} deleted"
+    else
+      flash[:failure] = "Failed: admin cannot delete itself."
+    end
+    redirect_to users_path
+  end
+
   private
 
   def authenticate
@@ -69,8 +86,14 @@ class UsersController < ApplicationController
   end
 
   def ensure_correct_user
-    user = User.find(params[:id])
+    user = User.find_by_id(params[:id])
     if user != current_user
+      redirect_to root_path
+    end
+  end
+
+  def ensure_admin
+    if ! current_user.admin?
       redirect_to root_path
     end
   end

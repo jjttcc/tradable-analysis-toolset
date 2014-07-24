@@ -29,6 +29,8 @@ class UsersControllerTest < ActionController::TestCase
     @stored_user1 = setup_test_user_with_eaddr('ibeuser1@users.org')[2]
     @stored_user2 = setup_test_user_with_eaddr('ibeuser2@users.org')[2]
     @stored_user3 = setup_test_user_with_eaddr('ibeuser3@users.org')[2]
+    @admin_user = setup_test_user_with_eaddr('admin@users.org')[2]
+    @admin_user.toggle!(:admin)
     @user = @stored_user1
     35.times do
       Factory(:user, :email_addr => Factory.next(:email))
@@ -228,6 +230,66 @@ class UsersControllerTest < ActionController::TestCase
     @controller.sign_in(user)
     put :update, :id => @user, :user => {}
     assert_redirected_to root_path
+  end
+
+  ### restricted access - admin user ###
+
+  def test_admin_delete_links
+    user = signed_in_user
+    user.toggle!(:admin)
+    otheruser = User.all.second
+    get :index
+      'non-admin user should not see "delete" links'
+    assert_select('a', { :href => user_path(otheruser),
+                         :text => /delete/i }, 'admin has delete')
+  end
+
+  def test_nonadmin_no_delete_links
+    user = signed_in_user
+    get :index
+    assert response.body !~ /href.*delete[^<]*<\s*\/\s*a\s*>/i,
+      'non-admin user should not see "delete" links'
+  end
+
+  ### restricted access - admin user ###
+
+  def test_not_signed_in_delete
+    delete :destroy, :id => @stored_user1
+    assert_redirected_to signin_path, 'must sign-in before delete'
+  end
+
+  def test_nonadmin_delete
+    user = signed_in_user
+    otheruser = User.all.second
+    delete :destroy, :id => otheruser
+    assert_redirected_to root_path, 'non-admin cannot delete'
+  end
+
+  def test_admin_delete
+    admin_user = signed_in_user(@admin_user)
+    assert admin_user.admin?
+    otheruser = @stored_user3
+    oldcount = User.count
+    assert User.find_by_id(otheruser[:id]) != nil, 'target exists'
+    delete :destroy, :id => otheruser
+    assert User.find_by_id(otheruser[:id]) == nil, 'admin can delete'
+    assert User.count == oldcount - 1, 'one less user'
+  end
+
+  def test_admin_redirected_after_delete
+    admin_user = signed_in_user(@admin_user)
+    otheruser = @stored_user2
+    delete :destroy, :id => otheruser
+    assert flash[:success] =~ /deleted/i, 'flash message'
+    assert_redirected_to users_path, 'admin after delete'
+  end
+
+  def test_admin_cannot_destroy_itself
+    admin_user = signed_in_user(@admin_user)
+    oldcount = User.count
+    delete :destroy, :id => admin_user
+    assert User.find_by_id(admin_user) != nil, 'not deleted'
+    assert User.count == oldcount, 'same count'
   end
 
 end
