@@ -1,5 +1,5 @@
 .container {
-  width: 710px;
+  width: 98%;
 }
 
 body {
@@ -99,16 +99,49 @@ nav ul li a:hover {
   background: #d4d5bf;
 }
 
+.user_email {
+  font-size: 85%;
+}
+
+.stat {
+  font-size: 90%;
+}
+
+.pagination {
+  width: 85%;
+}
+
 footer {
   text-align: center;
   margin-top: 10px;
-  width:      710px;
+  width: 100%;
   margin-left:  auto;
   margin-right: auto;
 }
 
 footer nav {
   float: none;
+}
+
+table.users {
+  /*background: #cfd0e0;*/
+  width : 100%;
+  table-layout: fixed;
+  margin-bottom: 2%;
+}
+
+td.users {
+  /*
+  padding: 5px 20px 00px 00px;
+   */
+  float: left;
+  overflow: hidden;
+  margin-left: 20px;
+  width: 30%;
+  <% if current_user.admin? %>
+    /*
+     */
+  <% end %>
 }
 
 /* User show page */
