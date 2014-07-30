@@ -22,3 +22,6 @@ library
 
 files
 tags
+
+/bin/runtest_tee
+artifacts/
