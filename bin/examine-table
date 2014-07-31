@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# display schema for the specified tables.
+
+db=$(ls db/dev*)
+if [ "$DB" ]; then
+    db=$(ls db/$DB*)
+fi
+if [ $# -eq 0 ]; then
+    echo ".tables"|sqlite3  $db
+fi
+
+for t; do
+    table=$t
+    echo ".schema $table"|sqlite3  $db |sed 's@, *@\
+@g'
+done
