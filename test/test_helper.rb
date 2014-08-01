@@ -11,6 +11,8 @@ require "minitest/rails/capybara"
 # Uncomment for awesome colorful output
 #require "minitest/pride"
 
+require "#{Rails.root}/db/seeds.rb"
+
 class ActiveSupport::TestCase
     # Setup all fixtures in test/fixtures/*.(yml|csv) for all tests in alphabetical order.
   #
