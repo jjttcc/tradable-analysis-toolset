@@ -23,6 +23,8 @@ class User < ActiveRecord::Base
   attr_accessor   :password, :password_confirmation
   attr_accessible :email_addr, :password, :password_confirmation
 
+  has_many :period_type_specs, :dependent => :destroy
+
   validates :email_addr, :presence       => true,
                          :uniqueness     => { :case_sensitive => false }
   validates_format_of :email_addr, :with =>

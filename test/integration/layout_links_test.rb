@@ -68,19 +68,38 @@ class LayoutLinksTest < ActionDispatch::IntegrationTest
     test 'should have a profile link' do
       sign_in(@good_user)
       visit root_path
-      page.find_link('Profile').wont_be_nil
+      page.find_link('Settings').wont_be_nil
     end
 
     test 'should have a settings link' do
       sign_in(@good_user)
       visit root_path
-      page.find_link('Settings').wont_be_nil
+      page.find_link('Account').wont_be_nil
     end
 
-    test 'should have a users link' do
-      sign_in(@good_user)
+    test 'admin should have a users link' do
+      user = admin_user
+      assert user.admin?, 'user is an admin'
+      sign_in(user)
       visit root_path
-      page.find_link('Users').wont_be_nil
+      begin
+        page.find_link('Users')
+      rescue Exception => e
+        assert false, 'Users link should have been found.'
+      end
+    end
+
+    test 'non-admin should NOT have a users link' do
+      user = non_admin_user
+      assert ! user.admin?, 'user is NOT an admin'
+      sign_in(user)
+      visit root_path
+      begin
+        page.find_link('Users')
+      rescue Exception => e
+        assert e.to_s =~ /unable to find link/i,
+          'users link should not be found'
+      end
     end
 
   end

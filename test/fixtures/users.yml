@@ -15,8 +15,8 @@
 # Read about fixtures at
 # http://api.rubyonrails.org/classes/ActiveRecord/Fixtures.html
 
-one:
-  email_addr: email-one@example.com
-
-two:
-  email_addr: email-two@example.com
+#one:
+#  email_addr: email-one@example.com
+#
+#two:
+#  email_addr: email-two@example.com

@@ -68,18 +68,45 @@ class UsersControllerTest < ActionController::TestCase
   ### GET 'index' ###
 
   def test_index
-    get :index, :id => signed_in_user
-    assert_response :success
+    nonadmin = signed_in_user
+    if nonadmin.admin? then nonadmin.toggle!(:admin) end
+    get :index, :id => nonadmin
+    assert_redirected_to root_path, 'non-admin gets redirected'
+  end
+
+  def test_index_admin
+    admin = signed_in_user
+    if ! admin.admin? then admin.toggle!(:admin) end
+    get :index, :id => admin
+    assert_response :success, 'admin gets index'
   end
 
   def test_index_title
-    @user = signed_in_user
+    user = signed_in_user
+    if user.admin? then user.toggle!(:admin) end
+    get :index
+    assert_select 'title', {count: 0, text: /user\s+list/i},
+      'title contains no user list'
+  end
+
+  def test_index_title_admin
+    admin = signed_in_user
+    if ! admin.admin? then admin.toggle!(:admin) end
     get :index
     assert_select 'title', /user\s+list/i
   end
 
   def test_find_stored_users
     @user = signed_in_user
+    if @user.admin? then @user.toggle!(:admin) end
+    assert ! @user.admin?
+    get :index
+    User.paginate(:page => 1).each do |u|
+      assert_select "body", {count: 0, text: /#{u.email_addr}/},
+        'body contains no users'
+    end
+    @user.toggle!(:admin)
+    assert @user.admin?
     get :index
     User.paginate(:page => 1).each do |u|
       assert_select 'body', /#{u.email_addr}/, 'body contains user'

@@ -1,0 +1,14 @@
+# Read about fixtures at
+# http://api.rubyonrails.org/classes/ActiveRecord/Fixtures.html
+
+#one:
+#  period_type_id: 1
+#  start_date: 2014-08-01 10:40:30
+#  end_date: 2014-08-01 10:40:30
+#  user: 
+#
+#two:
+#  period_type_id: 1
+#  start_date: 2014-08-01 10:40:30
+#  end_date: 2014-08-01 10:40:30
+#  user: 
