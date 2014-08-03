@@ -5,13 +5,12 @@ class UsersController < ApplicationController
   before_filter :authenticate,        :only => [:edit, :update, :show,
                                                 :index, :destroy]
   before_filter :ensure_correct_user, :only => [:edit, :update, :show]
-  before_filter :ensure_admin,        :only => :destroy
+  before_filter :ensure_admin,        :only => [:destroy, :index]
 
   pre :signed_in do signed_in? end
   post :title do @title == 'User list' end
   post :users do @users != nil end
   def index
-#    @users = User.all
     @users = User.paginate(:page => params[:page])
     @title = 'User list'
   end
@@ -54,7 +53,7 @@ class UsersController < ApplicationController
   def update
     @user = User.find(params[:id])
     if @user.update_attributes(params[:user])
-      flash[:success] = "Profile updated."
+      flash[:success] = "Settings updated."
       redirect_to @user
     else
       @title = "Edit user"

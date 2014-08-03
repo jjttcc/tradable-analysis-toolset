@@ -18,7 +18,7 @@ class ActiveSupport::TestCase
   #
   # Note: You'll currently still have to declare fixtures explicitly in integration tests
   # -- they do not yet inherit this setting
-  fixtures :all
+  #####fixtures :all
 
   # Add more helper methods to be used by all tests here...
 
@@ -92,6 +92,30 @@ class ActiveSupport::TestCase
     fill_in 'Email address', :with => user.email_addr
     fill_in 'Password', :with => user.password
     click_button 'Submit'
+  end
+
+  # The 'admin' user from the database
+  def admin_user
+    email = TestConstants::ADMIN_EMAIL
+    pw = TestConstants::ADMIN_PW
+    result = User.find_by_email_addr(email)
+    result.password = pw
+    if result == nil
+      throw "Retrieval of admin user at #{email} failed."
+    end
+    result
+  end
+
+  # The 'non-admin' user from the database
+  def non_admin_user
+    email = TestConstants::NONADMIN_EMAIL
+    pw = TestConstants::NONADMIN_PW
+    result = User.find_by_email_addr(email)
+    result.password = pw
+    if result == nil
+      throw "Retrieval of non-admin user at #{email} failed."
+    end
+    result
   end
 
 end

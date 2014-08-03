@@ -12,7 +12,7 @@ module PeriodTypeConstants
       @@name_for = {}
       self.constants(false).each do |c|
         if c =~ /(.*)_ID$/
-          @@name_for["#{const_get($&)}"] = "#{const_get($1)}"
+          @@name_for[const_get($&)] = "#{const_get($1)}"
         end
       end
     end

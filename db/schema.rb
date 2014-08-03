@@ -11,7 +11,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20140731050303) do
+ActiveRecord::Schema.define(:version => 20140801154030) do
 
   create_table "period_types", :force => true do |t|
     t.integer "period_type_id"
