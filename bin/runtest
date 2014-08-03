@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# vim: expandtab
+
+if [ $# -eq 0 ]; then
+    echo "Usage: $0 <target-file> [<target-test-name>]"
+    exit 0
+fi
+
+tee=false
+case $0 in
+    *tee) tee=true
+        ;;
+    *)
+        ;;
+esac
+
+case $1 in
+    -f*) shift; cmdfile=$1
+        # $cmdfile is expected to have the test name on its first line and
+        # the test file on its second line.
+        if [ "$cmdfile" ]; then
+            test_funcname="$(sed -n 1p $cmdfile|sed 's@[ \t]*def[ \t*]@@')"
+            target_file=$(sed -n 2p $cmdfile)
+            if expr "$test_funcname" : '.* ' >/dev/null; then
+                # If the test function name has spaces, rake will fail to
+                # execute it - so set to blank to force execution of the
+                # entire $target_file.
+                target_test_name=" "
+            else
+                target_test_name="--name='$test_funcname' "
+            fi
+        fi
+        ;;
+    *)  target_file=$1; shift
+        if [ $# -gt 0 ]; then
+            target_test_name="--name='$1' "; shift
+        fi
+        ;;
+esac
+
+if expr "$target_file" : '.*/' >/dev/null; then
+    if ! [ -r "$target_file" ]; then
+        echo "$target_file is not readable." >&2
+        exit 12
+    fi
+else
+    target_file=$(find ./test -name "$target_file" -type f)
+    if [ -z "$target_file" ]; then
+        target_file=$(find . -name "$target_file" -type f)
+        if [ -z "$target_file" ]; then
+            echo "Could not find target test file: $target_file." 2>&1
+            exit 13
+        fi
+    fi
+fi
+
+if eval $tee; then
+    ofpath=/tmp/railstests
+    mkdir -p $ofpath
+    outfile="$ofpath/runtest-out-$$"
+    suffix=" >$outfile"
+else
+    suffix=
+fi
+
+eval rake test TEST=$target_file TESTOPTS="$target_test_name-v" $suffix
+status=$?
+if eval $tee; then
+    more $outfile
+fi
+
+if [ "$status" -eq 0 ]; then banner good; else banner fail; fi
+exit $status
