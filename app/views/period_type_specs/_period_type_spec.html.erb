@@ -1,0 +1,21 @@
+<tr>
+  <td class='ptype_specs' style="width: 18%">
+    <span class="content"><%= period_type_spec.period_type_name %></span>
+  </td>
+  <td class='ptype_specs' style="width: 30%">
+    <span class="date">
+      start:
+      <%= period_type_spec.start_date.strftime("%Y-%m-%d %H:%M") %>
+    </span>
+  </td>
+  <td class='ptype_specs'>
+    <span class="date">
+      end:
+      <% if period_type_spec.end_date.nil? %>
+        now
+      <% else %>
+        <%= period_type_spec.end_date.strftime("%Y-%m-%d %H:%M") %>
+      <% end %>
+    </span>
+  </td>
+</tr>

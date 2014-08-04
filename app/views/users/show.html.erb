@@ -1,11 +1,17 @@
-<table class="profile" summary="Settings information">
+<table class="settings" summary="Settings information">
   <tr>
     <td class="main">
-      <h1><%= @user.email_addr %></h1>
+      <h2>Default period-type configuration</h2>
+      <% if @user.period_type_specs.any? %>
+        <table class="ptype_specs">
+          <%= render @period_type_specs %>
+        </table>
+      <% end %>
     </td>
     <td class="sidebar round">
-      <strong>email address: </strong><%= @user.email_addr %><br/>
-      <strong>URL: </strong><%= link_to user_path(@user), @user %>
+      <strong>email address: </strong><br/><%= @user.email_addr %><br/>
+      <strong>URL: </strong><%= link_to user_path(@user), @user %><br/>
+      <strong>Period-type specs: </strong><%= @user.period_type_specs.count %>
     </td>
   </tr>
 </table>

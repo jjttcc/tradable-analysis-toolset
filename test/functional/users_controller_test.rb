@@ -1,6 +1,7 @@
 require "test_helper"
 
 class UsersControllerTest < ActionController::TestCase
+  include PeriodTypeConstants
 
   ### GET 'new' ###
 
@@ -63,6 +64,28 @@ class UsersControllerTest < ActionController::TestCase
   def test_show_not_logged_in
     get :show, :id => @user
     assert_redirected_to signin_path
+  end
+
+  def test_show_period_type_specs
+    user = signed_in_user
+    pts1 = Factory(:period_type_spec, :user => user)
+    pts2 = Factory(:period_type_spec, :user => user,
+                   :period_type_id => WEEKLY_ID)
+    get :show, :id => user
+    assert_select 'span', /#{pts1.period_type_name}/
+    assert_select 'span', /#{pts2.period_type_name}/
+  end
+
+  def test_show_period_type_specs_count
+    user = signed_in_user
+    i = 0
+    pts1 = Factory(:period_type_spec, :user => user); i += 1
+    pts2 = Factory(:period_type_spec, :user => user,
+                   :period_type_id => WEEKLY_ID); i += 1
+    pts3 = Factory(:period_type_spec, :user => user,
+                   :period_type_id => MONTHLY_ID); i += 1
+    get :show, :id => user
+    assert_select 'td.sidebar', { :text => /\b#{i}\b/ }, 'right pts count'
   end
 
   ### GET 'index' ###

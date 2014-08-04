@@ -25,6 +25,7 @@ class UsersController < ApplicationController
   def show
     @user = User.find(params[:id])
     @title = @user.email_addr
+    @period_type_specs = @user.period_type_specs
   end
 
   post :user_exists do @user != nil end
