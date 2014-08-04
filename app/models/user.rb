@@ -8,7 +8,6 @@
 #  updated_at         :datetime         not null
 #  encrypted_password :string(255)
 #  salt               :string(255)
-#  remember_token     :string(255)
 #  admin              :boolean          default(FALSE)
 #
 
@@ -20,7 +19,7 @@ class User < ActiveRecord::Base
 
   public
 
-  attr_accessor   :password, :password_confirmation
+  attr_accessor   :password
   attr_accessible :email_addr, :password, :password_confirmation
 
   has_many :period_type_specs, :dependent => :destroy
