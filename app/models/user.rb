@@ -37,7 +37,6 @@ class User < ActiveRecord::Base
 
   # Does 'submitted_pw' match 'password'?
   type :in => String
-  pre :arg_exists do |subpw| ! subpw.blank? end
   def password_matches?(submitted_pw)
     password == submitted_pw
     encrypted_password == encrypted(submitted_pw)
