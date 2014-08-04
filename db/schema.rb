@@ -18,6 +18,17 @@ ActiveRecord::Schema.define(:version => 20140801154030) do
     t.string  "name"
   end
 
+  create_table "period_type_specs", :force => true do |t|
+    t.integer  "period_type_id"
+    t.datetime "start_date"
+    t.datetime "end_date"
+    t.integer  "user_id"
+    t.datetime "created_at",     :null => false
+    t.datetime "updated_at",     :null => false
+  end
+
+  add_index "period_type_specs", ["user_id"], :name => "index_period_type_specs_on_user_id"
+
   add_index "period_types", ["period_type_id"], :name => "index_period_types_on_period_type_id", :unique => true
 
   create_table "sessions", :force => true do |t|

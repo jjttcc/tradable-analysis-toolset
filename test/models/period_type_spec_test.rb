@@ -1,3 +1,16 @@
+# == Schema Information
+#
+# Table name: period_type_specs
+#
+#  id             :integer          not null, primary key
+#  period_type_id :integer
+#  start_date     :datetime
+#  end_date       :datetime
+#  user_id        :integer
+#  created_at     :datetime         not null
+#  updated_at     :datetime         not null
+#
+
 require "test_helper"
 
 class PeriodTypeSpecTest < ActiveSupport::TestCase

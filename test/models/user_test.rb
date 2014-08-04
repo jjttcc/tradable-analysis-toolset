@@ -8,7 +8,6 @@
 #  updated_at         :datetime         not null
 #  encrypted_password :string(255)
 #  salt               :string(255)
-#  remember_token     :string(255)
 #  admin              :boolean          default(FALSE)
 #
 
@@ -200,5 +199,44 @@ class UserTest < ActiveSupport::TestCase
     @valid_user.toggle!(:admin)
     assert ! @valid_user.admin?, 'non-admin? after second toggle'
   end
+
+  ### period-type-spec associations ###
+
+    def user_with_all_pts_s
+      user = valid_user
+      PeriodTypeConstants.ids.each do |id|
+        user.period_type_specs.create(period_type_id: id,
+                                        start_date: DateTime.yesterday,
+                                        end_date: DateTime.now)
+      end
+      user
+    end
+
+    def test_pts_exist
+      user = user_with_all_pts_s
+      user.period_type_specs.each do |pts|
+        assert pts.valid?, "#{pts.period_type_name} is valid"
+      end
+      assert user.period_type_specs.count == PeriodTypeConstants::ids.count,
+        "user has a spec for each period type"
+    end
+
+    def test_pts_user
+      user = user_with_all_pts_s
+      user.period_type_specs.each do |pts|
+        assert pts.user == user, 'ptype spec has correct user'
+        assert pts.user_id == user.id, 'ptype spec has correct user id'
+      end
+    end
+
+    def test_pts_deleted
+      user = user_with_all_pts_s
+      ptype_specs = user.period_type_specs
+      user.destroy
+      ptype_specs.each do |p|
+        assert PeriodTypeSpec.find_by_id(p.id) == nil,
+          "deleted user's per-type spec also deleted"
+      end
+    end
 
 end

@@ -7,3 +7,10 @@ end
 Factory.sequence :email do |n|
   "user-#{n}@users.org"
 end
+
+Factory.define :period_type_spec do |p|
+  p.start_date DateTime.yesterday
+  p.end_date DateTime.now
+  p.period_type_id PeriodTypeConstants::DAILY_ID
+  p.association :user
+end
