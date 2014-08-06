@@ -1,6 +1,5 @@
 require 'test_helper'
 require 'test_controller_helper'
-#require 'period_type_constants'
 
 class PeriodTypeSpecsControllerTest < ActionController::TestCase
   include TestControllerHelper
@@ -45,7 +44,7 @@ class PeriodTypeSpecsControllerTest < ActionController::TestCase
   def test_create
     user = signed_in_user
     post :create, :period_type_spec => GOOD_PTS_ATTRS
-    assert_redirected_to root_path
+    assert_redirected_to user_path(user.id)
   end
 
   def test_create_one_more
@@ -59,7 +58,7 @@ class PeriodTypeSpecsControllerTest < ActionController::TestCase
     user = signed_in_user
     pspec = Factory(:period_type_spec, :user => user)
     delete :destroy, :id => pspec.id
-    assert_redirected_to root_path
+    assert_redirected_to user_path(user.id)
   end
 
   def test_destroy_one_less
@@ -68,6 +67,17 @@ class PeriodTypeSpecsControllerTest < ActionController::TestCase
     oldcount = PeriodTypeSpec.count
     delete :destroy, :id => pspec.id
     assert PeriodTypeSpec.count == oldcount - 1, 'removed one'
+  end
+
+  def test_destroy_wrong_user
+    user = signed_in_user
+    wrong_user = Factory(:user, :email_addr => 'wrong-ptype-user@users.org')
+    pspec = Factory(:period_type_spec, :user => user)
+    signed_in_user(wrong_user)  # Force "wrong_user" to be signed in.
+    oldcount = PeriodTypeSpec.count
+    # (pspec belongs to user [not wrong_user], so should not be deleted.)
+    delete :destroy, :id => pspec.id
+    assert PeriodTypeSpec.count == oldcount, 'nothing deleted'
   end
 
 end

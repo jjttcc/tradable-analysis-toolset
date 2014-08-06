@@ -2,18 +2,13 @@ class PeriodTypeSpecsController < ApplicationController
   include Contracts::DSL
 
   before_filter :authenticate
+  before_filter :ensure_correct_user, :only => [:destroy]
 
   NEW_PTS_TITLE = 'Create period-type specification'
 
   def new
     @user = current_user
     make_period_type_id_to_name_map
-=begin
-    @period_type_id_for = {}
-    PeriodTypeConstants::ids.each do |id|
-      @period_type_id_for[PeriodTypeConstants::name_for[id]] = id
-    end
-=end
     @title = NEW_PTS_TITLE
   end
 
@@ -21,24 +16,13 @@ class PeriodTypeSpecsController < ApplicationController
     period_type_spec = current_user.period_type_specs.build(
       params[:period_type_spec])
     if period_type_spec.save
-      redirect_to root_path, :flash => { :success => 'New spec created.' }
+      redirect_to user_path(current_user.id),
+        :flash => { :success => 'New spec created.' }
     else
       @title = NEW_PTS_TITLE
       @object = period_type_spec
       make_period_type_id_to_name_map
       render 'new'
-=begin
-      if ! period_type_spec.valid?
-        @user = current_user
-        #raise period_type_spec.errors.messages.inspect
-        flash[:failure => 'NOT GOOD']
-          #:flash => { :errors => period_type_spec.errors.messages }
-      else
-raise "Sorry - save failed."
-      end
-      @motd = MOTD.new  #!!!!!filler!!!!!!!!!!
-      render 'pages/home'
-=end
     end
   end
 
@@ -46,8 +30,8 @@ raise "Sorry - save failed."
     pspec = PeriodTypeSpec.find_by_id(params[:id])
     if pspec != nil
       pspec.destroy
-      redirect_to root_path, :flash => { :success => 'spec deleted.' }
-    else
+      redirect_to user_path(current_user.id),
+        :flash => { :success => 'spec deleted.' }
     end
   end
 
@@ -59,6 +43,13 @@ raise "Sorry - save failed."
       @period_type_id_for[PeriodTypeConstants::name_for[id]] = id
     end
     @period_type_id_for
+  end
+
+  def ensure_correct_user
+    pt_spec = PeriodTypeSpec.find_by_id(params[:id])
+    if pt_spec.user != current_user
+      redirect_to root_path
+    end
   end
 
 end
