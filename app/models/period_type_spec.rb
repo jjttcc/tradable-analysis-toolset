@@ -19,6 +19,8 @@ class PeriodTypeSpec < ActiveRecord::Base
   attr_accessible :start_date, :end_date, :period_type_id
   validates_with PeriodTypeSpecValidator
 
+  default_scope :order => 'period_type_id, period_type_specs.updated_at DESC'
+
   public
 
   def period_type_name

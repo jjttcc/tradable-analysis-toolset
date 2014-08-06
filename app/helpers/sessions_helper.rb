@@ -57,4 +57,10 @@ module SessionsHelper
     session.delete(:return_to)
   end
 
+  def authenticate
+    if not signed_in?
+      deny_access
+    end
+  end
+
 end

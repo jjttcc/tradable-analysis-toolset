@@ -1,9 +1,27 @@
 <table class="settings" summary="Settings information">
   <tr>
     <td class="main">
-      <h2>Default period-type configuration</h2>
+      <h2>Period-type configuration
+        <span class="per_type">&nbsp;&nbsp;&lt;
+          <%= link_to "Create new", new_period_type_spec_path %>&gt;
+        </span>
+    </h2>
       <% if @user.period_type_specs.any? %>
         <table class="ptype_specs">
+          <tr>
+            <th class='ptype_specs ptype_col1'>
+              <span class="per_type">period</span>
+            </th>
+            <th class='ptype_specs ptype_midcol'>
+              <span class="date">start date</span>
+            </th>
+            <th class='ptype_specs ptype_midcol'>
+              <span class="date">end date</span>
+            </th>
+            <th class='ptype_specs ptype_endcol'>
+              <span class="date">change</span>
+            </th>
+          </tr>
           <%= render @period_type_specs %>
         </table>
       <% end %>

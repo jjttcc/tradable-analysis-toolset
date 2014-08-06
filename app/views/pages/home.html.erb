@@ -1,6 +1,17 @@
-<h1>Pages#home</h1>
-<p>Home page for <%= @appname %></p>
-<h1>MOTD test</h1>
-<p><%= @motd.message %></p>
-<%= link_to "Create new login", signup_path,
-  :class => "signup_button round" %>
+<% if signed_in? %>
+  <% if current_user.nil? %>
+      <h1>[Why is user nil????????]</h1>
+  <% else %>
+    <% if current_user.period_type_specs.count == 0 %>
+      <h1>[TBD]You ain't got no period-type specs</h1>
+    <% else %>
+      <h1>[TBD]<%= current_user.period_type_specs.count %> period-type specs</h1>
+    <% end %>
+  <% end %>
+  <p><%= @motd.message %></p>
+<% else %>
+  <h1><%= @appname %></h1>
+  <p><%= @motd.message %></p>
+  <%= link_to "Create new login", signup_path,
+    :class => "signup_button round" %>
+<% end %>

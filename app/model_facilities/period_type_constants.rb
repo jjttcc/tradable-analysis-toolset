@@ -7,6 +7,7 @@ module PeriodTypeConstants
 
   ### utility methods ###
 
+  # hash table: key: id, value: name
   def self.name_for
     if @@name_for == nil
       @@name_for = {}

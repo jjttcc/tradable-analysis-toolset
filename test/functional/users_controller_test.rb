@@ -1,7 +1,9 @@
 require "test_helper"
+require "test_controller_helper"
 
 class UsersControllerTest < ActionController::TestCase
   include PeriodTypeConstants
+  include TestControllerHelper
 
   ### GET 'new' ###
 
@@ -55,10 +57,10 @@ class UsersControllerTest < ActionController::TestCase
     assert_select 'title', /#{user.email_addr}/, 'correct title'
   end
 
-  def test_show_correct_h1
+  def test_show_correct_h2
     user = signed_in_user
     get :show, :id => user.id
-    assert_select 'h1', /#{user.email_addr}/, 'correct h1'
+    assert_select 'h2', /period.*type.*config/i, 'correct h2'
   end
 
   def test_show_not_logged_in
@@ -195,20 +197,6 @@ class UsersControllerTest < ActionController::TestCase
   end
 
   ### GET 'edit' ###
-
-  def signed_in_user(u = nil)
-    if u != nil
-      user = u
-    else
-    _, _, user = setup_test_user
-    end
-    @controller.sign_in(user)
-    user
-  end
-
-  def sign_out
-    @controller.sign_out
-  end
 
   def test_begin_edit
     get :edit, :id => signed_in_user

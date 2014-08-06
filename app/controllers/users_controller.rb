@@ -2,6 +2,7 @@ require 'ruby_contracts'
 
 class UsersController < ApplicationController
   include Contracts::DSL
+
   before_filter :authenticate,        :only => [:edit, :update, :show,
                                                 :index, :destroy]
   before_filter :ensure_correct_user, :only => [:edit, :update, :show]
@@ -15,9 +16,11 @@ class UsersController < ApplicationController
     @title = 'User list'
   end
 
+  NEW_USER_TITLE = 'Create login'
+
   def new
     @user = User.new
-    @title = "Create login"
+    @title = NEW_USER_TITLE
   end
 
   pre :signed_in do signed_in? end
@@ -38,7 +41,7 @@ class UsersController < ApplicationController
       sign_in(@user)
       redirect_to @user
     else
-      @title = 'Create login'
+      @title = NEW_USER_TITLE
       render 'new'
     end
   end
@@ -78,12 +81,6 @@ class UsersController < ApplicationController
   end
 
   private
-
-  def authenticate
-    if not signed_in?
-      deny_access
-    end
-  end
 
   def ensure_correct_user
     user = User.find_by_id(params[:id])

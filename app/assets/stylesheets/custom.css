@@ -153,8 +153,9 @@ table.ptype_specs {
 /*  margin-bottom: 2%;*/
 }
 
-td.ptype_specs {
-  padding: 0px 10px 00px 00px;
+.ptype_specs th,
+.ptype_specs td {
+  padding: 1px 15px 00px 00px;
   font-size: 90%;
   float: left;
   overflow: hidden;
@@ -162,6 +163,28 @@ td.ptype_specs {
   width: 40%;
   */
   /*margin-left: 5px;*/
+}
+
+.ptype_specs th {
+  padding: 0px 15px 05px 00px;
+  /*
+  */
+}
+
+.ptype_col1 {
+  width: 20%;
+}
+
+.ptype_midcol {
+  width: 25%;
+}
+
+.ptype_endcol {
+  width: 15%;
+}
+
+h2>span.per_type {
+  font-size: 65%;
 }
 
 /* User show page */

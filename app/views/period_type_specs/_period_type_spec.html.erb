@@ -1,21 +1,24 @@
 <tr>
-  <td class='ptype_specs' style="width: 18%">
-    <span class="content"><%= period_type_spec.period_type_name %></span>
+  <td class='ptype_specs ptype_col1'>
+    <span class="per_type"><%= period_type_spec.period_type_name %></span>
   </td>
-  <td class='ptype_specs' style="width: 30%">
+  <td class='ptype_specs ptype_midcol'>
     <span class="date">
-      start:
       <%= period_type_spec.start_date.strftime("%Y-%m-%d %H:%M") %>
     </span>
   </td>
-  <td class='ptype_specs'>
+  <td class='ptype_specs ptype_midcol'>
     <span class="date">
-      end:
       <% if period_type_spec.end_date.nil? %>
         now
       <% else %>
         <%= period_type_spec.end_date.strftime("%Y-%m-%d %H:%M") %>
       <% end %>
+    </span>
+  </td>
+  <td class='ptype_specs ptype_endcol'>
+    <span class="edit">
+      !!!edit/delete
     </span>
   </td>
 </tr>

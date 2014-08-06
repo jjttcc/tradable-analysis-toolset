@@ -2,8 +2,7 @@ require "test_helper"
 
 class UsersHelperTest < ActionView::TestCase
 
-  def test_sanity
-#!!!!!!!!!!!    flunk "Need real tests"
+  def hide_test_sanity
   end
 
 end

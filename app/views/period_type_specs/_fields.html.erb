@@ -1,0 +1,20 @@
+<%= render 'shared/error_messages', :object => object %>
+<%= form_for :period_type_spec, url: { action: "create" } do |f| %>
+  <div class="field">
+    <%= f.label :period_type_id, "period type" %><br/>
+    <%= f.select :period_type_id, @period_type_id_for %><br/>
+  </div>
+  <div class="field">
+    <%= f.label :start_date, "start date" %><br/>
+    <%= f.datetime_select :start_date,
+      :start_year => 1960 %><br/>
+  </div>
+  <div class="field">
+    <%= f.label :end_date, "end date" %><br/>
+    <%= f.datetime_select :end_date, :include_blank => true,
+      :start_year => 1960 %><br/>
+  </div>
+  <div class="actions">
+    <%= f.submit @submit_msg %>
+  </div>
+<% end %>

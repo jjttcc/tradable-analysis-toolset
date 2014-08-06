@@ -1,6 +1,7 @@
 TradableAnalysisToolset::Application.routes.draw do
   resources :users
   resources :sessions, :only => [:new, :create, :destroy]
+  resources :period_type_specs, :only => [:new, :create, :destroy]
 
   root :to => 'pages#home'
 
