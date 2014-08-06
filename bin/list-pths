@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+rails runner "
+Rails.application.routes.named_routes.helpers.each do |h|
+if h =~ /(hash_for|_url$)/ then next end
+  puts h.to_s.sub(/_path/, '')
+end
+"
