@@ -1,0 +1,11 @@
+Need to change the period-type-spec start/end date to roll forward relative
+the to current date - so that, e.g., a start date picked to analyze data
+starting 2 years ago will not become 2-years-plus-one-day the next day,
+etc.  The way to do this is probably to use the created-at datetime -
+e.g., start-date is today - (created-at - start_date)-days-ago.
+
+We probably need at least two different sets (per user) of
+period-type-specs: one (long-range) to use for charts; and one (short-range)
+to use for analysis/signal-generation.  This can probably be modeled by
+adding a column (named, perhaps, 'purpose' or 'designation') to the
+period_type_specs table (and associated PeriodTypeSpec attribute).

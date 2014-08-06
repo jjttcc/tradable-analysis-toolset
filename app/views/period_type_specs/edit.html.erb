@@ -1,8 +1,10 @@
-<%= render 'shared/error_messages', :object => object %>
+<h1><%= @title %></h1>
+<% @submit_msg = 'Submit' %>
+<%= render 'shared/error_messages', :object => @period_type_spec %>
 <% start_year = 1960; end_year = 2015 %>
 <% if @default_start_year then start_year = @default_start_year end %>
 <% if @default_end_year then end_year = @default_end_year end %>
-<%= form_for :period_type_spec, url: { action: "create" } do |f| %>
+<%= form_for @period_type_spec do |f| %>
   <div class="field">
     <%= f.label :period_type_id, "period type" %><br/>
     <%= f.select :period_type_id, @period_type_id_for %><br/>

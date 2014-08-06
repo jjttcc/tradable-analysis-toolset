@@ -80,4 +80,29 @@ class PeriodTypeSpecsControllerTest < ActionController::TestCase
     assert PeriodTypeSpec.count == oldcount, 'nothing deleted'
   end
 
+  ### GET 'edit' ###
+
+  def test_edit_success
+    user = signed_in_user
+    pspec = Factory(:period_type_spec, :user => user)
+    get :edit, :id => pspec.id
+    assert_response :success
+  end
+
+  def test_edit_title
+    user = signed_in_user
+    pspec = Factory(:period_type_spec, :user => user)
+    get :edit, :id => pspec.id
+    assert_select 'title', /edit\s+period.*spec/i
+  end
+
+  def test_edit_wrong_user
+    user = signed_in_user
+    wrong_user = Factory(:user, :email_addr => 'wrong-ptype-user@users.org')
+    pspec = Factory(:period_type_spec, :user => user)
+    signed_in_user(wrong_user)  # Force "wrong_user" to be signed in.
+    get :edit, :id => pspec.id
+    assert_redirected_to root_path, 'wrong user ends up at root'
+  end
+
 end

@@ -8,15 +8,17 @@ class UsersController < ApplicationController
   before_filter :ensure_correct_user, :only => [:edit, :update, :show]
   before_filter :ensure_admin,        :only => [:destroy, :index]
 
+  NEW_USER_TITLE = 'Create login'
+  EDIT_USER_TITLE = 'Edit user'
+  INDEX_USER_TITLE = 'User list'
+
   pre :signed_in do signed_in? end
-  post :title do @title == 'User list' end
+  post :title do @title == INDEX_USER_TITLE end
   post :users do @users != nil end
   def index
     @users = User.paginate(:page => params[:page])
-    @title = 'User list'
+    @title = INDEX_USER_TITLE
   end
-
-  NEW_USER_TITLE = 'Create login'
 
   def new
     @user = User.new
@@ -28,7 +30,6 @@ class UsersController < ApplicationController
   def show
     @user = User.find(params[:id])
     @title = @user.email_addr
-    @period_type_specs = @user.period_type_specs
   end
 
   post :user_exists do @user != nil end
@@ -47,10 +48,10 @@ class UsersController < ApplicationController
   end
 
   pre :signed_in do signed_in? end
-  post :title_editu do @title == "Edit user" end
+  post :title_editusr do @title == EDIT_USER_TITLE end
   def edit
     @user = User.find(params[:id])
-    @title = "Edit user"
+    @title = EDIT_USER_TITLE
   end
 
   pre :signed_in do signed_in? end
@@ -60,7 +61,7 @@ class UsersController < ApplicationController
       flash[:success] = "Settings updated."
       redirect_to @user
     else
-      @title = "Edit user"
+      @title = EDIT_USER_TITLE
       render 'edit'
     end
   end

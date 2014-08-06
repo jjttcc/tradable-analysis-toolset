@@ -18,7 +18,7 @@
   </td>
   <td class='ptype_specs ptype_endcol'>
     <span class="edit">
-      <%= link_to 'edit', edit_period_type_spec_path,
+      <%= link_to 'edit', edit_period_type_spec_path(period_type_spec.id),
         :title => period_type_spec.period_type_name %> /
       <%= link_to 'delete', period_type_spec,
         :method => :delete, :title => period_type_spec.period_type_name %>
