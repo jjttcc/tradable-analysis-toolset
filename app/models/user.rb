@@ -35,6 +35,21 @@ class User < ActiveRecord::Base
 
   public
 
+  # Elements of 'period_type_specs' that specify short durations
+  def analysis_specs
+    result = period_type_specs.select do |spec|
+      spec.for_analysis?
+    end
+  end
+
+  # Elements of 'period_type_specs' that specify long durations - that is,
+  # those that tend to be used for charting.
+  def charting_specs
+    result = period_type_specs.select do |spec|
+      ! spec.for_analysis?
+    end
+  end
+
   # Does 'submitted_pw' match 'password'?
   type :in => String
   def password_matches?(submitted_pw)

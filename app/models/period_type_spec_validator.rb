@@ -2,6 +2,7 @@ class PeriodTypeSpecValidator < ActiveModel::Validator
   PTID = 'period_type_id'
   SDATE = 'start_date'
   EDATE = 'end_date'
+  CATEGORY = 'category'
 
   def validate(record)
     if record[PTID] == nil
@@ -12,6 +13,12 @@ class PeriodTypeSpecValidator < ActiveModel::Validator
     end
     if record[SDATE] == nil
       record.errors[SDATE] << 'start date is nil'
+    end
+    if
+      record[CATEGORY] == nil or
+      ! PeriodTypeSpec::VALID_CATEGORY[record[CATEGORY]]
+    then
+      record.errors[CATEGORY] << 'invalid category'
     end
   end
 

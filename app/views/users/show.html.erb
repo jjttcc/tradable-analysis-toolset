@@ -9,6 +9,9 @@
       <% if @user.period_type_specs.any? %>
         <table class="ptype_specs">
           <tr>
+            <th style="width:100%">For analysis</th>
+          </tr>
+          <tr>
             <th class='ptype_specs ptype_col1'>
               <span class="per_type">period</span>
             </th>
@@ -22,7 +25,25 @@
               <span class="date">change</span>
             </th>
           </tr>
-          <%= render @user.period_type_specs %>
+          <%= render @user.analysis_specs %>
+          <tr>
+            <th style="width:100%; margin-top: 3%">For charting</th>
+          </tr>
+          <tr>
+            <th class='ptype_specs ptype_col1'>
+              <span class="per_type">period</span>
+            </th>
+            <th class='ptype_specs ptype_midcol'>
+              <span class="date">start date</span>
+            </th>
+            <th class='ptype_specs ptype_midcol'>
+              <span class="date">end date</span>
+            </th>
+            <th class='ptype_specs ptype_endcol'>
+              <span class="date">change</span>
+            </th>
+          </tr>
+          <%= render @user.charting_specs %>
         </table>
       <% end %>
     </td>

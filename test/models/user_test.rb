@@ -134,6 +134,8 @@ class UserTest < ActiveSupport::TestCase
 
   def setup
     @pw_user ||= User.create!(GOOD_ARGS2)
+    @short_term = PeriodTypeSpec::SHORT_TERM
+    @long_term = PeriodTypeSpec::LONG_TERM
   end
 
   def test_has_encrypted_password
@@ -204,10 +206,13 @@ class UserTest < ActiveSupport::TestCase
 
     def user_with_all_pts_s
       user = valid_user
+      cat_toggle = true
       PeriodTypeConstants.ids.each do |id|
+        cat = (cat_toggle ? @short_term: @long_term)
         user.period_type_specs.create(period_type_id: id,
-                                        start_date: DateTime.yesterday,
-                                        end_date: DateTime.now)
+          start_date: DateTime.yesterday, end_date: DateTime.now,
+          category: cat)
+        cat_toggle = ! cat_toggle
       end
       user
     end

@@ -11,25 +11,19 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20140801154030) do
-
-  create_table "period_types", :force => true do |t|
-    t.integer "period_type_id"
-    t.string  "name"
-  end
+ActiveRecord::Schema.define(:version => 20140807151621) do
 
   create_table "period_type_specs", :force => true do |t|
-    t.integer  "period_type_id"
+    t.integer  "period_type_id", :null => false
     t.datetime "start_date"
     t.datetime "end_date"
     t.integer  "user_id"
     t.datetime "created_at",     :null => false
     t.datetime "updated_at",     :null => false
+    t.string   "category"
   end
 
   add_index "period_type_specs", ["user_id"], :name => "index_period_type_specs_on_user_id"
-
-  add_index "period_types", ["period_type_id"], :name => "index_period_types_on_period_type_id", :unique => true
 
   create_table "sessions", :force => true do |t|
     t.string   "session_id", :null => false

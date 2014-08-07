@@ -14,7 +14,7 @@ class PeriodTypeSpecsController < ApplicationController
 
   def new
     @user = current_user
-    make_period_type_id_to_name_map
+    make_view_helper_vars
     @title = NEW_PTS_TITLE
     @default_start_year = EARLIEST_START_YEAR
     @default_end_year = LATEST_END_YEAR
@@ -29,7 +29,7 @@ class PeriodTypeSpecsController < ApplicationController
     else
       @title = NEW_PTS_TITLE
       @object = period_type_spec
-      make_period_type_id_to_name_map
+      make_view_helper_vars
       render 'new'
     end
   end
@@ -42,7 +42,7 @@ class PeriodTypeSpecsController < ApplicationController
     @title = EDIT_PTS_TITLE
     @default_start_year = EARLIEST_START_YEAR
     @default_end_year = LATEST_END_YEAR
-    make_period_type_id_to_name_map
+    make_view_helper_vars
   end
 
   pre :signed_in do signed_in? end
@@ -69,8 +69,10 @@ class PeriodTypeSpecsController < ApplicationController
 
   private
 
-  def make_period_type_id_to_name_map
+  # Create convenience variables to be used by views.
+  def make_view_helper_vars
     @period_type_id_for = {}
+    @categories = PeriodTypeSpec::VALID_CATEGORY.keys
     PeriodTypeConstants::ids.each do |id|
       @period_type_id_for[PeriodTypeConstants::name_for[id]] = id
     end

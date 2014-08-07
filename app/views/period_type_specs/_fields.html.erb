@@ -8,6 +8,10 @@
     <%= f.select :period_type_id, @period_type_id_for %><br/>
   </div>
   <div class="field">
+    <%= f.label :category, "category" %><br/>
+    <%= f.select :category, @categories %><br/>
+  </div>
+  <div class="field">
     <%= f.label :start_date, "start date" %><br/>
     <%= f.datetime_select :start_date,
       :start_year => start_year, :end_year => end_year %><br/>

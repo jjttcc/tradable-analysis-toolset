@@ -20,14 +20,17 @@ namespace :db do
     end
     (1..6).each do |uid|
       user = User.find_by_id(uid)
-      PeriodTypeConstants::ids.each do |id|
-        end_date = nil
-        if id == PeriodTypeConstants::QUARTERLY_ID
+      PeriodTypeSpec::VALID_CATEGORY.keys.each do |category|
+        PeriodTypeConstants::ids.each do |id|
+          end_date = nil
+          if id == PeriodTypeConstants::QUARTERLY_ID
             end_date = DateTime.yesterday
+          end
+          user.period_type_specs.create!(:period_type_id => id,
+                                         :start_date => start_date,
+                                         :end_date => end_date,
+                                         :category => category)
         end
-        user.period_type_specs.create!(:period_type_id => id,
-                                   :start_date => start_date,
-                                   :end_date => end_date)
       end
     end
   end

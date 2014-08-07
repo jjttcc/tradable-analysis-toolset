@@ -22,12 +22,14 @@ class PeriodTypeSpecsControllerTest < ActionController::TestCase
   BAD_PTS_ATTRS = {
     :period_type_id => DAILY_ID,
     :start_date => nil,
-    :end_date => nil
+    :end_date => nil,
+    :category => @short_term
   }
   GOOD_PTS_ATTRS = {
     :period_type_id => DAILY_ID,
     :start_date => DateTime.yesterday,
-    :end_date => nil
+    :end_date => nil,
+    :category => PeriodTypeSpec::SHORT_TERM
   }
 
   ## failure ##
