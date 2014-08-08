@@ -3,12 +3,13 @@
 # Table name: period_type_specs
 #
 #  id             :integer          not null, primary key
-#  period_type_id :integer
+#  period_type_id :integer          not null
 #  start_date     :datetime
 #  end_date       :datetime
 #  user_id        :integer
 #  created_at     :datetime         not null
 #  updated_at     :datetime         not null
+#  category       :string(255)
 #
 
 # Read about fixtures at

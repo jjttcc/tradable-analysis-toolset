@@ -4,15 +4,15 @@
   </td>
   <td class='ptype_specs ptype_midcol'>
     <span class="date">
-      <%= period_type_spec.start_date.strftime("%Y-%m-%d %H:%M") %>
+      <%= period_type_spec.effective_start_date.strftime("%Y-%m-%d %H:%M") %>
     </span>
   </td>
   <td class='ptype_specs ptype_midcol'>
     <span class="date">
-      <% if period_type_spec.end_date.nil? %>
+      <% if period_type_spec.effective_end_date.nil? %>
         now
       <% else %>
-        <%= period_type_spec.end_date.strftime("%Y-%m-%d %H:%M") %>
+        <%= period_type_spec.effective_end_date.strftime("%Y-%m-%d %H:%M") %>
       <% end %>
     </span>
   </td>
