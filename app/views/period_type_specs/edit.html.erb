@@ -11,12 +11,12 @@
   </div>
   <div class="field">
     <%= f.label :start_date, "start date" %><br/>
-    <%= f.datetime_select :effective_start_date,
+    <%= f.date_select :effective_start_date,
       :start_year => start_year, :end_year => end_year %><br/>
   </div>
   <div class="field">
     <%= f.label :end_date, "end date" %><br/>
-    <%= f.datetime_select :effective_end_date, :include_blank => true,
+    <%= f.date_select :effective_end_date, :include_blank => true,
       :start_year => start_year, :end_year => end_year %><br/>
   </div>
   <div class="actions">
