@@ -1,0 +1,3 @@
+In this directory resides classes/modules that provide a bridge (from TAT)
+to the mas_client subsystem, in order to allow communication between the
+two subsystems without mas_client needing to depend on TAT.

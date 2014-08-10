@@ -1,13 +1,6 @@
 #!/usr/bin/env bash
 # vim: expandtab
 
-part1_only=
-part2_only=
-case $1 in
-    part1*) part1_only=true ;;
-    part2*) part2_only=true
-esac
-
 if type banner >/dev/null 2>&1; then
     :
 else
@@ -17,28 +10,13 @@ else
 fi
 
 opts='-v'
+show_stderr=
 status=0
-if [ ! "$part2_only" ]; then
-    if TESTOPTS="$opts" rake; then
-        echo First set SUCCEEDED
-    else
-        status=$?
-        echo First set FAILED
-    fi
+if [ "$show_stderr" ]; then
+    rake test:all
+else
+    rake test:all 2>/dev/null
 fi
-
-if [ ! "$part1_only" ]; then
-    if TESTOPTS="$opts" rake test; then
-        echo Second set SUCCEEDED
-    else
-        status=$?
-        echo Second set FAILED
-    fi
-fi
-
-if [ $status -ne 0 ]; then
-    echo "<<<<<<<FAILED at least one test.>>>>>>>"
-fi
-
+status=$?
 if [ "$status" -eq 0 ]; then banner good; else banner fail; fi
 exit $status
