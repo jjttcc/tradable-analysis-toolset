@@ -13,9 +13,11 @@
 #
 
 require "test_helper"
+require_relative 'model_helper'
 
 class PeriodTypeSpecTest < ActiveSupport::TestCase
   include PeriodTypeConstants
+  include ModelHelper
 
   def setup
     @short_term = PeriodTypeSpec::SHORT_TERM
@@ -94,5 +96,59 @@ class PeriodTypeSpecTest < ActiveSupport::TestCase
         PeriodTypeConstants.name_for[id], "correct name for #{id}"
     end
   end
+
+  def test_period_types_with_mas_client
+    user = ModelHelper::new_user('mas-pt-test@tests.org')
+    now = DateTime.now
+    pts1 = Factory(:period_type_spec, user: user, end_date: nil)
+    pts2 = Factory(:period_type_spec, user: user, period_type_id: WEEKLY_ID,
+                   end_date: nil, start_date: now.dup.advance(years: -3))
+    pts3 = Factory(:period_type_spec, user: user, period_type_id: MONTHLY_ID,
+                   end_date: nil, start_date: now.dup.advance(years: -5))
+    pts4 = Factory(:period_type_spec, user: user, period_type_id: QUARTERLY_ID,
+                   end_date: nil, start_date: now.dup.advance(years: -15))
+    pts5 = Factory(:period_type_spec, user: user, period_type_id: YEARLY_ID,
+                   end_date: now.dup.advance(years: -14),
+                   start_date: now.dup.advance(years: -35))
+    styrly = pts5
+    long_term = PeriodTypeSpec::LONG_TERM
+    ltpts1 = Factory(:period_type_spec, user: user, end_date: nil,
+                     category: long_term)
+    ltpts2 = Factory(:period_type_spec, user: user, period_type_id: WEEKLY_ID,
+                     end_date: nil, start_date: now.dup.advance(years: -3),
+                     category: long_term)
+    ltpts3 = Factory(:period_type_spec, user: user, period_type_id: MONTHLY_ID,
+                     end_date: nil, start_date: now.dup.advance(years: -5),
+                     category: long_term)
+    ltpts4 = Factory(:period_type_spec, user: user,
+                     period_type_id: QUARTERLY_ID,
+                     end_date: now.dup.advance(years: -4),
+                     start_date: now.dup.advance(years: -24),
+                     category: long_term)
+    ltpts5 = Factory(:period_type_spec, user: user, period_type_id: YEARLY_ID,
+                     end_date: now.dup.advance(years: -14),
+                     start_date: now.dup.advance(years: -104),
+                     category: long_term)
+    ltweekly = ltpts2
+    ltyrly = ltpts5
+    long_terms = []
+    user.period_type_specs.each do |p|
+      if p.category == long_term then long_terms << p end
+    end
+    user.save
+    client = MasClientTools::new_mas_client_w_ptypes(long_terms)
+    assert client.period_type_spec_for(WEEKLY) == ltweekly,
+      'mas client has expected weekly period type spec'
+    assert client.period_type_spec_for(YEARLY) != styrly,
+      'mas client does NOT have sort-term yearly period type spec'
+    assert client.period_type_spec_for(YEARLY) == ltyrly,
+      'mas client has expected yearly period type spec'
+    client2 = MasClientTools::new_mas_client(user: user)
+    assert (client2.period_type_spec_for(YEARLY) == ltyrly),
+        "mas client 2 has long-term yearly period type spec"
+    assert (client2.period_type_spec_for(YEARLY) != styrly),
+        "mas client 2: no short-term yearly period type spec"
+  end
+
 
 end

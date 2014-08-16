@@ -57,6 +57,8 @@ class PeriodTypeSpec < ActiveRecord::Base
     PeriodTypeConstants.name_for[period_type_id]
   end
 
+  alias :period_type :period_type_name
+
   public ###  Status report
 
   # Is 'self' to be used for analysis?

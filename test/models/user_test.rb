@@ -12,6 +12,7 @@
 #
 
 require "test_helper"
+require_relative 'model_helper'
 
 class UserTest < ActiveSupport::TestCase
 
@@ -95,27 +96,22 @@ class UserTest < ActiveSupport::TestCase
 
   ### Password validation ###
 
-  def new_user(e)
-    result = User.new(GOOD_ARGS1.merge(:email_addr => e))
-    result
-  end
-
   def test_no_password
-    pwlessu = new_user('foo@foo.org')
+    pwlessu = ModelHelper::new_user('foo@foo.org')
     pwlessu.password = ''
     pwlessu.password_confirmation = ''
     assert(! pwlessu.valid?, "invalid without password")
   end
 
   def test_valid_pw_conf
-    u = new_user('foo2@foo.org')
+    u = ModelHelper::new_user('foo2@foo.org')
     u.password = 'foobarfoo'
     u.password_confirmation = 'barbarbar'
     assert(! u.valid?, "invalid without matching password_conf")
   end
 
   def test_reject_short_pw
-    u = new_user('foo3@foo.org')
+    u = ModelHelper::new_user('foo3@foo.org')
     shortpw = 'foo'
     u.password = shortpw
     u.password_confirmation = shortpw
@@ -123,7 +119,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   def test_reject_long_pw
-    u = new_user('foo3@foo.org')
+    u = ModelHelper::new_user('foo3@foo.org')
     longpw = 'foo' + 'X' * 62
     u.password = longpw
     u.password_confirmation = longpw

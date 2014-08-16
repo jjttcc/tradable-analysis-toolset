@@ -10,12 +10,16 @@ else
 fi
 
 opts='-v'
-show_stderr=
 status=0
+target="test:all"
+test_opts="TESTOPTS=$opts"
+if [ $# -gt 0 ]; then
+    target="test TEST=$1"
+fi
 if [ "$show_stderr" ]; then
-    rake test:all
+    rake $target $test_opts
 else
-    rake test:all 2>/dev/null
+    rake $target $test_opts 2>/dev/null
 fi
 status=$?
 if [ "$status" -eq 0 ]; then banner good; else banner fail; fi
