@@ -24,7 +24,7 @@ class MasSessionTest < ActiveSupport::TestCase
   def test_create_session
     user = ModelHelper::new_user('mas-session-test@tests.org')
     user.save
-    client = MasClientTools::new_mas_client
+    client = MasClientTools::mas_client
     msession = user.build_mas_session(mas_session_key: client.session_key)
     assert msession.valid?, 'mas session is valid'
     assert MasSession.find_by_mas_session_key(msession.id) == nil,
@@ -32,7 +32,7 @@ class MasSessionTest < ActiveSupport::TestCase
     msession.save
     assert MasSession.find_by_mas_session_key(msession.mas_session_key) ==
       msession, 'stored mas session found'
-    client = MasClientTools::new_mas_client(session: msession)
+    client = MasClientTools::mas_client(session: msession)
     assert client.session_key == msession.mas_session_key.to_s,
       'session key integrity'
     client.logout
@@ -45,13 +45,13 @@ class MasSessionTest < ActiveSupport::TestCase
     orig_data = the_data.dup
     user = ModelHelper::new_user('mas-session-data-test@tests.org')
     user.save
-    client = MasClientTools::new_mas_client
+    client = MasClientTools::mas_client
     msession = user.build_mas_session(mas_session_key: client.session_key)
     msession.data = the_data
     assert msession.valid?, 'mas session with data is valid'
     msession.save
     the_data << " - more stuff"
-    client = MasClientTools::new_mas_client(session: msession)
+    client = MasClientTools::mas_client(session: msession)
     assert client.mas_session.data != the_data,
       'session-data with side effect - no match'
     assert client.mas_session.data == orig_data, 'session data as expected'

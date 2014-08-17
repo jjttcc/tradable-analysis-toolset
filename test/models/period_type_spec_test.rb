@@ -129,25 +129,33 @@ class PeriodTypeSpecTest < ActiveSupport::TestCase
                      end_date: now.dup.advance(years: -14),
                      start_date: now.dup.advance(years: -104),
                      category: long_term)
+    ltpts6 = Factory(:period_type_spec, user: user,
+                   period_type_id: ONE_MINUTE_ID, end_date: nil,
+                   start_date: now.dup.advance(days: -5),
+                   category: long_term)
     ltweekly = ltpts2
     ltyrly = ltpts5
+    sminute = ltpts6
     long_terms = []
     user.period_type_specs.each do |p|
       if p.category == long_term then long_terms << p end
     end
     user.save
-    client = MasClientTools::new_mas_client_w_ptypes(long_terms)
+    client = MasClientTools::mas_client_w_ptypes(long_terms)
     assert client.period_type_spec_for(WEEKLY) == ltweekly,
       'mas client has expected weekly period type spec'
     assert client.period_type_spec_for(YEARLY) != styrly,
       'mas client does NOT have sort-term yearly period type spec'
     assert client.period_type_spec_for(YEARLY) == ltyrly,
       'mas client has expected yearly period type spec'
-    client2 = MasClientTools::new_mas_client(user: user)
+    client2 = MasClientTools::mas_client(user: user)
     assert (client2.period_type_spec_for(YEARLY) == ltyrly),
         "mas client 2 has long-term yearly period type spec"
     assert (client2.period_type_spec_for(YEARLY) != styrly),
         "mas client 2: no short-term yearly period type spec"
+    assert ONE_MINUTE == '1-minute', "What's #{ONE_MINUTE}?"
+    assert client.period_type_spec_for(ONE_MINUTE) == sminute,
+      'mas client has expected 1-minute period type spec'
   end
 
 

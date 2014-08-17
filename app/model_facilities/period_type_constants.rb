@@ -1,5 +1,6 @@
 # Constants relevant to trading-period types
 module PeriodTypeConstants
+  include TimePeriodTypeConstants
 
   @@name_for = nil
 
@@ -26,6 +27,7 @@ module PeriodTypeConstants
   end
 
   ### IDs ###
+  # (period-type name constants are defined in TimePeriodTypeConstants.)
 
   ONE_MINUTE_ID = 60
 
@@ -52,33 +54,5 @@ module PeriodTypeConstants
   QUARTERLY_ID = 7_776_000
 
   YEARLY_ID = 31_536_000
-
-  ### names ###
-
-  ONE_MINUTE = "one-minute"
-
-  TWO_MINUTE = "two-minute"
-
-  FIVE_MINUTE = "five-minute"
-
-  TEN_MINUTE = "ten-minute"
-
-  FIFTEEN_MINUTE = "fifteen-minute"
-
-  TWENTY_MINUTE = "twenty-minute"
-
-  THIRTY_MINUTE = "thirty-minute"
-
-  HOURLY = "hourly"
-
-  DAILY = "daily"
-
-  WEEKLY = "weekly"
-
-  MONTHLY = "monthly"
-
-  QUARTERLY = "quarterly"
-
-  YEARLY = "yearly"
 
 end

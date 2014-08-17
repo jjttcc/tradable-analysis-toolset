@@ -1,11 +1,17 @@
 <% if signed_in? %>
   <% if current_user.nil? %>
-      <h1>[Why is user nil????????]</h1>
+      <h1>not signed in</h1>
   <% else %>
     <% if current_user.period_type_specs.count == 0 %>
-      <h1>[TBD]You ain't got no period-type specs</h1>
+      <h1>No period-type specs</h1>
     <% else %>
-      <h1>[TBD]<%= current_user.period_type_specs.count %> period-type specs</h1>
+      <h1>
+        <%= link_to "#{current_user.period_type_specs.count} period-type specs",
+          user_path(current_user)%>
+      </h1>
+      <p>
+      <%= @mas_client.inspect %>
+      </p>
     <% end %>
   <% end %>
   <p><%= @motd.message %></p>
