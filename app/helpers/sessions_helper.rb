@@ -39,13 +39,10 @@ module SessionsHelper
     @current_user = user
   end
 
-  # Sign out 'user'
+  # Sign out 'user', delete user.mas_session.
   def sign_out
     if current_user != nil
       MasClientTools::logout_client(current_user)
-      if current_user.mas_session != nil
-        current_user.mas_session.destroy
-      end
       @current_user = nil
       session.delete(:user_id)
     end

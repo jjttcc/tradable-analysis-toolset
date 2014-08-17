@@ -1,8 +1,13 @@
+require 'ruby_contracts'
+
 # Utilities for interfacing with the MAS client subsystem
 module MasClientTools
+  include Contracts::DSL
 
   public
 
+  # A MasClient object - with an active MAS session - for the specified
+  # 'session' or 'user'
   def self.mas_client(session: nil, user: nil)
     # [Note: If in the future MasClients are cached,
     # session.mas_session_key can be used as a hash key to store/retrieve
@@ -34,6 +39,7 @@ module MasClientTools
   end
 
   # Log out the client belonging to 'user' from the MAS server.
+  post :no_mas_session do implies(user != nil, user.mas_session.nil?) end
   def self.logout_client(user)
     if user != nil && user.mas_session != nil
       client = self.mas_client(user: user)
@@ -43,6 +49,7 @@ module MasClientTools
         #!!!!!! Remove this before first production release:
         raise "Fix bug: client was not logged in [#{client.inspect}]"
       end
+      user.mas_session.destroy
     end
   end
 
