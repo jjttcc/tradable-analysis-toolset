@@ -18,6 +18,7 @@ class PagesController < ApplicationController
     set_appname
     @motd = MOTD.new
     if signed_in?
+#!!!!TO-DO: Put this logic in a helper class/module:
       @mas_client = mas_client(current_user)
       @mas_client.request_symbols
       symbol_list = @mas_client.symbols

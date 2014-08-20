@@ -99,6 +99,7 @@ class PeriodTypeSpecTest < ActiveSupport::TestCase
 
   def test_period_types_with_mas_client
     user = ModelHelper::new_user('mas-pt-test@tests.org')
+    user2 = ModelHelper::new_user('mas-pt-test2@tests.org')
     now = DateTime.now
     pts1 = Factory(:period_type_spec, user: user, end_date: nil)
     pts2 = Factory(:period_type_spec, user: user, period_type_id: WEEKLY_ID,
@@ -148,8 +149,12 @@ class PeriodTypeSpecTest < ActiveSupport::TestCase
       'mas client does NOT have sort-term yearly period type spec'
     assert client.period_type_spec_for(YEARLY) == ltyrly,
       'mas client has expected yearly period type spec'
-    client2 = MasClientTools::mas_client(user: user)
-    assert (client2.period_type_spec_for(YEARLY) == ltyrly),
+    ltyrly2 = Factory(:period_type_spec, user: user2, period_type_id: YEARLY_ID,
+                     end_date: now.dup.advance(years: -14),
+                     start_date: now.dup.advance(years: -104),
+                     category: long_term)
+    client2 = MasClientTools::mas_client(user: user2)
+    assert (client2.period_type_spec_for(YEARLY) == ltyrly2),
         "mas client 2 has long-term yearly period type spec"
     assert (client2.period_type_spec_for(YEARLY) != styrly),
         "mas client 2: no short-term yearly period type spec"

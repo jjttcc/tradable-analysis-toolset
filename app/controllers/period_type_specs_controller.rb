@@ -48,7 +48,17 @@ class PeriodTypeSpecsController < ApplicationController
   pre :signed_in do signed_in? end
   def update
     @period_type_spec = PeriodTypeSpec.find(params[:id])
-    if @period_type_spec.update_attributes(params[:period_type_spec])
+    replacement_pts_params = {}; orig_pts_params = params[:period_type_spec]
+    orig_pts_params.keys.each do |k|
+      if k =~ /effective.*_date/
+        # e.g., turn 'effective_start_date' into 'start_date':
+        key = k.sub("effective_", "")
+      else
+        key = k
+      end
+      replacement_pts_params[key] = orig_pts_params[k]
+    end
+    if @period_type_spec.update_attributes(replacement_pts_params)
       flash[:success] = FLASH[:update]
       redirect_to user_path(current_user.id)
     else

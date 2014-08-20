@@ -26,7 +26,7 @@ class MasClientArgs
         when /period.*type/
           if user != nil
             # (Extract only long-term specs.)
-            result = user.charting_specs
+            result = wrapped_pts_s(user.charting_specs)
           end
         when /mas.session/
           if user != nil
@@ -36,6 +36,10 @@ class MasClientArgs
     end
     result
   end
+
+  private
+
+  attr_reader :period_type_spec_wrappers
 
   def hashtable
     if @hashtable.nil?
@@ -47,6 +51,19 @@ class MasClientArgs
       }
     end
     @hashtable
+  end
+
+  # The array 'specs' (array of PeriodTypeSpec) wrapped in a set of
+  # PeriodTypeSpecAdapter so that the MasClient accesses the adapter interface
+  # instead of the real thing
+  def wrapped_pts_s(specs)
+     if @period_type_spec_wrappers.nil?
+       @period_type_spec_wrappers = []
+       specs.each do |s|
+         @period_type_spec_wrappers << PeriodTypeSpecAdapter.new(s)
+       end
+     end
+     @period_type_spec_wrappers
   end
 
 end
