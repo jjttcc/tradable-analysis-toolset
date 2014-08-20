@@ -19,6 +19,10 @@ logging out and re-logging back into the MAS server).
 
 COMPLETED:
 
+Move logic in app/helpers/sessions_helper.rb that doesn't belong in a view
+to a more appropriate place, such as
+app/controllers/application_controller.rb.
+
 Need to change the period-type-spec start/end date to roll forward relative
 the to current date - so that, e.g., a start date picked to analyze data
 starting 2 years ago will not become 2-years-plus-one-day the next day,

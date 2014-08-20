@@ -1,7 +1,10 @@
 require 'ruby_contracts'
 
 class SessionsController < ApplicationController
+  include ControllerFacilities
   include Contracts::DSL
+
+  public
 
   SIGN_IN_TITLE = 'Sign in'
 

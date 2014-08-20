@@ -1,6 +1,7 @@
 require 'ruby_contracts'
 
 class UsersController < ApplicationController
+  include ControllerFacilities
   include Contracts::DSL
 
   before_filter :authenticate,        :only => [:edit, :update, :show,

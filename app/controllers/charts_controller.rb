@@ -2,6 +2,7 @@ require 'ruby_contracts'
 require 'yahoo_finance'
 
 class ChartsController < ApplicationController
+  include ControllerFacilities
   include Contracts::DSL
 
   before_filter :authenticate

@@ -1,4 +1,5 @@
 class PeriodTypeSpecsController < ApplicationController
+  include ControllerFacilities
   include Contracts::DSL
 
   before_filter :authenticate
