@@ -9,6 +9,8 @@ gem 'rails', '3.2.13'
 gem 'sqlite3'
 #gem 'will_paginate', '3.0.pre'
 gem 'will_paginate'
+gem 'yahoo-finance'
+gem 'gon'
 
 
 # Gems used only for assets and not required

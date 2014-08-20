@@ -39,7 +39,8 @@ module MasClientTools
   end
 
   # Log out the client belonging to 'user' from the MAS server.
-  post :no_mas_session do implies(user != nil, user.mas_session.nil?) end
+  post :no_mas_session do |res, u|
+    implies(u != nil, MasSession.find_by_id(user.mas_session.id).nil?) end
   def self.logout_client(user)
     if user != nil && user.mas_session != nil
       client = self.mas_client(user: user)
@@ -47,7 +48,7 @@ module MasClientTools
         client.logout
       else
         #!!!!!! Remove this before first production release:
-        raise "Fix bug: client was not logged in [#{client.inspect}]"
+        raise "Fix bug: MAS client was not logged in [#{client.inspect}]"
       end
       user.mas_session.destroy
     end

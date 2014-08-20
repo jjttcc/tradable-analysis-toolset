@@ -1,10 +1,21 @@
 TradableAnalysisToolset::Application.routes.draw do
+#!!!!!!!????????:
+  post "charts/index"
+#!!!  post "charts/update"
+
+#  get "tradable_analyzers/index"
+
   resources :users
   resources :sessions, :only => [:new, :create, :destroy]
   resources :period_type_specs, :only =>
                                 [:new, :create, :edit, :update, :destroy]
+  resources :tradable_analyzers, :only =>
+                                [:index]
 
   root :to => 'pages#home'
+
+#!!!!!!!????????:
+  get '/pages/:symbol', to: 'pages#show'
 
   match '/help',    :to => 'pages#help'
   match '/about',   :to => 'pages#about'

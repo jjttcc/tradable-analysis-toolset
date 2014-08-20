@@ -1,0 +1,22 @@
+# == Schema Information
+#
+# Table name: mas_sessions
+#
+#  id              :integer          not null, primary key
+#  user_id         :integer
+#  mas_session_key :integer
+#  created_at      :datetime         not null
+#  updated_at      :datetime         not null
+#  data            :text
+#
+
+# Read about fixtures at
+# http://api.rubyonrails.org/classes/ActiveRecord/Fixtures.html
+
+#one:
+#  user_id: 1
+#  mas_session_key: 1
+
+#two:
+#  user_id: 1
+#  mas_session_key: 1

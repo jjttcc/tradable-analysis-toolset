@@ -1,5 +1,5 @@
 .container {
-  width: 98%;
+  width: 92%;
 }
 
 body {
@@ -219,6 +219,11 @@ div.flash {
   padding: 1em;
   vertical-align: top;
   background: #ffc;
+}
+
+#chart_div {
+  width: 950px;
+  height: 650px;
 }
 
 #error_explanation {
