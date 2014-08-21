@@ -1,5 +1,7 @@
-.container {
-  width: 92%;
+#id_ex1 h1, #id_ex2 h1, #id_ex3 h1 {color: #892828;}
+
+#users.container, #pages.container, #sessions.container {
+  width: 95%;
 }
 
 body {
@@ -91,7 +93,7 @@ nav ul li a:hover {
   text-decoration: underline;
 }
 
-.round {
+#users.round, #pages.round, #sessions.round, .round-all {
   -moz-border-radius:     10px;
   -webkit-border-radius:  10px;
   border-radius:          10px;
@@ -222,8 +224,16 @@ div.flash {
 }
 
 #chart_div {
-  width: 950px;
+  width: 135%;
   height: 650px;
+}
+
+.chart-form {
+  text-align: center;
+/*
+margin: 0 0 18px 0;
+  margin-left: 10%;
+ */
 }
 
 #error_explanation {

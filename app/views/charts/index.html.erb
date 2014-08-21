@@ -4,17 +4,18 @@
 -->
 <% @mas_client.request_symbols; sym1 = @mas_client.symbols.first
 if sym1 != nil then @mas_client.request_period_types(sym1) end %>
-      <%= form_for :tradable, url: charts_index_path do |f| %>
-        <%= select_tag('symbol',
-                       options_from_collection_for_select(@mas_client.symbols,
-                         :to_s, :to_s, @symbol))
-        %>
-        <%= select_tag('period_type', options_from_collection_for_select(
-              @mas_client.period_types, :to_s, :to_s, @period_type))
-        %>
-      <%= f.submit 'View chart' %>
-      <% end %>
-
+<div class="chart-form">
+<%= form_for :tradable, url: charts_index_path do |f| %>
+  <%= select_tag('symbol',
+                 options_from_collection_for_select(@mas_client.symbols,
+                   :to_s, :to_s, @symbol))
+  %>
+  <%= select_tag('period_type', options_from_collection_for_select(
+        @mas_client.period_types, :to_s, :to_s, @period_type))
+  %>
+<%= f.submit 'View chart' %>
+<% end %>
+</div>
 <script type="text/javascript" src="https://www.google.com/jsapi"></script>
 <%= javascript_include_tag "charts" %>
 <h1>
