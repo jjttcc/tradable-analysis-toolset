@@ -17,7 +17,7 @@ class ChartsController < ApplicationController
 #!!!!!REMINDER: symbols and period_types should be stored in the mas_session
 #!!!!!so that they don't have to be retrieved from the MAS server each time.
 #!!!!!(See charts/index.html.erb)
-    @mas_client = mas_client(current_user)
+    client = mas_client
     @error = nil
     @symbol = params[:symbol]
     @period_type = params[:period_type]
@@ -25,7 +25,7 @@ class ChartsController < ApplicationController
       @period_type = PeriodTypeConstants::DAILY
     end
     begin
-      @mas_client.request_tradable_data(@symbol, @period_type)
+      client.request_tradable_data(@symbol, @period_type)
       begin
         @name = YahooFinance.quotes([@symbol], [:name])[0].name
         @name.delete!('"')
@@ -40,11 +40,8 @@ class ChartsController < ApplicationController
     gon.push({
       symbol: @symbol,
       name: @name,
-      data: @mas_client.tradable_data,
+      data: client.tradable_data,
       period_type: @period_type,
-# Might want to get rid of this error line - i.e., only invoke
-# chars.js.coffee if no errors occurred:
-      error: @error,
     })
   end
 

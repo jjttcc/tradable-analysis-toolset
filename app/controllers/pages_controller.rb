@@ -12,20 +12,10 @@ class PagesController < ApplicationController
   HELP_TITLE = 'Help'
 
   post :user_if_signed_in do implies(signed_in?, current_user != nil) end
-  post :mclient_if_signed_in do implies(signed_in?, @mas_client != nil) end
   def home
     @title = HOME_TITLE
     set_appname
     @motd = MOTD.new
-    if signed_in?
-#!!!!TO-DO: Put this logic in a helper class/module:
-      @mas_client = mas_client(current_user)
-      @mas_client.request_symbols
-      symbol_list = @mas_client.symbols
-      if symbol_list.length > 0
-        @mas_client.request_period_types(symbol_list.first)
-      end
-    end
   end
 
 #!!!!!TO-DO: Is this action needed?

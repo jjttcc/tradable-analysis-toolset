@@ -12,10 +12,10 @@
       <p>
       <%= form_for :tradable, url: charts_index_path do |f| %>
         <%= select_tag('symbol',
-                       options_from_collection_for_select(@mas_client.symbols,
+                       options_from_collection_for_select(symbol_list,
                                                           :to_s, :to_s)) %>
         <%= select_tag('period_type', options_from_collection_for_select(
-                        @mas_client.period_types, :to_s, :to_s)) %>
+                        period_types, :to_s, :to_s)) %>
       <%= f.submit 'View chart' %>
       <% end %>
       </p>
