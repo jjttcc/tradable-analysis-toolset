@@ -37,6 +37,10 @@ class User < ActiveRecord::Base
   public
 
   # Elements of 'period_type_specs' that specify short durations
+  type out: Array
+  pre :invariant do invariant end
+  post :result_exists do |result| result != nil end
+  post :invariant do invariant end
   def analysis_specs
     result = period_type_specs.select do |spec|
       spec.for_analysis?
@@ -45,6 +49,10 @@ class User < ActiveRecord::Base
 
   # Elements of 'period_type_specs' that specify long durations - that is,
   # those that tend to be used for charting.
+  type out: Array
+  pre :invariant do invariant end
+  post :result_exists do |result| result != nil end
+  post :invariant do invariant end
   def charting_specs
     result = period_type_specs.select do |spec|
       ! spec.for_analysis?
@@ -101,6 +109,10 @@ class User < ActiveRecord::Base
 
   def new_salt
     secure_hash("#{Time.now.utc}--#{password}")
+  end
+
+  def invariant
+    period_type_specs != nil
   end
 
 end

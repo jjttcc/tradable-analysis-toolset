@@ -7,3 +7,6 @@ else
 end
 Rails.configuration.mas_port = Rails.configuration.mas_port1
 Rails.configuration.mas_port2 = 5442
+
+Rails.configuration.earliest_year = 1950
+Rails.configuration.latest_year = DateTime.now.year + 10

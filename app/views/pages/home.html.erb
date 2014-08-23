@@ -2,9 +2,6 @@
   <% if current_user.nil? %>
       <h1>not signed in</h1>
   <% else %>
-    <% if current_user.period_type_specs.count == 0 %>
-      <h1>No period-type specs</h1>
-    <% else %>
       <h1>
         <%= link_to "#{current_user.period_type_specs.count} period-type specs",
           user_path(current_user)%>
@@ -19,7 +16,6 @@
       <%= f.submit 'View chart' %>
       <% end %>
       </p>
-    <% end %>
   <% end %>
   <p><%= @motd.message %></p>
 <% else %>

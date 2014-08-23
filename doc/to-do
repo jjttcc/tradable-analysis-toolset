@@ -11,6 +11,13 @@ MAS server on loading of every MAS-related page (in order to avoid
 overloading the MAS server and probably also to make the code a bit
 simpler).
 
+Charting:
+  - abbreviate dates.
+  - When the user changes to a new period-type, don't use the dates
+    submitted by the form - use the dates for the period-types in the
+    database.  The user can then, if he wants to, change the dates while
+    keeping the same period-type.
+
 Change to implement and use the "time-delimited" version of tradable- and 
 indicator-data requests so that the time-period/range for a particular
 request can be changed on the fly without needing to change the MAS-server

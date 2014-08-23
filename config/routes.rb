@@ -1,7 +1,5 @@
 TradableAnalysisToolset::Application.routes.draw do
-#!!!!!!!????????:
   post "charts/index"
-#!!!  post "charts/update"
 
 #  get "tradable_analyzers/index"
 
@@ -13,9 +11,6 @@ TradableAnalysisToolset::Application.routes.draw do
                                 [:index]
 
   root :to => 'pages#home'
-
-#!!!!!!!????????:
-  get '/pages/:symbol', to: 'pages#show'
 
   match '/help',    :to => 'pages#help'
   match '/about',   :to => 'pages#about'

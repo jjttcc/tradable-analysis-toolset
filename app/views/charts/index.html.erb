@@ -2,17 +2,27 @@
 !!!!!REMINDER: symbols and period_types should be stored in the mas_session
 !!!!!so that they don't have to be retrieved from the MAS server each time.
 -->
-<% symbols = symbol_list %>
-<div class="chart-form">
+<% symbols = symbol_list; ptspec = period_type_spec_for(@period_type) %>
+<% start_date = ptspec.effective_start_date %>
+<% end_date = ptspec.effective_end_date %>
+<% start_year = period_type_start_year; end_year = period_type_end_year %>
+<div class="chart-form1">
 <%= form_for :tradable, url: charts_index_path do |f| %>
-  <%= select_tag('symbol',
-                 options_from_collection_for_select(symbols,
-                   :to_s, :to_s, @symbol))
+  <%= select_tag('symbol', options_from_collection_for_select(symbols,
+                 :to_s, :to_s, @symbol))
   %>
   <%= select_tag('period_type', options_from_collection_for_select(
         period_types, :to_s, :to_s, @period_type))
   %>
-<%= f.submit 'View chart' %>
+  <%= f.label :start_date, "start:" %>
+  <%= select_date(start_date, start_year: start_year,
+        end_year: end_year, prefix: 'startdate')
+  %>
+  <%= f.label :end_date, "end:" %>
+  <%= select_date(end_date, start_year: start_year,
+        end_year: end_year, include_blank: true, prefix: 'enddate')
+  %>&nbsp;&nbsp;
+  <%= f.submit 'Update' %>
 <% end %>
 </div>
 <script type="text/javascript" src="https://www.google.com/jsapi"></script>

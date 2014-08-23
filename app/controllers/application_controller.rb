@@ -1,12 +1,11 @@
-require 'ruby_contracts'
-
 class ApplicationController < ActionController::Base
   protect_from_forgery
-  # Note: 'include Contracts::DSL' causes catastrophic test failure, so do
-  # without executable contracts in this class.
   include SessionsHelper
+  # NOTE: Using Contracts::DSL in test and development causes problems in
+  # this class; therefore, it is not used - pre and post are within comments.
 
-  helper_method :mas_client, :symbol_list, :period_types
+  helper_method :mas_client, :symbol_list, :period_types,
+    :period_type_start_year, :period_type_end_year
 
   def index
     @motd = MOTD.new
@@ -48,6 +47,14 @@ class ApplicationController < ActionController::Base
       end
     end
     @period_types
+  end
+
+  def period_type_start_year
+    Rails.configuration.earliest_year
+  end
+
+  def period_type_end_year
+    Rails.configuration.latest_year
   end
 
   protected

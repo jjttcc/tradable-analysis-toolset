@@ -1,5 +1,6 @@
 # Constants relevant to trading-period types
 module PeriodTypeConstants
+  include Contracts::DSL
   include TimePeriodTypeConstants
 
   @@name_for = nil
@@ -21,9 +22,22 @@ module PeriodTypeConstants
     @@name_for
   end
 
+  # The 'id' for 'name', if 'name' is a valid period-type name
+  pre :valid_pt_name do |name| valid_period_type_name(name) end
+  post :valid_id do |result, name| name_for[result] == name end
+  def self.id_for(name)
+    # (Force creation of @@name_for hash.)
+    if @@name_for.nil? then name_for[ONE_MINUTE_ID] end
+    result = @@name_for.keys.find { |id| @@name_for[id] == name }
+  end
+
   def self.ids
     hash_tbl = self.name_for
     hash_tbl.keys
+  end
+
+  def self.valid_period_type_name(name)
+    @@period_types.include?(name)
   end
 
   ### IDs ###

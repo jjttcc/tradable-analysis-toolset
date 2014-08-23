@@ -19,6 +19,7 @@ class PeriodTypeSpec < ActiveRecord::Base
   belongs_to :user
   attr_accessible :start_date, :end_date, :period_type_id, :category
   validates_with PeriodTypeSpecValidator
+  after_save :clear_caches
 
   default_scope :order => 'period_type_id, period_type_specs.updated_at DESC'
 
@@ -72,21 +73,24 @@ class PeriodTypeSpec < ActiveRecord::Base
 
   private
 
-  def today_at_midnight
-    now = DateTime.now
-    DateTime.new(now.year, now.month, now.day, 0)
+  def datetime_at_midnight(date)
+    result = Time.new(date.year, date.month, date.day, 0)
   end
 
   def adjusted_datetime(dt)
-    today = today_at_midnight
+    today = datetime_at_midnight(DateTime.now.in_time_zone(updated_at.zone))
     correction_interval = updated_at.to_datetime.to_date -
       dt.to_datetime.to_date
-    result = today - correction_interval
+    result = (today.to_date - correction_interval).to_datetime
     result = result.change({
       :hour => dt.hour,
       :min => dt.min,
       :sec => dt.sec
     })
+  end
+
+  def clear_caches
+    @eff_start_date, @eff_end_date = nil, nil
   end
 
 end
