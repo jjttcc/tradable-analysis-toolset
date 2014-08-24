@@ -23,27 +23,39 @@ class ApplicationController < ActionController::Base
   end
 
   # pre :signed_in do signed_in? end
-  def symbol_list
-    ##!!!Fix needed: Get from current_user.mas_session instead of
-    ##!!!mas_client.
+  def symbol_list(no_save = false)
     if @symbols.nil?
-      client = mas_client
-      client.request_symbols
-      @symbols = client.symbols
+      if current_user.mas_session != nil
+        @symbols = current_user.mas_session.symbols
+      end
+      if @symbols.nil?
+        client = mas_client
+        client.request_symbols
+        @symbols = client.symbols
+        if current_user.mas_session != nil
+          current_user.mas_session.symbols = @symbols
+          if ! no_save
+            current_user.mas_session.save
+          end
+        end
+      end
     end
     @symbols
   end
 
   # pre :signed_in do signed_in? end
   def period_types
-    ##!!!Fix needed: Get from current_user.mas_session instead of
-    ##!!!mas_client.
     if @period_types.nil?
-      symbols = symbol_list
-      if symbols != nil and symbols.length > 0
-        client = mas_client
-        client.request_period_types(symbols.first)
-        @period_types = client.period_types
+      @period_types = current_user.mas_session.period_types
+      if @period_types.nil?
+        symbols = symbol_list(true)
+        if symbols != nil and symbols.length > 0
+          client = mas_client
+          client.request_period_types(symbols.first)
+          @period_types = client.period_types
+          current_user.mas_session.period_types = @period_types
+          current_user.mas_session.save
+        end
       end
     end
     @period_types

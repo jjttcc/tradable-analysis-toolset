@@ -17,11 +17,58 @@ class MasSession < ActiveRecord::Base
 
   public
 
-  attr_accessible :mas_session_key, :data
-  #!!!!!!!!!!attr_reader :mas_client, :mas_session_key
+  attr_accessible :mas_session_key
+
   validates :mas_session_key, :presence => true
   validates :user_id, :presence => true
 
   belongs_to :user
+
+  public ###  Access
+
+  # The last stored user-selected period-type name
+  def last_period_type
+    data[:last_period_type]
+  end
+
+  # The last stored tradable symbol list
+  def symbols
+    data[:symbols]
+  end
+
+  # The stored period-type-name list
+  def period_types
+    data[:period_types]
+  end
+
+  public ###  Status setting
+
+  type :in => String
+  pre :valid do |t| PeriodTypeConstants.valid_period_type_name(t) end
+  def last_period_type=(t)
+    data[:last_period_type] = t
+  end
+
+  type :in => Array
+  def symbols=(list)
+    data[:symbols] = list
+  end
+
+  type :in => Array
+  def period_types=(list)
+    data[:period_types] = list
+  end
+
+  private
+
+  serialize :data, Hash
+
+  def data
+    self[:data]
+  end
+
+  def data=(val)
+    write_attribute :data, val
+  end
 
 end

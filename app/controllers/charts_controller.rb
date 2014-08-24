@@ -16,9 +16,6 @@ class ChartsController < ApplicationController
                              @symbol == params[:symbol] && @name != nil) end
   post :ptype_set do @period_type != nil end
   def index
-#!!!!!REMINDER: symbols and period_types should be stored in the mas_session
-#!!!!!so that they don't have to be retrieved from the MAS server each time.
-#!!!!!(See charts/index.html.erb)
     client = mas_client
     @symbol = params[:symbol]
     @period_type = params[:period_type]
@@ -107,6 +104,10 @@ class ChartsController < ApplicationController
         end_date: nil,
         category: PeriodTypeSpec::LONG_TERM
       )
+    elsif period_type != current_user.mas_session.last_period_type
+      current_user.mas_session.last_period_type = @period_type
+      current_user.mas_session.save
+      return result   # Dates should not be updated if period_type changed.
     end
     start_date_hash = params['startdate']
     if start_date_hash.nil?

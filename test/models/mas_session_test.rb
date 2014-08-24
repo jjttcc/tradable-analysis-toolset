@@ -41,20 +41,20 @@ class MasSessionTest < ActiveSupport::TestCase
   end
 
   def test_session_data
-    the_data = "simple data test"
+    the_data = {key1: "simple data test"}
     orig_data = the_data.dup
     user = ModelHelper::new_user('mas-session-data-test@tests.org')
     user.save
     client = MasClientTools::mas_client
     msession = user.build_mas_session(mas_session_key: client.session_key)
-    msession.data = the_data
     assert msession.valid?, 'mas session with data is valid'
+    assert_raises(NoMethodError) { puts msession.data }
+    assert_raises(NoMethodError) {msession.data = the_data}
+    msession.last_period_type = 'monthly'
     msession.save
-    the_data << " - more stuff"
-    client = MasClientTools::mas_client(session: msession)
-    assert client.mas_session.data != the_data,
-      'session-data with side effect - no match'
-    assert client.mas_session.data == orig_data, 'session data as expected'
+    found_user = User.find_by_id(user.id)
+    msession = found_user.mas_session
+    assert msession.last_period_type == 'monthly'
     client.logout
   end
 

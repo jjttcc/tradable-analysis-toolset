@@ -3,6 +3,17 @@ stock/tradable symbols).  This will be used, e.g., to display links, and
 possibly summary data, for the stocks/tradables the user has most recently
 visited.
 
+When a symbol in the symbol list turns out to be invalid (i.e., server
+responds with: "104  Server error: Error occurred retrieving non-intraday
+period types for <symbol>"), remove it from the symbol list (in
+MasSession).
+
+
+Charting:
+  - abbreviate dates.
+
+COMPLETED:
+
 Put symbols, period-types, and perhaps other lists (such as indicators and
 analyzers) in MasSession (mas_sessions) to allow short-lived access (i.e.,
 no longer than [and possibly much shorter than] the lifetime of a MAS session)
@@ -12,7 +23,6 @@ overloading the MAS server and probably also to make the code a bit
 simpler).
 
 Charting:
-  - abbreviate dates.
   - When the user changes to a new period-type, don't use the dates
     submitted by the form - use the dates for the period-types in the
     database.  The user can then, if he wants to, change the dates while
@@ -23,8 +33,6 @@ indicator-data requests so that the time-period/range for a particular
 request can be changed on the fly without needing to change the MAS-server
 session configuration (which currently, I believe, can only be done by
 logging out and re-logging back into the MAS server).
-
-COMPLETED:
 
 Move logic in app/helpers/sessions_helper.rb that doesn't belong in a view
 to a more appropriate place, such as
