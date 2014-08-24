@@ -10,15 +10,17 @@
   <%= select_tag('period_type', options_from_collection_for_select(
         period_types, :to_s, :to_s, @period_type))
   %>
+  <%= f.submit 'Go' %>
   <%= f.label :start_date, "start:" %>
   <%= select_date(start_date, start_year: start_year,
-        end_year: end_year, prefix: 'startdate')
+        end_year: end_year, prefix: 'startdate', use_short_month: true)
   %>
   <%= f.label :end_date, "end:" %>
   <%= select_date(end_date, start_year: start_year,
-        end_year: end_year, include_blank: true, prefix: 'enddate')
+        end_year: end_year, include_blank: true, prefix: 'enddate',
+        use_short_month: true)
   %>&nbsp;&nbsp;
-  <%= f.submit 'Update' %>
+  <%= f.submit 'Go' %>
 <% end %>
 </div>
 <script type="text/javascript" src="https://www.google.com/jsapi"></script>
