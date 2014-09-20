@@ -1,4 +1,3 @@
-require 'ruby_contracts'
 
 module SessionsHelper
   include Contracts::DSL

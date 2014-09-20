@@ -6,22 +6,12 @@ class PeriodTypeSpecAdapter
   post :effective_date do |result|
     result == period_type_spec.effective_start_date end
   def start_date
-#!!!!!!debugging - remove soon:
-puts "PeriodTypeSpecAdapter.start_date:"
-puts "real start date: #{period_type_spec.start_date.to_date}"
-puts "false start date: #{period_type_spec.effective_start_date.to_date}\n"
     period_type_spec.effective_start_date
   end
 
   post :effective_date do |result|
     result == period_type_spec.effective_end_date end
   def end_date
-#!!!!!!debugging - remove soon:
-puts "PeriodTypeSpecAdapter.end_date:"
-if period_type_spec.end_date != nil
-puts "real end date: #{period_type_spec.end_date.to_date}"
-puts "false end date: #{period_type_spec.effective_end_date.to_date}"
-end
     period_type_spec.effective_end_date
   end
 

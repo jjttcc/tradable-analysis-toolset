@@ -12,6 +12,20 @@ MasSession).
 Charting:
   - abbreviate dates.
 
+POSSIBLE FUTURE ENHANCEMENTS:
+
+Consider adding period-type as an optional specifier for
+event/analysis-data requests (e.g., event_id_list of '1\t5\t7\t' can be
+changed to: '1:daily\t5:weekly\t7:quarterly').  (With this change, the
+MAS analyzer period-type attribute would be considered the default
+period type.)  There may need to be a separation between interday and
+intraday analyses - e.g., an analyzer with default period-type of daily
+may not be useable with an intraday period type.  Note that
+COMPOUND_EVENT_GENERATORs don.t have a period type, but its "leaves"
+will - If the leaves have different default period types, overriding
+these period types to the same value may be useless and should perhaps
+be disallowed in this situation.
+
 COMPLETED:
 
 Put symbols, period-types, and perhaps other lists (such as indicators and

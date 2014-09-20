@@ -155,6 +155,46 @@ table.ptype_specs {
 /*  margin-bottom: 2%;*/
 }
 
+table.analysis-events {
+  border-collapse: collapse;
+  background: #e5ffd9;
+  width : 90%;
+  font-size: 85%;
+}
+
+td.event-col1 {
+  padding: 1px 10% 00px 00px;
+  width : 50%;
+}
+
+td.event-col2 {
+  width : 30%;
+}
+
+tr.event {
+  border: solid;
+  border-width: 1px 0;
+  border-color: #d0d809;
+}
+
+tr:first-child.event {
+  border-top: none;
+}
+
+tr:last-child.event {
+  border-bottom: none;
+}
+
+div.center {
+  margin-left: auto;
+  margin-right: auto;
+  width: 98%;
+}
+
+div.analysis-events {
+  text-align: center;
+}
+
 .ptype_specs th,
 .ptype_specs td {
   padding: 1px 15px 00px 00px;

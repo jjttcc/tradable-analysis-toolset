@@ -1,4 +1,3 @@
-require 'ruby_contracts'
 require 'yahoo_finance'
 
 class ChartsController < ApplicationController

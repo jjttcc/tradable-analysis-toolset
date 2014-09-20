@@ -1,0 +1,18 @@
+<div class="center">
+<h1 style='text-align: center'><%= @title %></h1>
+<table class="round analysis-events">
+  <tr>
+    <% @analysis_events.keys.each do |symbol| %>
+      <th class="event-heading">
+        <%= "#{symbol} #{@analysis_events[symbol].count} events" %>
+      </th>
+      <% @analysis_events[symbol].each do |e| %>
+      <tr class="event">
+        <td class="event-col1"><%= e.analyzer.name %></td>
+        <td class="event-col2"><%= e.datetime.to_date %> </td>
+      </tr>
+      <% end %>
+    <% end %>
+  </tr>
+</table>
+</div>

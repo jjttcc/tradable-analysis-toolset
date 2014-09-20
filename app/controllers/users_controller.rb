@@ -1,4 +1,3 @@
-require 'ruby_contracts'
 
 class UsersController < ApplicationController
   include ControllerFacilities

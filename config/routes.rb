@@ -1,5 +1,6 @@
 TradableAnalysisToolset::Application.routes.draw do
   post "charts/index"
+  post "tradable_analyzers/index"
 
 #  get "tradable_analyzers/index"
 

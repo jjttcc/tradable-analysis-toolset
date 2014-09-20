@@ -13,16 +13,23 @@ class ApplicationController < ActionController::Base
 
   public ###  Access
 
-  # MasClient object for the current user
+  # MasClient object for the current user - nil if connection attempt to
+  # server fails (and @error_msg is set to an error description)
   # pre :signed_in do signed_in? end
   def mas_client
-    if @mas_client.nil?
-      @mas_client = MasClientTools::mas_client(user: current_user)
+    begin
+      @error_msg = nil
+      if @mas_client.nil?
+        @mas_client = MasClientTools::mas_client(user: current_user)
+      end
+    rescue => e
+      @error_msg = e.inspect
     end
     @mas_client
   end
 
   # pre :signed_in do signed_in? end
+  # type :out => Array
   def symbol_list(no_save = false)
     if @symbols.nil?
       if current_user.mas_session != nil

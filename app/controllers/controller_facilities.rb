@@ -1,4 +1,3 @@
-require 'ruby_contracts'
 
 module ControllerFacilities
   include Contracts::DSL

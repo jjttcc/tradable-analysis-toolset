@@ -10,13 +10,14 @@ class TradableAnalyzer
 
   public
 
-  attr_reader :name, :id
+  attr_reader :name, :id, :is_intraday
 
   private
 
-  def initialize(name, id)
+  def initialize(name, id, intraday = false)
     @name = name
     @id = id
+    @is_intraday = intraday
   end
 
 end

@@ -16,6 +16,30 @@
       <%= f.submit 'View chart' %>
       <% end %>
       </p>
+
+      <h1>
+        <%= link_to "#{@analyzers.count} signal types",
+          user_path(current_user)%>
+      </h1>
+      <p>
+      <% startdate = DateTime.now; startdate -= 14 %>
+      <% enddate = DateTime.now; enddate += 1 %>
+      <%= form_for :analyzer, url: tradable_analyzers_index_path do |f| %>
+        <%= select_tag('symbols',
+                       options_from_collection_for_select(symbol_list,
+                         :to_s, :to_s), multiple: true) %>
+        <%= select_tag('analyzers', options_from_collection_for_select(
+              @analyzers.keys {|name| name}, :to_s, :to_s), multiple: true) %>
+        <%= f.label :start_date, "start:" %>
+        <%= select_date(startdate, prefix: 'startdate',
+                        use_short_month: true) %>
+        <%= f.label :end_date, "end:" %>
+        <%= select_date(enddate, prefix: 'enddate',
+                        use_short_month: true) %>
+      <%= f.submit 'Run analysis' %>
+      <% end %>
+      </p>
+
   <% end %>
   <p><%= @motd.message %></p>
 <% else %>
