@@ -36,6 +36,8 @@ class UsersController < ApplicationController
   post :curusr_if_signed_in do implies signed_in?, current_user == @user end
   def create
     @user = User.new(params[:user])
+    mas_cl = mas_client
+    @user.create_mas_session(mas_session_key: mas_cl.session_key)
     if @user.save
       appname = Rails.configuration.application_name
       flash[:success] = "Welcome to #{appname}."

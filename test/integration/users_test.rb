@@ -33,6 +33,18 @@ class UsersTest < ActionDispatch::IntegrationTest
         assert page.has_css?('div.flash.success'), 'success flash'
         assert page.has_text?('Welcome'), 'has flash msg'
       end
+
+      it "new user - home" do
+        visit signup_path
+        fill_in 'Email address',    :with => "email2@mailers.org"
+        fill_in 'Password',         :with => "mypersonalpassword"
+        fill_in 'Confirm password', :with => "mypersonalpassword"
+        click_button 'Submit'
+        assert page.has_css?('div.flash.success'), 'success flash'
+        assert page.has_text?('Welcome'), 'has flash msg'
+        visit root_path
+        assert page.has_text?('signal types'), 'has expected contents'
+      end
     end
 
     describe "signin" do
