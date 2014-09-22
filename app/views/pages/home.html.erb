@@ -25,9 +25,10 @@
       <%= form_for :analyzer, url: tradable_analyzers_index_path do |f| %>
         <%= select_tag('symbols',
                        options_from_collection_for_select(symbol_list,
-                         :to_s, :to_s), multiple: true) %>
+                         :to_s, :to_s), multiple: true, size: 30) %>
         <%= select_tag('analyzers', options_from_collection_for_select(
-              @analyzers.keys {|name| name}, :to_s, :to_s), multiple: true) %>
+                       @analyzers.keys {|name| name}, :to_s, :to_s),
+                       multiple: true, size: 30) %>
         <%= f.label :start_date, "start:" %>
         <%= select_date(@ana_startdate, prefix: 'startdate',
                         use_short_month: true) %>
