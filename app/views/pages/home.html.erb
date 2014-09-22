@@ -22,8 +22,6 @@
           user_path(current_user)%>
       </h1>
       <p>
-      <% startdate = DateTime.now; startdate -= 14 %>
-      <% enddate = DateTime.now; enddate += 1 %>
       <%= form_for :analyzer, url: tradable_analyzers_index_path do |f| %>
         <%= select_tag('symbols',
                        options_from_collection_for_select(symbol_list,
@@ -31,10 +29,10 @@
         <%= select_tag('analyzers', options_from_collection_for_select(
               @analyzers.keys {|name| name}, :to_s, :to_s), multiple: true) %>
         <%= f.label :start_date, "start:" %>
-        <%= select_date(startdate, prefix: 'startdate',
+        <%= select_date(@ana_startdate, prefix: 'startdate',
                         use_short_month: true) %>
         <%= f.label :end_date, "end:" %>
-        <%= select_date(enddate, prefix: 'enddate',
+        <%= select_date(@ana_enddate, prefix: 'enddate',
                         use_short_month: true) %>
       <%= f.submit 'Run analysis' %>
       <% end %>

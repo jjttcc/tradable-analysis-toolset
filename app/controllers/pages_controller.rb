@@ -16,7 +16,21 @@ class PagesController < ApplicationController
     @title = HOME_TITLE
     set_appname
     if current_user != nil
+      @ana_startdate, @ana_enddate = nil, nil
       @analyzers = analyzers_from_session
+      current_user.analysis_specs.each do |spec|
+        if spec.period_type == PeriodTypeConstants::DAILY
+          @ana_startdate = spec.effective_start_date
+          @ana_enddate = spec.effective_end_date
+          break
+        end
+      end
+      if @ana_startdate.nil?
+        @ana_startdate = DateTime.now; @ana_startdate -= 14
+      end
+      if @ana_enddate.nil?
+        @ana_enddate = DateTime.now; @ana_enddate += 1
+      end
     end
     @motd = MOTD.new
   end
