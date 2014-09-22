@@ -16,7 +16,7 @@ class ApplicationController < ActionController::Base
   # MasClient object for the current user - nil if connection attempt to
   # server fails (and @error_msg is set to an error description)
   # pre :signed_in do signed_in? end
-  # post :foo do |res| implies(res.nil?, not @error_msg.nil?) end
+  # post :error_if_nil do |res| implies(res.nil?, not @error_msg.nil?) end
   def mas_client
     begin
       @error_msg = nil
