@@ -164,11 +164,15 @@ table.analysis-events {
 
 td.event-col1 {
   padding: 1px 10% 00px 00px;
-  width : 50%;
+  width : 55%;
 }
 
 td.event-col2 {
-  width : 30%;
+  width : 20%;
+}
+
+td.event-col3 {
+  width : 20%;
 }
 
 tr.event {

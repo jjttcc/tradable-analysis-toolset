@@ -12,6 +12,12 @@ class TradableAnalyzer
 
   attr_reader :name, :id, :is_intraday
 
+  public ###  Access
+
+  def description
+    result = @name.sub(/\s*\(.*/, '')
+  end
+
   private
 
   def initialize(name, id, intraday = false)

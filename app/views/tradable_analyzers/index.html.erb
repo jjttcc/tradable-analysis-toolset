@@ -8,8 +8,9 @@
       </th>
       <% @analysis_events[symbol].each do |e| %>
       <tr class="event">
-        <td class="event-col1"><%= e.analyzer.name %></td>
+        <td class="event-col1"><%= e.analyzer.description %></td>
         <td class="event-col2"><%= e.datetime.to_date %> </td>
+        <td class="event-col3"><%= e.event_type %></td>
       </tr>
       <% end %>
     <% end %>
