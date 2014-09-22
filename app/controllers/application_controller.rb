@@ -16,6 +16,7 @@ class ApplicationController < ActionController::Base
   # MasClient object for the current user - nil if connection attempt to
   # server fails (and @error_msg is set to an error description)
   # pre :signed_in do signed_in? end
+  # post :foo do |res| implies(res.nil?, not @error_msg.nil?) end
   def mas_client
     begin
       @error_msg = nil
@@ -23,7 +24,7 @@ class ApplicationController < ActionController::Base
         @mas_client = MasClientTools::mas_client(user: current_user)
       end
     rescue => e
-      @error_msg = e.inspect
+      @error_msg = "Connection to MAS server failed: #{e.inspect}"
     end
     @mas_client
   end

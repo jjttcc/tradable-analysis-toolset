@@ -35,16 +35,27 @@ class UsersController < ApplicationController
   post :user_exists do @user != nil end
   post :curusr_if_signed_in do implies signed_in?, current_user == @user end
   def create
+    success = true
     @user = User.new(params[:user])
     mas_cl = mas_client
-    @user.create_mas_session(mas_session_key: mas_cl.session_key)
-    if @user.save
-      appname = Rails.configuration.application_name
-      flash[:success] = "Welcome to #{appname}."
-      sign_in(@user)
-      redirect_to @user
+    if mas_cl.nil?
+      success = false
+      failure_reason = @error_msg
     else
+      @user.create_mas_session(mas_session_key: mas_cl.session_key)
+      if @user.save
+        appname = Rails.configuration.application_name
+        flash[:success] = "Welcome to #{appname}."
+        sign_in(@user)
+        redirect_to @user
+      else
+        success = false
+        failure_reason = "Database update failed."
+      end
+    end
+    if not success
       @title = NEW_USER_TITLE
+      flash[:failure] = "Operation failed: #{failure_reason}"
       render 'new'
     end
   end
