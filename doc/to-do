@@ -1,3 +1,8 @@
+Need one or more watchlists per user.  Use the "currently selected
+watchlist" to auto-select the stocks for analysis; continue to present the
+symbol select list, with the auto-selected stocks marked, to allow the user
+to add more or completely change the selection.
+
 Need a table/model of a user's recently accessed items (starting with
 stock/tradable symbols).  This will be used, e.g., to display links, and
 possibly summary data, for the stocks/tradables the user has most recently

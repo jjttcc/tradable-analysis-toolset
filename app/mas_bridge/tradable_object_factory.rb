@@ -1,3 +1,7 @@
+#!!!!!!!!!!!![Remove this when finished with app/models/tradable_event.rb:]
+require_relative '../../library/test/test_tradable_event'
+#!!!!!!!!!!!!!!!
+
 class TradableObjectFactory
   include TimePeriodTypeConstants
 
@@ -18,7 +22,8 @@ class TradableObjectFactory
     else
       analyzer = selected_ans[0]
     end
-    TradableEvent.new(datetime, event_type_id, analyzer)
+#!!!!!!!!!!!!!!!!!!Replace with TradableEvent (model) when it's ready:
+    TestTradableEvent.new(datetime, event_type_id, analyzer)
   end
 
   def new_parameter(name: name, type_desc: type_desc, value: value)
