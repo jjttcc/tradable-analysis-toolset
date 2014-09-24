@@ -35,6 +35,7 @@ group :development, :test do
   gem 'factory_girl_rails', '1.0'
   gem 'minitest-rails-capybara'
   gem 'capybara_minitest_spec'  # for capybara integration and spec matchers
+  gem 'launchy'
   gem 'turn'                    # for report prettification
 end
 
