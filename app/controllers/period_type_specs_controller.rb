@@ -18,8 +18,7 @@ class PeriodTypeSpecsController < ApplicationController
   end
 
   def create
-    period_type_spec = current_user.period_type_specs.build(
-      params[:period_type_spec])
+    period_type_spec = current_user.period_type_specs.build(pt_spec_params)
     if period_type_spec.save
       redirect_to user_path(current_user.id),
         :flash => { :success => FLASH[:create] }
@@ -43,7 +42,7 @@ class PeriodTypeSpecsController < ApplicationController
   pre :signed_in do signed_in? end
   def update
     @period_type_spec = PeriodTypeSpec.find(params[:id])
-    replacement_pts_params = {}; orig_pts_params = params[:period_type_spec]
+    replacement_pts_params = {}; orig_pts_params = pt_spec_params
     orig_pts_params.keys.each do |k|
       if k =~ /effective.*_date/
         # e.g., turn 'effective_start_date' into 'start_date':
@@ -62,9 +61,9 @@ class PeriodTypeSpecsController < ApplicationController
     end
   end
 
-  post :spec_gone do PeriodTypeSpec.find_by_id(params[:id]) == nil end
+  post :spec_gone do PeriodTypeSpec.find(params[:id]) == nil end
   def destroy
-    pspec = PeriodTypeSpec.find_by_id(params[:id])
+    pspec = PeriodTypeSpec.find(params[:id])
     if pspec != nil
       pspec.destroy
       redirect_to user_path(current_user.id),
@@ -73,6 +72,11 @@ class PeriodTypeSpecsController < ApplicationController
   end
 
   private
+
+  def pt_spec_params
+    params.require(:period_type_spec).permit(:start_date, :end_date,
+      :period_type_id, :category)
+  end
 
   # Create convenience variables to be used by views.
   def make_view_helper_vars
@@ -85,7 +89,7 @@ class PeriodTypeSpecsController < ApplicationController
   end
 
   def ensure_correct_user
-    pt_spec = PeriodTypeSpec.find_by_id(params[:id])
+    pt_spec = PeriodTypeSpec.find(params[:id])
     if pt_spec.user != current_user
       redirect_to root_path
     end

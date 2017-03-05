@@ -36,7 +36,7 @@ class UsersController < ApplicationController
   post :curusr_if_signed_in do implies signed_in?, current_user == @user end
   def create
     success = true
-    @user = User.new(params[:user])
+    @user = User.new(user_params)
     mas_cl = mas_client
     if mas_cl.nil?
       success = false
@@ -70,7 +70,7 @@ class UsersController < ApplicationController
   pre :signed_in do signed_in? end
   def update
     @user = User.find(params[:id])
-    if @user.update_attributes(params[:user])
+    if @user.update_attributes(user_params)
       flash[:success] = "Settings updated."
       redirect_to @user
     else
@@ -80,8 +80,8 @@ class UsersController < ApplicationController
   end
 
   pre :user_is_admin do signed_in? and current_user.admin? end
-  pre :target_exists do User.find_by_id(params[:id]) != nil end
-  post :user_removed do tgt = User.find_by_id(params[:id])
+  pre :target_exists do User.find(params[:id]) != nil end
+  post :user_removed do tgt = User.find(params[:id])
                         tgt == current_user || tgt == nil end
   def destroy
     u = User.find(params[:id])
@@ -96,8 +96,13 @@ class UsersController < ApplicationController
 
   private
 
+  def user_params
+    params.require(:user).permit(:email_addr, :password,
+      :password_confirmation)
+  end
+
   def ensure_correct_user
-    user = User.find_by_id(params[:id])
+    user = User.find(params[:id])
     if user != current_user
       redirect_to root_path
     end

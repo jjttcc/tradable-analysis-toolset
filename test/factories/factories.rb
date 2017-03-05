@@ -1,17 +1,23 @@
-Factory.define :user do |u|
-  u.email_addr             "memy@example.com"
-  u.password               "oboefoobar"
-  u.password_confirmation  "oboefoobar"
+FactoryGirl.define do
+  factory :user do
+    email_addr             "memy@example.com"
+    password               "oboefoobar"
+    password_confirmation  "oboefoobar"
+  end
 end
 
-Factory.sequence :email do |n|
-  "user-#{n}@users.org"
+FactoryGirl.define do
+  sequence :email do |n|
+    "user-#{n}@users.org"
+  end
 end
 
-Factory.define :period_type_spec do |p|
-  p.start_date DateTime.yesterday
-  p.end_date DateTime.now
-  p.period_type_id PeriodTypeConstants::DAILY_ID
-  p.category PeriodTypeSpec::SHORT_TERM
-  p.association :user
+FactoryGirl.define do
+  factory :person do
+    start_date DateTime.yesterday
+    end_date DateTime.now
+    period_type_id PeriodTypeConstants::DAILY_ID
+    category PeriodTypeSpec::SHORT_TERM
+    association :user
+  end
 end

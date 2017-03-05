@@ -20,7 +20,7 @@ class User < ActiveRecord::Base
   public
 
   attr_accessor   :password
-  attr_accessible :email_addr, :password, :password_confirmation
+#!!!!!  attr_accessible :email_addr, :password, :password_confirmation
 
   has_many :period_type_specs, :dependent => :destroy
   has_one  :mas_session,       :dependent => :destroy
