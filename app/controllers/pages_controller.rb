@@ -55,6 +55,7 @@ class PagesController < ApplicationController
   private ###  Implementation
 
   pre :mas_session do current_user.mas_session != nil end
+  pre :symbols_exist do ! symbol_list.empty? end
   post :result_is_hash do |result| result != nil && result.class == Hash end
   def analyzers_from_session
     mascl = mas_client
@@ -62,11 +63,26 @@ class PagesController < ApplicationController
     if mas_session.analyzers == nil
       a_list = []
       begin
-        mascl.request_analyzers(symbol_list[0])
+        symbols = symbol_list
+#!!!!!TO-DO [important]: enclose this call within 'begin/rescue/end
+#!!!!!and handle exceptions gracefully/appropriately:
+        mascl.request_analyzers(symbols)
+=begin
+Note1!!!!: The above comment relates to this error:
+Server returned error status: 101	Invalid request (Session may be stale.)
+which is triggered by this line in MasCommunicationServices:
+      raise "Server returned error status: #{last_response}"
+When that error occurs, some kind of "reset" is probably needed, such as
+deleting the associated session record.
+Note2!!!!: Handling this error has even higher priority:
+Server returned error status: 101	Wrong number of fields.
+It results in the same 'raise "Server returned..."' occurrence, but,
+obviously, has a different cause.
+=end
         a_list = mascl.analyzers
         # Get intraday analyzers, if any.
-        mascl.request_analyzers(symbol_list[0],
-                                     PeriodTypeConstants::HOURLY)
+        mascl.request_analyzers(symbols,
+                                PeriodTypeConstants::HOURLY)
         a_list << mascl.analyzers
       rescue => e
         if e.to_s !~ /#{MasCommunicationProtocol::INVALID_PERIOD_TYPE}/

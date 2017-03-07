@@ -16,7 +16,14 @@
     <%= yield %>
   </section>
   <%= render "layouts/footer" %>
-  <%= if Rails.env.development?; debug(params) end %>
+  <% if Rails.env.development? %>
+    <%= debug(params) %>
+    <%= if ! flash.empty? then debug(flash) end %>
+    <%= if ! @user.nil? then debug(@user) end %>
+    <%= if ! current_user.nil? then debug(current_user) end %>
+    <%= if ! @period_type.nil? then debug(@period_type) end %>
+    <%= r = request; debug ([r.method, r.fullpath, r.remote_ip]) %>
+  <% end %>
 </div>
 </body>
 </html>

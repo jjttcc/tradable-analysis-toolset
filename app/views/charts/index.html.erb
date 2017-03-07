@@ -26,8 +26,12 @@
 <script type="text/javascript" src="https://www.google.com/jsapi"></script>
 <%= javascript_include_tag "charts" %>
 <h1>
-  <%= "'#{@name}'" %>
-  <%= if ! @symbol.nil? then "(#{@symbol})" end %>
+  <% heading = "" %>
+  <% if ! @name.nil? and ! @name.empty? then heading = @name end %>
+  <% if ! @symbol.nil? then
+       heading += heading.empty? ? @symbol : " (#{@symbol})"
+    end %>
+  <%= heading %>
 </h1>
 <!--
 <div id="chart_div" style="width: 1000px; height: 500px;"></div>

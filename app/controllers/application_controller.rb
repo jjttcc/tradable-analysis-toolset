@@ -7,6 +7,8 @@ class ApplicationController < ActionController::Base
   helper_method :mas_client, :symbol_list, :period_types,
     :period_type_start_year, :period_type_end_year
 
+  public
+
   def index
     @motd = MOTD.new
   end
@@ -29,7 +31,8 @@ class ApplicationController < ActionController::Base
     @mas_client
   end
 
-  # pre :signed_in do signed_in? end
+  # pre  :signed_in do signed_in? end
+  # post :result_not_nil do |result| result != nil && result.class == Array end
   # type :out => Array
   def symbol_list(no_save = false)
     if @symbols.nil?

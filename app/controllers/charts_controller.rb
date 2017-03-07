@@ -1,4 +1,4 @@
-require 'yahoo_finance'
+require 'yahoo-finance'
 
 class ChartsController < ApplicationController
   include ControllerFacilities
