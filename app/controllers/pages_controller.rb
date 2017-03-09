@@ -65,14 +65,6 @@ class PagesController < ApplicationController
       begin
         symbol = symbol_list[0]
         mascl.request_analyzers(symbol)
-=begin
-Note!!!!: this error, when it occurs, should probably be handled better:
-Server returned error status: 101	Invalid request (Session may be stale.)
-which, when it occurs, is triggered by this line in MasCommunicationServices:
-      raise "Server returned error status: #{last_response}"
-When that error occurs, some kind of "reset" is probably needed, such as
-making the user log off and deleting the associated session record.
-=end
         a_list = mascl.analyzers
         # Get intraday analyzers, if any.
         mascl.request_analyzers(symbol, PeriodTypeConstants::HOURLY)

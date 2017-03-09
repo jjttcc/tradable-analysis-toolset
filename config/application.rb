@@ -56,7 +56,7 @@ module TradableAnalysisToolset
     # Add all directories, recursively, under the 'library' directory to
     # the autoload paths to allow any class file in any of those
     # directories to be loaded (without needing a namespace qualification).
-    Dir.glob(Rails.root.join('library/mas_client/**/')) do |f|
+    Dir.glob(Rails.root.join('library/**/')) do |f|
       config.autoload_paths << f
     end
   end

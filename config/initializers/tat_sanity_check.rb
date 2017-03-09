@@ -1,6 +1,4 @@
 $log = Logger.new("/tmp/mas-client.log#{$$}", 1, 1024000)
-$app_startup_in_progress = true
-$log.debug("We are here! - asip #{$APP_STARTUP_IN_PROGRESS}")
 begin
   mas_client = MasClientTools::mas_client()
 rescue => e
