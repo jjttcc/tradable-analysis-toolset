@@ -1,3 +1,7 @@
+class ActiveSupport::TestCase
+  include FactoryGirl::Syntax::Methods
+end
+
 FactoryGirl.define do
   factory :user do
     email_addr             "memy@example.com"
@@ -17,6 +21,15 @@ FactoryGirl.define do
     start_date DateTime.yesterday
     end_date DateTime.now
     period_type_id PeriodTypeConstants::DAILY_ID
+    category PeriodTypeSpec::SHORT_TERM
+    association :user
+  end
+end
+
+FactoryGirl.define do
+  factory :period_type_spec do
+    period_type_id PeriodTypeConstants::DAILY_ID
+    start_date DateTime.now
     category PeriodTypeSpec::SHORT_TERM
     association :user
   end

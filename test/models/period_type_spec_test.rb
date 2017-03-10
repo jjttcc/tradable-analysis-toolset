@@ -101,36 +101,36 @@ class PeriodTypeSpecTest < ActiveSupport::TestCase
     user = ModelHelper::new_user('mas-pt-test@tests.org')
     user2 = ModelHelper::new_user('mas-pt-test2@tests.org')
     now = DateTime.now
-    pts1 = Factory(:period_type_spec, user: user, end_date: nil)
-    pts2 = Factory(:period_type_spec, user: user, period_type_id: WEEKLY_ID,
+    pts1 = create(:period_type_spec, user: user, end_date: nil)
+    pts2 = create(:period_type_spec, user: user, period_type_id: WEEKLY_ID,
                    end_date: nil, start_date: now.dup.advance(years: -3))
-    pts3 = Factory(:period_type_spec, user: user, period_type_id: MONTHLY_ID,
+    pts3 = create(:period_type_spec, user: user, period_type_id: MONTHLY_ID,
                    end_date: nil, start_date: now.dup.advance(years: -5))
-    pts4 = Factory(:period_type_spec, user: user, period_type_id: QUARTERLY_ID,
+    pts4 = create(:period_type_spec, user: user, period_type_id: QUARTERLY_ID,
                    end_date: nil, start_date: now.dup.advance(years: -15))
-    pts5 = Factory(:period_type_spec, user: user, period_type_id: YEARLY_ID,
+    pts5 = create(:period_type_spec, user: user, period_type_id: YEARLY_ID,
                    end_date: now.dup.advance(years: -14),
                    start_date: now.dup.advance(years: -35))
     styrly = pts5
     long_term = PeriodTypeSpec::LONG_TERM
-    ltpts1 = Factory(:period_type_spec, user: user, end_date: nil,
+    ltpts1 = create(:period_type_spec, user: user, end_date: nil,
                      category: long_term)
-    ltpts2 = Factory(:period_type_spec, user: user, period_type_id: WEEKLY_ID,
+    ltpts2 = create(:period_type_spec, user: user, period_type_id: WEEKLY_ID,
                      end_date: nil, start_date: now.dup.advance(years: -3),
                      category: long_term)
-    ltpts3 = Factory(:period_type_spec, user: user, period_type_id: MONTHLY_ID,
+    ltpts3 = create(:period_type_spec, user: user, period_type_id: MONTHLY_ID,
                      end_date: nil, start_date: now.dup.advance(years: -5),
                      category: long_term)
-    ltpts4 = Factory(:period_type_spec, user: user,
+    ltpts4 = create(:period_type_spec, user: user,
                      period_type_id: QUARTERLY_ID,
                      end_date: now.dup.advance(years: -4),
                      start_date: now.dup.advance(years: -24),
                      category: long_term)
-    ltpts5 = Factory(:period_type_spec, user: user, period_type_id: YEARLY_ID,
+    ltpts5 = create(:period_type_spec, user: user, period_type_id: YEARLY_ID,
                      end_date: now.dup.advance(years: -14),
                      start_date: now.dup.advance(years: -104),
                      category: long_term)
-    ltpts6 = Factory(:period_type_spec, user: user,
+    ltpts6 = create(:period_type_spec, user: user,
                    period_type_id: ONE_MINUTE_ID, end_date: nil,
                    start_date: now.dup.advance(days: -5),
                    category: long_term)
@@ -149,7 +149,7 @@ class PeriodTypeSpecTest < ActiveSupport::TestCase
       'mas client does NOT have sort-term yearly period type spec'
     assert client.period_type_spec_for(YEARLY) == ltyrly,
       'mas client has expected yearly period type spec'
-    ltyrly2 = Factory(:period_type_spec, user: user2, period_type_id: YEARLY_ID,
+    ltyrly2 = create(:period_type_spec, user: user2, period_type_id: YEARLY_ID,
                      end_date: now.dup.advance(years: -14),
                      start_date: now.dup.advance(years: -104),
                      category: long_term)
@@ -162,6 +162,5 @@ class PeriodTypeSpecTest < ActiveSupport::TestCase
     assert client.period_type_spec_for(ONE_MINUTE) == sminute,
       'mas client has expected 1-minute period type spec'
   end
-
 
 end

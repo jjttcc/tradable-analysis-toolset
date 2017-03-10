@@ -41,7 +41,7 @@ class TradableAnalyzersTest < ActionDispatch::IntegrationTest
     select('Sep', :from => 'enddate_month')
     select('25', :from => 'enddate_day')
     click_button 'Run analysis'
-    assert page.has_content?('9 events'), 'has 9 events'
+    assert page.has_content?(/1[0-9]\s+events/), 'has 10..19 events'
     assert page.has_content?(analyzer_desc), 'has analyzer'
     assert current_path == tradable_analyzers_index_path, 'ta index'
   end
@@ -60,7 +60,7 @@ class TradableAnalyzersTest < ActionDispatch::IntegrationTest
     select('Sep', :from => 'enddate_month')
     select('25', :from => 'enddate_day')
     click_button 'Run analysis'
-    assert page.has_content?('10 events'), 'has 10 events'
+    assert page.has_content?(/(1[0-9]|2[0-5])\s+events/), 'has 10..25 events'
     assert page.has_content?(analyzer_desc), 'has analyzer'
     assert current_path == tradable_analyzers_index_path, 'ta index'
   end

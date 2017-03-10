@@ -3,10 +3,10 @@ class UsersController < ApplicationController
   include ControllerFacilities
   include Contracts::DSL
 
-  before_filter :authenticate,        :only => [:edit, :update, :show,
+  before_action :authenticate,        :only => [:edit, :update, :show,
                                                 :index, :destroy]
-  before_filter :ensure_correct_user, :only => [:edit, :update, :show]
-  before_filter :ensure_admin,        :only => [:destroy, :index]
+  before_action :ensure_correct_user, :only => [:edit, :update, :show]
+  before_action :ensure_admin,        :only => [:destroy, :index]
 
   NEW_USER_TITLE = 'Create login'
   EDIT_USER_TITLE = 'Edit user'
@@ -81,7 +81,7 @@ class UsersController < ApplicationController
 
   pre :user_is_admin do signed_in? and current_user.admin? end
   pre :target_exists do User.find(params[:id]) != nil end
-  post :user_removed do tgt = User.find(params[:id])
+  post :user_removed do tgt = User.find_by_id(params[:id])
                         tgt == current_user || tgt == nil end
   def destroy
     u = User.find(params[:id])

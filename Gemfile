@@ -9,21 +9,17 @@ gem 'activerecord-session_store'
 
 gem 'sqlite3'
 gem 'will_paginate'
+gem 'bootstrap-will_paginate'
+gem 'bootstrap-sass'
 gem 'yahoo-finance'
 gem 'gon'
 
 
-# Gems used only for assets and not required
-# in production environments by default.
-group :assets do
-  gem 'sass-rails'
-  gem 'coffee-rails'
-
-  # See https://github.com/sstephenson/execjs#readme for more supported runtimes
-  # gem 'therubyracer', :platforms => :ruby
-
-  gem 'uglifier'
-end
+gem 'sass-rails'
+gem 'coffee-rails'
+# See https://github.com/sstephenson/execjs#readme for more supported runtimes
+# gem 'therubyracer', :platforms => :ruby
+gem 'uglifier'
 
 gem 'jquery-rails'
 # For design-by-contract support:
@@ -36,11 +32,17 @@ group :development, :test do
   gem 'minitest-rails-capybara'
   gem 'capybara_minitest_spec'  # for capybara integration and spec matchers
   gem 'launchy'
+  gem 'rails-perftest'
+  gem 'rails-controller-testing'
+  gem 'ruby-prof', '0.15.9'
+  gem 'minitest-reporters'
 end
 
 group :development do
   gem 'faker'
   gem 'annotate'
+  gem 'spring'
+  gem 'spring-watcher-listen'
 end
 
 # To use ActiveModel has_secure_password

@@ -6,8 +6,8 @@ class ChartsController < ApplicationController
 
   helper_method :period_type_spec_for
 
-  before_filter :authenticate
-  before_filter :validate_params
+  before_action :authenticate
+  before_action :validate_params
 
   pre :user do current_user != nil end
   post :js_data_valid do implies(flash[:error].nil?, gon.data != nil) end

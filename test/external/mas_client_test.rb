@@ -1,7 +1,7 @@
 require_relative '../test_helper'
 require 'ruby_contracts'
 
-class MasClientTest < MiniTest::Unit::TestCase
+class MasClientTest < MiniTest::Test
   include Contracts::DSL
 
   TESTPORT = 5441

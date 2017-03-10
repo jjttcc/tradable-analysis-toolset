@@ -2,8 +2,8 @@ class PeriodTypeSpecsController < ApplicationController
   include ControllerFacilities
   include Contracts::DSL
 
-  before_filter :authenticate
-  before_filter :ensure_correct_user, :only => [:edit, :destroy]
+  before_action :authenticate
+  before_action :ensure_correct_user, :only => [:edit, :destroy]
 
   NEW_PTS_TITLE       = 'Create period-type specification'
   EDIT_PTS_TITLE      = 'Edit period-type specification'
@@ -61,7 +61,7 @@ class PeriodTypeSpecsController < ApplicationController
     end
   end
 
-  post :spec_gone do PeriodTypeSpec.find(params[:id]) == nil end
+  post :spec_gone do PeriodTypeSpec.find_by_id(params[:id]) == nil end
   def destroy
     pspec = PeriodTypeSpec.find(params[:id])
     if pspec != nil

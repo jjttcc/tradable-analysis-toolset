@@ -13,7 +13,7 @@ class PeriodTypeSpecsControllerTest < ActionController::TestCase
   end
 
   def test_destroy_not_signed_in
-    delete :destroy, :id => 1
+    delete :destroy, params: { id: 1 }
     assert_redirected_to signin_path
   end
 
@@ -37,7 +37,7 @@ class PeriodTypeSpecsControllerTest < ActionController::TestCase
   def test_create_failure_not_created
     user = signed_in_user
     oldcount = PeriodTypeSpec.count
-    post :create, :period_type_spec => BAD_PTS_ATTRS
+    post :create, params: { period_type_spec: BAD_PTS_ATTRS }
     assert PeriodTypeSpec.count == oldcount, 'count not changed'
   end
 
@@ -45,40 +45,42 @@ class PeriodTypeSpecsControllerTest < ActionController::TestCase
 
   def test_create
     user = signed_in_user
-    post :create, :period_type_spec => GOOD_PTS_ATTRS
+    post :create, params: { period_type_spec: GOOD_PTS_ATTRS }
     assert_redirected_to user_path(user.id)
   end
 
   def test_create_one_more
     user = signed_in_user
     oldcount = PeriodTypeSpec.count
-    post :create, :period_type_spec => GOOD_PTS_ATTRS
+    post :create, params: { period_type_spec: GOOD_PTS_ATTRS }
     assert PeriodTypeSpec.count == oldcount + 1, 'created one'
   end
 
   def test_destroy
     user = signed_in_user
-    pspec = Factory(:period_type_spec, :user => user)
-    delete :destroy, :id => pspec.id
+    pspec = create(:period_type_spec, user: user)
+    old_count = PeriodTypeSpec.count
+    delete :destroy, params: { id: pspec.id }
+    assert PeriodTypeSpec.count == old_count - 1, 'deleted one'
     assert_redirected_to user_path(user.id)
   end
 
   def test_destroy_one_less
     user = signed_in_user
-    pspec = Factory(:period_type_spec, :user => user)
+    pspec = create(:period_type_spec, :user => user)
     oldcount = PeriodTypeSpec.count
-    delete :destroy, :id => pspec.id
+    delete :destroy, params: { id: pspec.id }
     assert PeriodTypeSpec.count == oldcount - 1, 'removed one'
   end
 
   def test_destroy_wrong_user
     user = signed_in_user
-    wrong_user = Factory(:user, :email_addr => 'wrong-ptype-user@users.org')
-    pspec = Factory(:period_type_spec, :user => user)
+    wrong_user = create(:user, :email_addr => 'wrong-ptype-user@users.org')
+    pspec = create(:period_type_spec, :user => user)
     signed_in_user(wrong_user)  # Force "wrong_user" to be signed in.
     oldcount = PeriodTypeSpec.count
     # (pspec belongs to user [not wrong_user], so should not be deleted.)
-    delete :destroy, :id => pspec.id
+    delete :destroy, params: { id: pspec.id }
     assert PeriodTypeSpec.count == oldcount, 'nothing deleted'
   end
 
@@ -86,24 +88,24 @@ class PeriodTypeSpecsControllerTest < ActionController::TestCase
 
   def test_edit_success
     user = signed_in_user
-    pspec = Factory(:period_type_spec, :user => user)
-    get :edit, :id => pspec.id
+    pspec = create(:period_type_spec, :user => user)
+    get :edit, params: { id: pspec.id }
     assert_response :success
   end
 
   def test_edit_title
     user = signed_in_user
-    pspec = Factory(:period_type_spec, :user => user)
-    get :edit, :id => pspec.id
+    pspec = create(:period_type_spec, :user => user)
+    get :edit, params: { id: pspec.id }
     assert_select 'title', /edit\s+period.*spec/i
   end
 
   def test_edit_wrong_user
     user = signed_in_user
-    wrong_user = Factory(:user, :email_addr => 'wrong-ptype-user@users.org')
-    pspec = Factory(:period_type_spec, :user => user)
+    wrong_user = create(:user, :email_addr => 'wrong-ptype-user@users.org')
+    pspec = create(:period_type_spec, :user => user)
     signed_in_user(wrong_user)  # Force "wrong_user" to be signed in.
-    get :edit, :id => pspec.id
+    get :edit, params: { id: pspec.id }
     assert_redirected_to root_path, 'wrong user ends up at root'
   end
 
