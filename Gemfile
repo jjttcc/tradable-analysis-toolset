@@ -41,8 +41,6 @@ end
 group :development do
   gem 'faker'
   gem 'annotate'
-  gem 'spring'
-  gem 'spring-watcher-listen'
 end
 
 # To use ActiveModel has_secure_password

@@ -29,13 +29,7 @@ class ChartsController < ApplicationController
         end_date = ptype_spec.effective_end_date
       end
       client.request_tradable_data(@symbol, @period_type, start_date, end_date)
-      begin
-        @name = $external_tradable_info.name_for(@symbol)
-      rescue => e
-        $log.debug("[#{__FILE__},#{__LINE__}] TradableTools.new or " +
-                   "name_for failed [#{e}]")
-        @name = ""
-      end
+      @name = tradable_name(@symbol)
     rescue => e   # (Likely cause - invalid symbol)
       flash[:error] = e.to_s
       redirect_to root_path
@@ -159,6 +153,25 @@ class ChartsController < ApplicationController
       new_end_date_blank = new_date_hash['year'].blank?
     end
     result
+  end
+
+  def tradable_name(symbol)
+    # Look first in the database reference table
+    t = Tradable.find_by_symbol(symbol)
+    if t.nil? then
+      # Record for 'symbol' is not yet in the table - look for it.
+      begin
+        name = $external_tradable_info.name_for(symbol)
+        Tradable.create(name: name, symbol: symbol)
+      rescue => e
+        $log.debug("[#{__FILE__},#{__LINE__}] TradableTools.new or " +
+                   "name_for failed [#{e}]")
+        name = ""
+      end
+    else
+      name = t.name
+    end
+    name
   end
 
 end

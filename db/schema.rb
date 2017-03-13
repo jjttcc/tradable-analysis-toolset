@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20140814093154) do
+ActiveRecord::Schema.define(version: 20170313043915) do
 
   create_table "mas_sessions", force: :cascade do |t|
     t.integer  "user_id"
@@ -38,6 +38,13 @@ ActiveRecord::Schema.define(version: 20140814093154) do
     t.datetime "updated_at"
     t.index ["session_id"], name: "index_sessions_on_session_id"
     t.index ["updated_at"], name: "index_sessions_on_updated_at"
+  end
+
+  create_table "tradables", force: :cascade do |t|
+    t.text     "name",       null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string   "symbol",     null: false
   end
 
   create_table "users", force: :cascade do |t|

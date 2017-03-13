@@ -12,7 +12,7 @@
 #  category       :string(255)
 #
 
-class PeriodTypeSpec < ActiveRecord::Base
+class PeriodTypeSpec < ApplicationRecord
   include ActiveModel::Validations
   include Contracts::DSL
 

@@ -14,7 +14,7 @@
 require 'digest'
 require 'ruby_contracts'
 
-class User < ActiveRecord::Base
+class User < ApplicationRecord
   include Contracts::DSL
 
   public

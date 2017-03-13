@@ -12,7 +12,7 @@
 
 require 'ruby_contracts'
 
-class MasSession < ActiveRecord::Base
+class MasSession < ApplicationRecord
   include Contracts::DSL
 
   public
