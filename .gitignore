@@ -27,7 +27,6 @@ tags
 artifacts/
 
 *.log
-
 *.orig
-
 doc/app
+.alias

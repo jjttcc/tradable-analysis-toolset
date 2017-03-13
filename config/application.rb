@@ -63,5 +63,17 @@ module TradableAnalysisToolset
     Dir.glob(Rails.root.join('app/mas_bridge/**/')) do |f|
       config.autoload_paths << f
     end
+
+    config.after_initialize do
+      begin
+        # Create global object used to retrieve company names.
+        $external_tradable_info = TradableTools.new
+        $log.debug("[#{__FILE__}] external_tradable_info: " +
+                   "#{$external_tradable_info}")
+      rescue => e
+        $log.debug("TradableTools.new failed [#{e}]")
+      end
+    end
+
   end
 end

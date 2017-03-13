@@ -17,8 +17,6 @@ class MasSession < ActiveRecord::Base
 
   public
 
-#!!!!!  attr_accessible :mas_session_key
-
   validates :mas_session_key, :presence => true
   validates :user_id, :presence => true
 

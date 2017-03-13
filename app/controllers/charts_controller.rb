@@ -30,9 +30,10 @@ class ChartsController < ApplicationController
       end
       client.request_tradable_data(@symbol, @period_type, start_date, end_date)
       begin
-        @name = YahooFinance.quotes([@symbol], [:name])[0].name
-        @name.delete!('"')
-      rescue
+        @name = $external_tradable_info.name_for(@symbol)
+      rescue => e
+        $log.debug("[#{__FILE__},#{__LINE__}] TradableTools.new or " +
+                   "name_for failed [#{e}]")
         @name = ""
       end
     rescue => e   # (Likely cause - invalid symbol)

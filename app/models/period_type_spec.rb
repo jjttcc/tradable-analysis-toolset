@@ -17,11 +17,9 @@ class PeriodTypeSpec < ActiveRecord::Base
   include Contracts::DSL
 
   belongs_to :user
-#!!!!  attr_accessible :start_date, :end_date, :period_type_id, :category
   validates_with PeriodTypeSpecValidator
   after_save :clear_caches
 
-#!!!  default_scope :order => 'period_type_id, period_type_specs.updated_at DESC'
   default_scope -> { order('period_type_id', updated_at: :desc) }
 
   ## Valid category values
