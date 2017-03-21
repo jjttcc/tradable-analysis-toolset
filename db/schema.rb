@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170320164132) do
+ActiveRecord::Schema.define(version: 20170321072548) do
 
   create_table "mas_sessions", force: :cascade do |t|
     t.integer  "user_id"
@@ -25,6 +25,7 @@ ActiveRecord::Schema.define(version: 20170320164132) do
     t.integer  "user_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_parameter_groups_on_name"
     t.index ["user_id"], name: "index_parameter_groups_on_user_id"
   end
 
@@ -65,6 +66,7 @@ ActiveRecord::Schema.define(version: 20170320164132) do
     t.string   "tp_type"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["name"], name: "index_tradable_processors_on_name", unique: true
   end
 
   create_table "tradables", force: :cascade do |t|

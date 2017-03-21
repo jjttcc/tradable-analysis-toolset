@@ -29,4 +29,5 @@ artifacts/
 *.log
 *.orig
 doc/app
+doc/resources
 .alias
