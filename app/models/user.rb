@@ -22,6 +22,9 @@ class User < ApplicationRecord
   attr_accessor   :password
 
   has_many :period_type_specs, :dependent => :destroy
+  has_many :parameter_groups,  :dependent => :destroy
+  #!!!??:has_many :tradable_processor_parameters, :through => :parameter_groups,
+  #!!!??  :dependent => :destroy
   has_one  :mas_session,       :dependent => :destroy
 
   validates :email_addr, :presence       => true,

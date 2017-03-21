@@ -19,3 +19,18 @@
 #
 #two:
 #  email_addr: email-two@example.com
+
+jimtest1:
+  email_addr: jimtest1@example.com
+  encrypted_password: 7683acc800bf7f7015c9ac72c484369c91c19c4cfafefadc0cd01501e2e9d538
+  admin: false
+
+jimtest2:
+  email_addr: jimtest2@example.com
+  encrypted_password: 7683acc800bf7f7015c9ac72c484369c91c19c4cfafefadc0cd01501e2e9d538
+  admin: false
+
+jimadmin1:
+  email_addr: jimadmin1@example.com
+  encrypted_password: 7683acc800bf7f7015c9ac72c484369c91c19c4cfafefadc0cd01501e2e9d538
+  admin: true

@@ -1,0 +1,2 @@
+class TradableProcessor < ApplicationRecord
+end

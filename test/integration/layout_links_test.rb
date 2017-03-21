@@ -56,6 +56,9 @@ class LayoutLinksTest < ActionDispatch::IntegrationTest
 
   def setup
     @good_attr, @bad_attr, @good_user = setup_test_user
+    @admin_user = setup_test_user_with_eaddr('admin@users.org')[2]
+    @admin_user.toggle!(:admin)
+    @non_admin_user = setup_test_user_with_eaddr('non_admin@users.org')[2]
   end
 
   describe "while signed in" do
@@ -78,7 +81,7 @@ class LayoutLinksTest < ActionDispatch::IntegrationTest
     end
 
     test 'admin should have a users link' do
-      user = admin_user
+      user = @admin_user
       assert user.admin?, 'user is an admin'
       sign_in(user)
       visit root_path
@@ -90,7 +93,7 @@ class LayoutLinksTest < ActionDispatch::IntegrationTest
     end
 
     test 'non-admin should NOT have a users link' do
-      user = non_admin_user
+      user = @non_admin_user
       assert ! user.admin?, 'user is NOT an admin'
       sign_in(user)
       visit root_path
