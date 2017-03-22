@@ -37,6 +37,9 @@ class ParameterGroupTest < ActiveSupport::TestCase
     @parameter4 = @group2.tradable_processor_parameters.create!(
       name: 'parameter4', value: '26', data_type: 'integer',
       tradable_processor_id: @tproc2.id)
+    @parameter5 = @group1.tradable_processor_parameters.create!(
+      name: 'parameter5', value: '42', data_type: 'integer',
+      tradable_processor_id: @tproc2.id)
   end
 
   test "valid" do
@@ -47,8 +50,11 @@ class ParameterGroupTest < ActiveSupport::TestCase
     tpps = ParameterGroup.parameters_by_uid_group_and_proc_name(
       @user.id, GROUP1_NAME, TEST_IND_NAME1)
     assert tpps.count == 2
-$log.debug("tpps: #{tpps.inspect}")
-$log.debug("tpps class: #{tpps.class}, count: #{tpps.count}")
+    assert (tpps.select { |p| p.name == 'parameter1' }.count > 0)
+    assert (tpps.select { |p| p.name == 'parameter2' }.count > 0)
+    assert (tpps.select do |p|
+      ['parameter3', 'parameter4', 'parameter5'].include?(p.name)
+    end.count == 0)
   end
 
   test "group2: tpps by procname: empty" do
