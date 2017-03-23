@@ -1,11 +1,11 @@
 <table class="settings" summary="Settings information">
   <tr>
     <td class="main">
-      <h2>Period-type configuration
+      <h3>Period-type configuration
         <span class="per_type">&nbsp;&nbsp;&lt;
           <%= link_to "Create new", new_period_type_spec_path %>&gt;
         </span>
-    </h2>
+      </h3>
       <% if @user.period_type_specs.any? %>
         <table class="ptype_specs">
           <tr>
@@ -46,6 +46,11 @@
           <%= render @user.charting_specs %>
         </table>
       <% end %>
+      <h3>
+        <span class="param">
+          <%= link_to "Indicator parameters [WIP]", new_period_type_spec_path %>
+        </span>
+      </h3>
     </td>
     <td class="sidebar round">
       <strong>email address: </strong><br/><%= @user.email_addr %><br/>

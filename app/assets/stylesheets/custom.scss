@@ -228,8 +228,11 @@ div.analysis-events {
   width: 19%;
 }
 
-h2>span.per_type {
-  font-size: 65%;
+h2,h3>span.per_type {
+  font-size: 85%;
+}
+
+h2,h3>span.param {
 }
 
 /* User show page */

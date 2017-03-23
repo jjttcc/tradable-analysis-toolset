@@ -60,7 +60,7 @@ class UsersControllerTest < ActionController::TestCase
   def test_show_correct_h2
     user = signed_in_user
     get :show, params: { id: user.id }
-    assert_select 'h2', /period.*type.*config/i, 'correct h2'
+    assert_select 'h3', /period.*type.*config/i, 'correct h3'
   end
 
   def test_show_not_logged_in
