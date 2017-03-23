@@ -21,6 +21,7 @@ class MasSession < ApplicationRecord
   validates :user_id, :presence => true
 
   belongs_to :user
+  has_many   :tradable_analyzers, :dependent => :destroy
 
   public ###  Access
 
@@ -45,7 +46,14 @@ class MasSession < ApplicationRecord
   # The stored analyzer table
   post :result_is_hash do |result| result.nil? || result.class == Hash end
   def analyzers
-    data[:anas]
+    result = nil
+    if ! tradable_analyzers.empty? then
+      result = {}
+      tradable_analyzers.each do |a|
+        result[a.name] = a
+      end
+    end
+    result
   end
 
   public ###  Element change
@@ -72,13 +80,10 @@ class MasSession < ApplicationRecord
   type :in => Array
   pre :arg_exists do |list| list != nil end
   pre :has_name do |list| list.all? {|item| item.respond_to?(:name)} end
-  post :is_hash do data[:anas].class == Hash end
   def analyzers=(list)
-    analyzer_tbl = {}
     list.each do |a|
-      analyzer_tbl[a.name] = a
+      tradable_analyzers << a
     end
-    data[:anas] = analyzer_tbl
   end
 
   private

@@ -68,7 +68,7 @@ class PagesController < ApplicationController
         a_list = mascl.analyzers
         # Get intraday analyzers, if any.
         mascl.request_analyzers(symbol, PeriodTypeConstants::HOURLY)
-        a_list << mascl.analyzers
+        a_list.push(*mascl.analyzers)
       rescue => e
         if e.to_s !~ /#{MasCommunicationProtocol::INVALID_PERIOD_TYPE}/ then
           flash[:danger] = e.to_s

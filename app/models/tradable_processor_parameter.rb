@@ -11,17 +11,17 @@ class TradableProcessorParameter < ApplicationRecord
   validates :data_type, presence: true, length: { maximum: 7 }, 
    :inclusion => { :in      => VALID_PARAMETER_TYPES,
                    :message => "%{value} is not a valid data type spec" }
- validates_each :value do |record, attr, value|
-   result = true
-   msg = nil
-   if record.data_type == VALID_PARAMETER_TYPES[0] && value =~ /\./ then
-     result = false
-   elsif value !~ /(^(\d+)(\.)?(\d+)?)|(^(\d+)?(\.)(\d+))/ then
-     result = false
-   end
-   if ! result then
-     record.errors.add(attr, " (#{value}) must be of type #{record.data_type}")
-   end
+  validates_each :value do |record, attr, value|
+    result = true
+    msg = nil
+    if record.data_type == VALID_PARAMETER_TYPES[0] && value =~ /\./ then
+      result = false
+    elsif value !~ /(^(\d+)(\.)?(\d+)?)|(^(\d+)?(\.)(\d+))/ then
+      result = false
+    end
+    if ! result then
+      record.errors.add(attr, " (#{value}) must be of type #{record.data_type}")
+    end
    result
   end
 end

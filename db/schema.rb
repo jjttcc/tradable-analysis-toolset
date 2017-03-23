@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20170321072548) do
+ActiveRecord::Schema.define(version: 20170322142317) do
 
   create_table "mas_sessions", force: :cascade do |t|
     t.integer  "user_id"
@@ -47,6 +47,16 @@ ActiveRecord::Schema.define(version: 20170321072548) do
     t.datetime "updated_at"
     t.index ["session_id"], name: "index_sessions_on_session_id"
     t.index ["updated_at"], name: "index_sessions_on_updated_at"
+  end
+
+  create_table "tradable_analyzers", force: :cascade do |t|
+    t.text     "name"
+    t.integer  "event_id"
+    t.boolean  "is_intraday"
+    t.integer  "mas_session_id"
+    t.datetime "created_at",     null: false
+    t.datetime "updated_at",     null: false
+    t.index ["mas_session_id"], name: "index_tradable_analyzers_on_mas_session_id"
   end
 
   create_table "tradable_processor_parameters", force: :cascade do |t|

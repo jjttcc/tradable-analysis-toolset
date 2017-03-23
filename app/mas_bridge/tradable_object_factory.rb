@@ -7,14 +7,15 @@ class TradableObjectFactory
 
   # A new TradableAnalyzer with the specified name and id
   def new_analyzer(name:, id:, period_type:)
-    TradableAnalyzer.new(name, id, is_intraday(period_type))
+    TradableAnalyzer.create!(name: name, event_id: id,
+                             is_intraday: is_intraday(period_type))
   end
 
   def new_event(date:, time:, id:, type_id:, analyzers:)
     datetime = DateTime.new(date[0..3].to_i, date[4..5].to_i, date[6..7].to_i,
                             time[0..1].to_i, time[2..3].to_i, time[4..5].to_i)
     event_type_id = type_id
-    selected_ans = analyzers.select {|a| a.id == id }
+    selected_ans = analyzers.select {|a| a.event_id.to_s == id }
     if selected_ans.length == 0
       raise "new_event: id arg, #{id} " +
         "does not identify any known analyzer."
