@@ -12,6 +12,7 @@ class PagesController < ApplicationController
   HELP_TITLE = 'Help'
 
   post :user_if_signed_in do implies(signed_in?, current_user != nil) end
+  post :analyzers do implies(signed_in?, @analyzers != nil) end
   def home
     @title = HOME_TITLE
     set_appname
@@ -78,7 +79,10 @@ class PagesController < ApplicationController
       mas_session.analyzers = a_list
       mas_session.save
     end
-    mas_session.analyzers
+    result = mas_session.analyzers
+    if result.nil? then
+      result = {}
+    end
   end
 
 end
