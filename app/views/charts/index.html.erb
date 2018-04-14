@@ -3,24 +3,27 @@
 <% end_date = ptspec.effective_end_date %>
 <% start_year = period_type_start_year; end_year = period_type_end_year %>
 <div class="chart-form1">
-<%= form_for :tradable, url: charts_index_path do |f| %>
-  <%= select_tag('symbol', options_from_collection_for_select(symbols,
+<%= form_tag charts_index_path do %>
+  <%# label_tag :symbol %>
+  <%= text_field_tag :symbol, params[:symbol], class: 'short_field' %>
+  <%# select_tag('symbol', options_from_collection_for_select(symbols,
                  :to_s, :to_s, @symbol))
   %>
   <%= select_tag('period_type', options_from_collection_for_select(
         period_types, :to_s, :to_s, @period_type))
   %>
-  <%= f.submit 'Go' %>
-  <%= f.label :start_date, "start:" %>
+  <%# f.submit 'Go' %>
+  <%# f.label :start_date, "start:" %>
   <%= select_date(start_date, start_year: start_year,
         end_year: end_year, prefix: 'startdate', use_short_month: true)
   %>
-  <%= f.label :end_date, "end:" %>
+  <%# f.label :end_date, "end:" %>
   <%= select_date(end_date, start_year: start_year,
         end_year: end_year, include_blank: true, prefix: 'enddate',
         use_short_month: true)
   %>&nbsp;&nbsp;
-  <%= f.submit 'Go' %>
+  <%# f.submit 'Go' %>
+  <%= submit_tag "Go", class: "tiny_field" %>
 <% end %>
 </div>
 <script type="text/javascript" src="https://www.google.com/jsapi"></script>

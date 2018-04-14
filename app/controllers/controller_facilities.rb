@@ -15,7 +15,15 @@ module ControllerFacilities
   # Sign out 'user', delete user.mas_session.
   def sign_out
     if current_user != nil
-      MasClientTools::logout_client(current_user)
+      begin
+        MasClientTools::logout_client(current_user)
+      rescue LoadError => e
+        # (rails reloading issue)
+        $log.warn("Load error encountered while signing out: #{e}")
+        if Rails.env.development? then
+          raise e
+        end
+      end
       @current_user = nil
       session.delete(:user_id)
     end

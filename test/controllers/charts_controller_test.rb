@@ -1,6 +1,8 @@
 require "test_helper"
 require 'test_controller_helper'
 
+TARGET_SYMBOL = 'ibm'
+
 class ChartsControllerTest < ActionController::TestCase
   include TestControllerHelper
 
@@ -23,14 +25,14 @@ class ChartsControllerTest < ActionController::TestCase
 
   def test_index_with_invalid_params2
     user = signed_in_user
-    get :index, params: { symbol: 'stuff' }
+    get :index, params: { symbol: 'doinkgoblin' }
     assert_redirected_to root_path
   end
 
   def test_index_with_invalid_params3
     user = signed_in_user
     post :index, params: {
-      symbol: 'ibm', period_type: PeriodTypeConstants::WEEKLY,
+      symbol: TARGET_SYMBOL, period_type: PeriodTypeConstants::WEEKLY,
       startdate: { FOO: 'foo', BAR: 'bar' },
       enddate: { year: '', month: '', day: ''}}
     assert_redirected_to root_path
@@ -38,7 +40,7 @@ class ChartsControllerTest < ActionController::TestCase
 
   def test_index_with_valid_params
     user = signed_in_user
-    get :index, params: { symbol: 'ibm',
+    get :index, params: { symbol: TARGET_SYMBOL,
       startdate: { year: '2013', month: '1', day: '7'},
       enddate: { year: '', month: '', day: ''}}
     assert_response :success
@@ -47,7 +49,7 @@ class ChartsControllerTest < ActionController::TestCase
   def test_index_with_valid_params2
     user = signed_in_user
     post :index, params: {
-      symbol: 'ibm', period_type: PeriodTypeConstants::WEEKLY,
+      symbol: TARGET_SYMBOL, period_type: PeriodTypeConstants::WEEKLY,
       startdate: { year: '2013', month: '1', day: '7'},
       enddate: { year: '', month: '', day: ''}}
     assert_response :success
@@ -55,7 +57,7 @@ class ChartsControllerTest < ActionController::TestCase
 
   def test_index_with_valid_params3
     user = signed_in_user
-    get :index, params: { symbol: 'ibm' }
+    get :index, params: { symbol: TARGET_SYMBOL }
     assert_response :success
   end
 

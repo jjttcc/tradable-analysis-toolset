@@ -36,6 +36,7 @@ group :development, :test do
   gem 'rails-controller-testing'
   gem 'ruby-prof', '0.15.9'
   gem 'minitest-reporters'
+  gem 'byebug'
 end
 
 group :development do

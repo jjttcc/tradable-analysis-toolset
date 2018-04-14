@@ -1,12 +1,33 @@
+IMPORTANT [Thu Mar 23 18:36:47 CDT 2017]:
+Don't allow user X to view user Y's page - e.g., user 2 should not be able
+to succeed in loading 'http://tat.com/users/1'.
+NOTE: This appears to already be enforced - wrong id redirects to home
+page.
+
+Non-existent user:
+Related to the above, and not implemented yet:  When accessing
+.../users/<id>, where <id> is for a non-existent user (id not in DB), we
+get a rails-generated error message - e.g.:
+....[stuff]
+Couldn't find User with 'id'=42
+....[stuff]
+
+It's not a bad error message, though still not right for
+user-friendliness/security.  A proper response/error message needs to be
+displayed.
+
+
 Need one or more watchlists per user.  Use the "currently selected
 watchlist" to auto-select the stocks for analysis; continue to present the
 symbol select list, with the auto-selected stocks marked, to allow the user
 to add more or completely change the selection.
 
+
 Need a table/model of a user's recently accessed items (starting with
 stock/tradable symbols).  This will be used, e.g., to display links, and
 possibly summary data, for the stocks/tradables the user has most recently
 visited.
+
 
 When a symbol in the symbol list turns out to be invalid (i.e., server
 responds with: "104  Server error: Error occurred retrieving non-intraday

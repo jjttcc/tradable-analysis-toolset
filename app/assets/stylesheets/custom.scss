@@ -27,8 +27,22 @@ section {
   /*background: #fff;*/
 }
 
+.center h1 {
+  margin-bottom: 10px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  line-height: 1;
+}
+
 section h1 {
   font-size: 135%;
+}
+
+h1 {
+  font-size: 3em;
+  margin-bottom: 30px;
+  text-align: center;
 }
 
 section h2 {
@@ -263,6 +277,16 @@ div.field, div.actions {
   margin-bottom: 7px;
 }
 
+.short_field {
+  width: 50px;
+}
+
+.tiny_field {
+  width: 30px;
+  height: 20px;
+  font-size: 85%;
+}
+
 div.flash {
   padding: 1em;
   vertical-align: top;
@@ -285,7 +309,7 @@ div.flash {
 #error_explanation {
   color:#f00;
   ul {
-    list-style: none;
+/*    list-style: none;*/
     margin: 0 0 18px 0;
   }
 }

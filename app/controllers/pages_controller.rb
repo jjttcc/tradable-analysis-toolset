@@ -57,7 +57,7 @@ class PagesController < ApplicationController
 
   pre :mas_session do current_user.mas_session != nil end
   pre :symbols_exist do ! symbol_list.empty? end
-  post :result_is_hash do |result| result != nil && result.class == Hash end
+  post :result_is_hash do |result| ! result.nil? end
   def analyzers_from_session
     mascl = mas_client
     mas_session = current_user.mas_session
@@ -83,6 +83,7 @@ class PagesController < ApplicationController
     if result.nil? then
       result = {}
     end
+    result
   end
 
 end

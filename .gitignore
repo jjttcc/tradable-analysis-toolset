@@ -12,7 +12,11 @@
 
 # Ignore all logfiles and tempfiles.
 /log/*.log
-/tmp
+/tmp*
+notes/
+scripts/
+to-do
+db/schema.rb[._]*
 
 *.swp
 work/
@@ -32,3 +36,7 @@ doc/app
 doc/resources
 .alias
 tools/
+*_LIST*
+.byebug*
+cur[df]*
+mas-client.log*

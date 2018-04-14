@@ -1,9 +1,8 @@
 <% if ! object.nil? && object.errors.any? %>
   <div id="error_explanation">
-    <h3>
-      Update failed due to <%= pluralize(object.errors.count, 'error') %>.
-    </h3>
-    <p>The following problems occurred:</p>
+    <div class="alert alert-danger">
+      Update failed due to <%= pluralize(object.errors.count, 'error') %>:
+    </div>
     <ul>
     <% object.errors.full_messages.each do |m| %>
       <li><%= m %></li>

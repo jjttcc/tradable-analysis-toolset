@@ -59,6 +59,7 @@ GEM
     bootstrap-will_paginate (0.0.10)
       will_paginate
     builder (3.2.3)
+    byebug (9.0.6)
     capybara (2.12.1)
       addressable
       mime-types (>= 1.16)
@@ -210,6 +211,7 @@ DEPENDENCIES
   annotate
   bootstrap-sass
   bootstrap-will_paginate
+  byebug
   capybara_minitest_spec
   coffee-rails
   factory_girl_rails

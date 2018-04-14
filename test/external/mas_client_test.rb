@@ -27,17 +27,16 @@ class MasClientTest < MiniTest::Test
     assert ! client.logged_in, 'logged out'
   end
 
-  # (Assumption: 'ibm' symbol is always present.)
   def test_symbols
     $client.request_symbols
     symbols = $client.symbols
     assert symbols.length > 0
-    symbol = 'ibm'
+    symbol = TARGET_SYMBOL
     assert (symbols.include? symbol), "Missing symbol #{symbol}"
   end
 
   def test_analyzer_list
-    $client.request_analyzers("ibm", MasClient::DAILY)
+    $client.request_analyzers(TARGET_SYMBOL, MasClient::DAILY)
     analyzers = $client.analyzers
     assert analyzers.class == [].class, "analyzers is an array"
     assert analyzers.length > 0, 'Some analyzers'

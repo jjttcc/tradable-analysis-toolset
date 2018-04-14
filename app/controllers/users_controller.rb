@@ -8,6 +8,8 @@ class UsersController < ApplicationController
   before_action :ensure_correct_user, :only => [:edit, :update, :show]
   before_action :ensure_admin,        :only => [:destroy, :index]
 
+  public
+
   NEW_USER_TITLE = 'Create login'
   EDIT_USER_TITLE = 'Edit user'
   INDEX_USER_TITLE = 'User list'
