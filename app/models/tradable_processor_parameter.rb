@@ -1,3 +1,16 @@
+=begin
+CREATE TABLE "tradable_processor_parameters" ("id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
+"name" varchar
+"value" varchar
+"data_type" varchar
+"parameter_group_id" integer
+"tradable_processor_id" integer
+"created_at" datetime NOT NULL
+"updated_at" datetime NOT NULL);
+CREATE INDEX "index_tradable_processor_parameters_on_parameter_group_id" ON "tradable_processor_parameters" ("parameter_group_id");
+CREATE INDEX "index_tradable_processor_parameters_on_tradable_processor_id" ON "tradable_processor_parameters" ("tradable_processor_id");
+=end
+
 VALID_PARAMETER_TYPES = ['integer', 'real']
 
 # Parameters containing a value, to be used as settings for an indicator or

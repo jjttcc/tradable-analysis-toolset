@@ -1,6 +1,8 @@
 require_relative '../test_helper'
 require 'ruby_contracts'
 
+TARGET_SYMBOL = 'ibm'
+
 class MasClientTest < MiniTest::Test
   include Contracts::DSL
 

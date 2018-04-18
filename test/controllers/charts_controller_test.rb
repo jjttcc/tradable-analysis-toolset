@@ -25,7 +25,7 @@ class ChartsControllerTest < ActionController::TestCase
 
   def test_index_with_invalid_params2
     user = signed_in_user
-    get :index, params: { symbol: 'doinkgoblin' }
+    get :index, params: { symbol: "doinkgoblin#{$$}" }
     assert_redirected_to root_path
   end
 
