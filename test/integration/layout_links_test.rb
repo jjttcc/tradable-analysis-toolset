@@ -100,7 +100,7 @@ class LayoutLinksTest < ActionDispatch::IntegrationTest
       begin
         page.find_link('Users')
       rescue Exception => e
-        assert e.to_s =~ /unable to find link/i,
+        assert e.to_s =~ /unable.*find.*link/i,
           'users link should not be found'
       end
     end
