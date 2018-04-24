@@ -30,16 +30,22 @@ class ChartsController < ApplicationController
       end
       client.request_tradable_data(@symbol, @period_type, start_date, end_date)
       @name = tradable_name(@symbol)
+    if client.communication_failed then
+      flash[:error] = client.last_exception.to_s
+    end
     rescue => e   # (Likely cause - invalid symbol)
       flash[:error] = e.to_s
-      redirect_to root_path
     end
-    gon.push({
-      symbol: @symbol,
-      name: @name,
-      data: client.tradable_data,
-      period_type: @period_type,
-    })
+    if flash[:error] then
+      redirect_to root_path
+    else
+      gon.push({
+        symbol: @symbol,
+        name: @name,
+        data: client.tradable_data,
+        period_type: @period_type,
+      })
+    end
   end
 
   def update

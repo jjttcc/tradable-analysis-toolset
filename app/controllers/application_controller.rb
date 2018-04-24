@@ -16,16 +16,19 @@ class ApplicationController < ActionController::Base
   public ###  Access
 
   # MasClient object for the current user - nil if connection attempt to
-  # server fails (and @error_msg is set to an error description)
+  # server fails (and @error_msg is set to an error description).  If
+  # 'request_next_port' and no more ports are available, RuntimeError is
+  # raised.
   # pre :signed_in do signed_in? end
   # post :error_if_nil do |res| implies(res.nil?, not @error_msg.nil?) end
-  def mas_client
+  def mas_client(request_next_port: false)
     begin
       @error_msg = nil
-      if @mas_client.nil?
-        @mas_client = MasClientTools::mas_client(user: current_user)
+      if @mas_client.nil? || request_next_port then
+        @mas_client = MasClientTools::mas_client(user: current_user,
+                                                next_port: request_next_port)
       end
-    rescue => e
+    rescue MasRuntimeError => e
       @error_msg = "Connection to MAS server failed: #{e.inspect}"
     end
     @mas_client
@@ -35,17 +38,17 @@ class ApplicationController < ActionController::Base
   # post :result_not_nil do |result| result != nil && result.class == Array end
   # type :out => Array
   def symbol_list(no_save = false)
-    if @symbols.nil?
-      if current_user.mas_session != nil
+    if @symbols.nil? then
+      if current_user.mas_session != nil then
         @symbols = current_user.mas_session.symbols
       end
-      if @symbols.nil?
+      if @symbols.nil? then
         client = mas_client
         client.request_symbols
         @symbols = client.symbols
-        if current_user.mas_session != nil
+        if current_user.mas_session != nil then
           current_user.mas_session.symbols = @symbols
-          if ! no_save
+          if ! no_save then
             current_user.mas_session.save
           end
         end
@@ -56,11 +59,11 @@ class ApplicationController < ActionController::Base
 
   # pre :signed_in do signed_in? end
   def period_types
-    if @period_types.nil?
+    if @period_types.nil? then
       @period_types = current_user.mas_session.period_types
-      if @period_types.nil?
+      if @period_types.nil? then
         symbols = symbol_list(true)
-        if symbols != nil and symbols.length > 0
+        if symbols != nil and symbols.length > 0 then
           client = mas_client
           client.request_period_types(symbols.first)
           @period_types = client.period_types
@@ -78,6 +81,10 @@ class ApplicationController < ActionController::Base
 
   def period_type_end_year
     Rails.configuration.latest_year
+  end
+
+  def number_of_available_ports
+    MasClientTools::number_of_available_ports
   end
 
   protected
@@ -101,7 +108,7 @@ class ApplicationController < ActionController::Base
   end
 
   def authenticate
-    if not signed_in?
+    if not signed_in? then
       deny_access
     end
   end

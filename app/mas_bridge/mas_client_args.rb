@@ -4,13 +4,6 @@ class MasClientArgs
 
   public
 
-  def initialize(user: nil, period_type_specs: nil)
-    if user then hashtable[:user] = user end
-    if period_type_specs
-      hashtable[:period_type_specs] = period_type_specs
-    end
-  end
-
   def [](key)
     result = hashtable[key]
     if result.nil?
@@ -37,15 +30,54 @@ class MasClientArgs
     result
   end
 
+  # Shift such that settings[:port] is the next port in the list of
+  # configured ports.  Raise an exception if there are no more ports.
+  def shift_to_next_port
+    Rails.application.config.current_port_index += 1
+    current_port = Rails.configuration.mas_ports[
+      Rails.application.config.current_port_index]
+    if current_port != nil then
+      @hashtable[:port] = current_port
+    else
+      raise "No more ports available"
+    end
+  end
+
+  # Perform a reset such that settings[:port] is the first port in the list of
+  # configured ports.
+  def reset_port
+    Rails.application.config.current_port_index = 0
+    current_port = Rails.configuration.mas_ports[
+      Rails.application.config.current_port_index]
+    @hashtable[:port] = current_port
+  end
+
+  def settings
+    hashtable
+  end
+
   private
 
   attr_reader :period_type_spec_wrappers
 
+  def initialize(user: nil, period_type_specs: nil)
+#!!!!!!NOTE: We might need a truly persistent alternative to Rails......:
+    if !  Rails.application.config.respond_to? :current_port_index then
+      Rails.application.config.current_port_index = 0
+    end
+    if user then hashtable[:user] = user end
+    if period_type_specs then
+      hashtable[:period_type_specs] = period_type_specs
+    end
+  end
+
   def hashtable
-    if @hashtable.nil?
+    if @hashtable.nil? then
       @hashtable = {
         host: Rails.configuration.mas_host,
-        port: Rails.configuration.mas_port,
+        port: Rails.configuration.mas_ports[
+          Rails.application.config.current_port_index],
+        timeout: Rails.configuration.timeout_seconds,
         factory: TradableObjectFactory.new,
         close_after_w: false,
       }

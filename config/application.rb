@@ -53,6 +53,9 @@ module TradableAnalysisToolset
     # Version of your assets, change this if you want to expire all your assets
     config.assets.version = '1.0'
 
+    # Number of seconds to wait for socket operations before giving up
+    config.timeout_seconds = 6
+
     # Add all directories, recursively, under the 'library' directory to
     # the autoload paths to allow any class file in any of those
     # directories to be loaded (without needing a namespace qualification).

@@ -37,6 +37,7 @@ group :development, :test do
   gem 'ruby-prof', '0.15.9'
   gem 'minitest-reporters'
   gem 'byebug'
+  gem 'pry'
 end
 
 group :development do

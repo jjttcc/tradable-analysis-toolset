@@ -18,7 +18,7 @@ class PagesController < ApplicationController
     set_appname
     if current_user != nil then
       @ana_startdate, @ana_enddate = nil, nil
-      @analyzers = analyzers_from_session
+      @analyzers = analyzers_from_mas_session
       current_user.analysis_specs.each do |spec|
         if spec.period_type == PeriodTypeConstants::DAILY then
           @ana_startdate = spec.effective_start_date
@@ -58,7 +58,7 @@ class PagesController < ApplicationController
   pre :mas_session do current_user.mas_session != nil end
   pre :symbols_exist do ! symbol_list.empty? end
   post :result_is_hash do |result| ! result.nil? end
-  def analyzers_from_session
+  def analyzers_from_mas_session
     mascl = mas_client
     mas_session = current_user.mas_session
     if mas_session.analyzers == nil then
