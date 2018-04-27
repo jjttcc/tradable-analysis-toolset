@@ -43,6 +43,80 @@ class ApplicationController < ActionController::Base
         @symbols = current_user.mas_session.symbols
       end
       if @symbols.nil? then
+        begin
+          do_mas_request do
+            mas_client.request_symbols
+            mas_client.communication_failed
+          end
+          if @error_msg.nil? then
+            if mas_client.communication_failed then
+              flash[:error] = mas_client.last_exception.to_s
+            else
+              @symbols = mas_client.symbols
+              if current_user.mas_session != nil then
+                current_user.mas_session.symbols = @symbols
+                if ! no_save then
+                  current_user.mas_session.save
+                end
+              end
+            end
+          else
+            flash[:error] = @error_msg
+          end
+        rescue => e
+          flash[:error] = e.to_s
+        end
+      end
+    end
+    handle_failure_or_success(root_path) do
+      @symbols
+    end
+  end
+
+  # pre :signed_in do signed_in? end
+  def period_types
+    if @period_types.nil? then
+      @period_types = current_user.mas_session.period_types
+      if @period_types.nil? then
+        begin
+          symbols = symbol_list(true)
+          if symbols != nil && symbols.length > 0 && ! flash[:error] then
+            do_mas_request do
+              mas_client.request_period_types(symbols.first)
+              mas_client.communication_failed
+            end
+            if @error_msg.nil? then
+              if mas_client.communication_failed then
+                flash[:error] = mas_client.last_exception.to_s
+              else
+                @period_types = mas_client.period_types
+                current_user.mas_session.period_types = @period_types
+                current_user.mas_session.save
+              end
+            else
+              flash[:error] = @error_msg
+            end
+          end
+        rescue => e
+          flash[:error] = e.to_s
+        end
+      end
+    end
+    handle_failure_or_success(root_path) do
+      @period_types
+    end
+  end
+
+  # pre  :signed_in do signed_in? end
+  # post :result_not_nil do |result| result != nil && result.class == Array end
+  # type :out => Array
+#!!!!!oldoldold!!!!!!
+  def oldold____symbol_list(no_save = false)
+    if @symbols.nil? then
+      if current_user.mas_session != nil then
+        @symbols = current_user.mas_session.symbols
+      end
+      if @symbols.nil? then
         client = mas_client
         client.request_symbols
         @symbols = client.symbols
@@ -57,24 +131,6 @@ class ApplicationController < ActionController::Base
     @symbols
   end
 
-  # pre :signed_in do signed_in? end
-  def period_types
-    if @period_types.nil? then
-      @period_types = current_user.mas_session.period_types
-      if @period_types.nil? then
-        symbols = symbol_list(true)
-        if symbols != nil and symbols.length > 0 then
-          client = mas_client
-          client.request_period_types(symbols.first)
-          @period_types = client.period_types
-          current_user.mas_session.period_types = @period_types
-          current_user.mas_session.save
-        end
-      end
-    end
-    @period_types
-  end
-
   def period_type_start_year
     Rails.configuration.earliest_year
   end
@@ -85,6 +141,30 @@ class ApplicationController < ActionController::Base
 
   def number_of_available_ports
     MasClientTools::number_of_available_ports
+  end
+
+  protected
+
+  ###  Basic operations
+
+  # !!!!...(... @error_msg is set to an error description)
+  # !!!!TO-DO: Supply documentation!!!!
+  def do_mas_request
+    @error_msg = nil
+    while yield && @error_msg.nil? do
+      # For next yield, recreate @mas_client, connected via the "next port"
+      mas_client(request_next_port: true)
+    end
+  end
+
+  # If flash[:error], redirect to 'target_path', else execute (yield) the
+  # supplied block of code.
+  def handle_failure_or_success(target_path)
+    if flash[:error] then
+      redirect_to target_path
+    else
+      yield
+    end
   end
 
   protected

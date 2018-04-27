@@ -15,7 +15,6 @@ class ChartsController < ApplicationController
                              @symbol == params[:symbol] && @name != nil) end
   post :ptype_set do @period_type != nil end
   def index
-    client = mas_client
     @symbol = params[:symbol]
     @period_type = params[:period_type]
     if @period_type.nil?
@@ -28,23 +27,26 @@ class ChartsController < ApplicationController
         start_date = ptype_spec.effective_start_date
         end_date = ptype_spec.effective_end_date
       end
-      client.request_tradable_data(@symbol, @period_type, start_date, end_date)
-      @name = tradable_name(@symbol)
-    if client.communication_failed then
-      flash[:error] = client.last_exception.to_s
-    end
+      do_mas_request do
+        mas_client.request_tradable_data(@symbol, @period_type,
+                                     start_date, end_date)
+        mas_client.communication_failed
+      end
+      if @error_msg.nil? then
+        if mas_client.communication_failed then
+          flash[:error] = mas_client.last_exception.to_s
+        else
+          @name = tradable_name(@symbol)
+        end
+      else
+        flash[:error] = @error_msg
+      end
     rescue => e   # (Likely cause - invalid symbol)
       flash[:error] = e.to_s
     end
-    if flash[:error] then
-      redirect_to root_path
-    else
-      gon.push({
-        symbol: @symbol,
-        name: @name,
-        data: client.tradable_data,
-        period_type: @period_type,
-      })
+    handle_failure_or_success(root_path) do
+      gon.push({ symbol: @symbol, name: @name,
+        data: mas_client.tradable_data, period_type: @period_type, })
     end
   end
 

@@ -33,8 +33,9 @@ class MasSessionTest < ActiveSupport::TestCase
     assert MasSession.find_by_mas_session_key(msession.mas_session_key) ==
       msession, 'stored mas session found'
     client = MasClientTools::mas_client(session: msession)
-    assert client.session_key == msession.mas_session_key.to_s,
-      'session key integrity'
+    client_key = client.session_key; session_key = msession.mas_session_key.to_s
+    assert client_key == session_key,
+      "session key integrity (#{client_key} vs #{session_key})"
     client.logout
     assert client.session_key.nil?, 'logged out1'
     assert ! client.logged_in, 'logged out2'

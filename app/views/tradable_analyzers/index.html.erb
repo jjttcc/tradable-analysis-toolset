@@ -3,11 +3,12 @@
 <table class="round analysis-events">
   <tr>
     <% @analysis_events.keys.each do |symbol| %>
-      <% if @analysis_events[symbol].count > 0 %>
+      <% events = @analysis_events[symbol] %>
+      <% if events != nil && events.count > 0 %>
         <th class="event-heading">
-          <%= "#{symbol} #{@analysis_events[symbol].count} events" %>
+          <%= "#{symbol} #{events.count} events" %>
         </th>
-        <% @analysis_events[symbol].each do |e| %>
+        <% events.each do |e| %>
         <tr class="event">
           <td class="event-col1"><%= e.analyzer.description %></td>
           <td class="event-col2"><%= e.datetime.to_date %> </td>

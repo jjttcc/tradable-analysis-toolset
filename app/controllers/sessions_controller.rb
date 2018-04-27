@@ -27,6 +27,7 @@ class SessionsController < ApplicationController
     end
   end
 
+=begin
   pre :params_session_exists do params != nil && params[:session] != nil end
   def alternate_create__probably_discard  #!!!!!!!!!!!!!!!!!!!!
     user = User.authenticated(params[:session][:email_addr],
@@ -53,6 +54,7 @@ class SessionsController < ApplicationController
       retry_login("Invalid email/password combination")
     end
   end
+=end
 
   def destroy
     sign_out

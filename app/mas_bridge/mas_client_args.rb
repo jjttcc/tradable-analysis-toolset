@@ -6,25 +6,36 @@ class MasClientArgs
 
   def [](key)
     result = hashtable[key]
-    if result.nil?
+    if result.nil? then
       hashtable.keys.each do |k|
-        if k.to_s =~ /#{key}/
+        if k.to_s =~ /#{key}/ then
           result = hashtable[k]
         end
       end
     end
-    if result.nil?
+    if result.nil? then
       user = hashtable[:user]
       case key
-        when /period.*type/
-          if user != nil
-            # (Extract only long-term specs.)
-            result = wrapped_pts_s(user.charting_specs)
-          end
-        when /mas.session/
-          if user != nil
-            result = user.mas_session
-          end
+      when /period.*type/
+        if user != nil then
+          # (Extract only long-term specs.)
+          result = wrapped_pts_s(user.charting_specs)
+        end
+      when /mas.session/
+        if @port_shifted then
+          # @port_shifted implies a new socket connection will be attempted -
+          # mas_session needs to be nil to trigger that attempt.
+          result = nil
+        elsif user != nil then
+          result = user.mas_session
+        end
+      when /port/
+        result = Rails.configuration.mas_ports[
+                  Rails.application.config.current_port_index]
+$log.debug("[] - result: #{result}")
+      when /timeout/
+        result = Rails.configuration.timeout_seconds
+$log.debug("[] - result: #{result}")
       end
     end
     result
@@ -33,6 +44,13 @@ class MasClientArgs
   # Shift such that settings[:port] is the next port in the list of
   # configured ports.  Raise an exception if there are no more ports.
   def shift_to_next_port
+    Rails.application.config.current_port_index += 1
+    @port_shifted = true
+  end
+
+  # Shift such that settings[:port] is the next port in the list of
+  # configured ports.  Raise an exception if there are no more ports.
+  def old____shift_to_next_port
     Rails.application.config.current_port_index += 1
     current_port = Rails.configuration.mas_ports[
       Rails.application.config.current_port_index]
@@ -61,6 +79,7 @@ class MasClientArgs
   attr_reader :period_type_spec_wrappers
 
   def initialize(user: nil, period_type_specs: nil)
+    @port_shifted = false
 #!!!!!!NOTE: We might need a truly persistent alternative to Rails......:
     if !  Rails.application.config.respond_to? :current_port_index then
       Rails.application.config.current_port_index = 0
@@ -75,9 +94,6 @@ class MasClientArgs
     if @hashtable.nil? then
       @hashtable = {
         host: Rails.configuration.mas_host,
-        port: Rails.configuration.mas_ports[
-          Rails.application.config.current_port_index],
-        timeout: Rails.configuration.timeout_seconds,
         factory: TradableObjectFactory.new,
         close_after_w: false,
       }
@@ -89,7 +105,7 @@ class MasClientArgs
   # PeriodTypeSpecAdapter so that the MasClient accesses the adapter interface
   # instead of the real thing
   def wrapped_pts_s(specs)
-     if @period_type_spec_wrappers.nil?
+     if @period_type_spec_wrappers.nil? then
        @period_type_spec_wrappers = []
        specs.each do |s|
          @period_type_spec_wrappers << PeriodTypeSpecAdapter.new(s)

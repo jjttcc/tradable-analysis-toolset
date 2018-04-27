@@ -146,7 +146,7 @@ class PeriodTypeSpecTest < ActiveSupport::TestCase
     assert client.period_type_spec_for(WEEKLY) == ltweekly,
       'mas client has expected weekly period type spec'
     assert client.period_type_spec_for(YEARLY) != styrly,
-      'mas client does NOT have sort-term yearly period type spec'
+      'mas client does NOT have short-term yearly period type spec'
     assert client.period_type_spec_for(YEARLY) == ltyrly,
       'mas client has expected yearly period type spec'
     ltyrly2 = create(:period_type_spec, user: user2, period_type_id: YEARLY_ID,
