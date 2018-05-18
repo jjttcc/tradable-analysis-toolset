@@ -1,5 +1,8 @@
 require 'ruby_contracts'
 
+class MasNoMorePorts < RuntimeError
+end
+
 # Utilities for interfacing with the MAS client subsystem
 module MasClientTools
   include Contracts::DSL
@@ -20,14 +23,17 @@ module MasClientTools
   public
 
   # A MasClient object - with an active MAS session - for the specified
-  # 'session' or 'user'.  If 'next_port': Attempt to
-  # create the MasClient with a MAS session
-  # connection on the next (with respect to the one previously used) port
-  # in the configured list of available ports.  If there are no more ports
+  # 'session' or 'user'.  If 'next_port': Attempt (recursively, until a
+  # successful connection is made) to
+  # use the next port to create the MasClient with a MAS session
+  # connection, where "next port" means the next port in the list of
+  # available ports that has not yet been tried.
+  # If there are no more ports
   # (all configured ports have been tried), raise a RuntimeError.
   # Exceptions:
-  #   - RuntimeError:    No more ports are available.
-  #   - MasTimeoutError: Timed-out while communicating with the MAS server.
+  #   - MasNoMorePorts:  No more ports are available.
+  #   - RuntimeError:    Error other than MasNoMorePorts.
+  post :result_not_nil do |result| ! result.nil? end
   def self.mas_client(session: nil, user: nil, next_port: false)
     # [Note: If in the future MasClients are cached,
     # session.mas_session_key can be used as a hash key to store/retrieve
@@ -39,7 +45,7 @@ module MasClientTools
         mas_args.shift_to_next_port
         $log.debug("[self.mas_client] mas_args: #{mas_args.inspect}")
       else
-        raise RuntimeError.new("Fatal error: Ran out of available ports.")
+        raise MasNoMorePorts.new("Fatal error: Ran out of available ports.")
       end
     end
     result = MasClientNonblocking.new(mas_args)
@@ -52,12 +58,6 @@ module MasClientTools
         raise result.last_exception
       end
     else
-      if false and Rails.configuration.respond_to? :timeout_seconds then
-        tsecs = Rails.configuration.timeout_seconds
-        if tsecs = tsecs.is_a?(Integer) then
-          result.timeout = Rails.configuration.timeout_seconds
-        end
-      end
       if user != nil && user.mas_session.nil? then
         # nil mas session means that the user was not logged into the MAS
         # server - until MasClient*.new was called.  To reflect this

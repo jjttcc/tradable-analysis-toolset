@@ -1,6 +1,6 @@
 class ApplicationController < ActionController::Base
   protect_from_forgery
-  include SessionsHelper
+  include SessionsHelper, ControllerErrorHandling
   # NOTE: Using Contracts::DSL in test and development causes problems in
   # this class; therefore, it is not used - pre and post are within comments.
 
@@ -15,21 +15,20 @@ class ApplicationController < ActionController::Base
 
   public ###  Access
 
-  # MasClient object for the current user - nil if connection attempt to
-  # server fails (and @error_msg is set to an error description).  If
-  # 'request_next_port' and no more ports are available, RuntimeError is
+  # MasClient object for the current user
+  # If connection attempt to the server fails, RuntimeError is raised.
+  # If 'request_next_port' and no more ports are available, MasNoMorePorts is
   # raised.
   # pre :signed_in do signed_in? end
-  # post :error_if_nil do |res| implies(res.nil?, not @error_msg.nil?) end
+  # post :result do |result| ! result.nil? end
   def mas_client(request_next_port: false)
     begin
-      @error_msg = nil
       if @mas_client.nil? || request_next_port then
         @mas_client = MasClientTools::mas_client(user: current_user,
                                                 next_port: request_next_port)
       end
-    rescue MasRuntimeError => e
-      @error_msg = "Connection to MAS server failed: #{e.inspect}"
+    rescue MasNoMorePorts => e
+      raise MasNoMorePorts.new("Connection to MAS server failed: #{e.inspect}")
     end
     @mas_client
   end
@@ -48,53 +47,48 @@ class ApplicationController < ActionController::Base
             mas_client.request_symbols
             mas_client.communication_failed
           end
-          if @error_msg.nil? then
-            if mas_client.communication_failed then
-              flash[:error] = mas_client.last_exception.to_s
-            else
-              @symbols = mas_client.symbols
-              if current_user.mas_session != nil then
-                current_user.mas_session.symbols = @symbols
-                if ! no_save then
-                  current_user.mas_session.save
-                end
+          if mas_client.communication_failed then
+            flash[:error] = mas_client.last_exception.to_s
+          else
+            @symbols = mas_client.symbols
+            if current_user.mas_session != nil then
+              current_user.mas_session.symbols = @symbols
+              if ! no_save then
+                current_user.mas_session.save
               end
             end
-          else
-            flash[:error] = @error_msg
           end
         rescue => e
           flash[:error] = e.to_s
+          register_exception(e)
         end
+        handle_mas_client_error(redirect_ok: false)
       end
     end
-    handle_failure_or_success(root_path) do
-      @symbols
-    end
+    @symbols
   end
 
   # pre :signed_in do signed_in? end
+  # post :result do @period_types != nil end
   def period_types
     if @period_types.nil? then
       @period_types = current_user.mas_session.period_types
       if @period_types.nil? then
         begin
+          @period_types = []
           symbols = symbol_list(true)
+#!!!fix: ! flash[:error]:
           if symbols != nil && symbols.length > 0 && ! flash[:error] then
             do_mas_request do
               mas_client.request_period_types(symbols.first)
               mas_client.communication_failed
             end
-            if @error_msg.nil? then
-              if mas_client.communication_failed then
-                flash[:error] = mas_client.last_exception.to_s
-              else
-                @period_types = mas_client.period_types
-                current_user.mas_session.period_types = @period_types
-                current_user.mas_session.save
-              end
+            if mas_client.communication_failed then
+              flash[:error] = mas_client.last_exception.to_s
             else
-              flash[:error] = @error_msg
+              @period_types = mas_client.period_types
+              current_user.mas_session.period_types = @period_types
+              current_user.mas_session.save
             end
           end
         rescue => e
@@ -102,9 +96,7 @@ class ApplicationController < ActionController::Base
         end
       end
     end
-    handle_failure_or_success(root_path) do
-      @period_types
-    end
+    @period_types
   end
 
   # pre  :signed_in do signed_in? end
@@ -147,23 +139,11 @@ class ApplicationController < ActionController::Base
 
   ###  Basic operations
 
-  # !!!!...(... @error_msg is set to an error description)
   # !!!!TO-DO: Supply documentation!!!!
   def do_mas_request
-    @error_msg = nil
-    while yield && @error_msg.nil? do
+    while yield do
       # For next yield, recreate @mas_client, connected via the "next port"
       mas_client(request_next_port: true)
-    end
-  end
-
-  # If flash[:error], redirect to 'target_path', else execute (yield) the
-  # supplied block of code.
-  def handle_failure_or_success(target_path)
-    if flash[:error] then
-      redirect_to target_path
-    else
-      yield
     end
   end
 

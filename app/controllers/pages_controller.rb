@@ -59,6 +59,43 @@ class PagesController < ApplicationController
   pre :symbols_exist do ! symbol_list.empty? end
   post :result_is_hash do |result| ! result.nil? end
   def analyzers_from_mas_session
+    mas_session = current_user.mas_session
+    if mas_session.analyzers == nil then
+      a_list = []
+      begin
+        symbol = symbol_list[0]
+        do_mas_request do
+          mas_client.request_analyzers(symbol)
+          if mas_client.communication_failed then
+            true   # I.e., return "failure: true" from the block.
+          else
+            a_list = mas_client.analyzers
+            # Get intraday analyzers, if any.
+            mas_client.request_analyzers(symbol, PeriodTypeConstants::HOURLY)
+            a_list.push(*mas_client.analyzers)
+            mas_client.communication_failed
+          end
+        end
+      rescue => e
+        if e.to_s !~ /#{MasCommunicationProtocol::INVALID_PERIOD_TYPE}/ then
+          flash[:danger] = e.to_s
+          redirect_to root_url
+        end
+      end
+      mas_session.analyzers = a_list
+      mas_session.save
+    end
+    result = mas_session.analyzers
+    if result.nil? then
+      result = {}
+    end
+    result
+  end
+
+  pre :mas_session do current_user.mas_session != nil end
+  pre :symbols_exist do ! symbol_list.empty? end
+  post :result_is_hash do |result| ! result.nil? end
+  def oldold___analyzers_from_mas_session
     mascl = mas_client
     mas_session = current_user.mas_session
     if mas_session.analyzers == nil then

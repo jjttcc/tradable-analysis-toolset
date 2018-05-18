@@ -29,24 +29,19 @@ class ChartsController < ApplicationController
       end
       do_mas_request do
         mas_client.request_tradable_data(@symbol, @period_type,
-                                     start_date, end_date)
+                                         start_date, end_date)
         mas_client.communication_failed
       end
-      if @error_msg.nil? then
-        if mas_client.communication_failed then
-          flash[:error] = mas_client.last_exception.to_s
-        else
-          @name = tradable_name(@symbol)
-        end
-      else
-        flash[:error] = @error_msg
+      if not mas_client.communication_failed then
+        @name = tradable_name(@symbol)
       end
-    rescue => e   # (Likely cause - invalid symbol)
-      flash[:error] = e.to_s
+    rescue Exception => e
+      register_exception(e)
     end
-    handle_failure_or_success(root_path) do
+    handle_mas_client_error
+    if no_error then
       gon.push({ symbol: @symbol, name: @name,
-        data: mas_client.tradable_data, period_type: @period_type, })
+                 data: mas_client.tradable_data, period_type: @period_type, })
     end
   end
 
@@ -126,6 +121,7 @@ class ChartsController < ApplicationController
         start_date_hash['day']]
     end_date_changed = has_end_date_changed?(orig_end_date, end_date_hash)
     if start_date_changed
+$log.debug("sd hash: #{start_date_hash.inspect}") #!!!!!!
       result.start_date = Date.new(start_date_hash['year'].to_i,
              start_date_hash['month'].to_i, start_date_hash['day'].to_i)
     end

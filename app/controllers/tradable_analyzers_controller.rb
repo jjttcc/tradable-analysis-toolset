@@ -4,12 +4,15 @@ class TradableAnalyzersController < ApplicationController
 
   pre :session_exists do current_user.mas_session != nil end
   pre :analyzers_exist do current_user.mas_session.analyzers != nil end
+  post :events_type do @analysis_events.class == Hash end
   def index
     chosen_analayzers = params[:analyzers]
     symbols = params[:symbols]
-    if chosen_analayzers.nil? or symbols.nil?
+    @analysis_events = {}
+    if chosen_analayzers.nil? or symbols.nil? then
       flash[:error] = 'No ' + ((symbols == nil)? 'symbols': 'analyzers') +
         ' were selected for analysis.'
+      redirect_to root_path
     else
       begin
         @title = 'Analysis results'
@@ -30,15 +33,11 @@ class TradableAnalyzersController < ApplicationController
           end
           mas_client.communication_failed
         end
-        if ! @error_msg.nil? then
-          @analysis_events = {}
-          flash[:error] = @error_msg
-        end
       rescue => e
         flash[:error] = e.to_s
       end
+      handle_mas_client_error
     end
-    handle_failure_or_success(root_path) {}
   end
 
 end

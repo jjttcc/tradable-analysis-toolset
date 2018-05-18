@@ -27,35 +27,6 @@ class SessionsController < ApplicationController
     end
   end
 
-=begin
-  pre :params_session_exists do params != nil && params[:session] != nil end
-  def alternate_create__probably_discard  #!!!!!!!!!!!!!!!!!!!!
-    user = User.authenticated(params[:session][:email_addr],
-                              params[:session][:password])
-    if user != nil
-      sign_in user
-      need_next_port = false
-      used_port_count = 0
-      connected = false
-      while ! connected && used_port_count < number_of_available_ports do
-        if mas_client(request_next_port: need_next_port) == nil then
-          fail_login("Failed to connect to MAS server #{@error_msg}.")
-        elsif mas_client.communication_failed then
-          $log.warn("Failure - comm with MAS server [need to handle!!!]" +
-                    "#{@error_msg}.")
-          need_next_port = true
-        else
-          connected = true
-          redirect_back_or_to user
-        end
-        used_port_count += 1
-      end
-    else
-      retry_login("Invalid email/password combination")
-    end
-  end
-=end
-
   def destroy
     sign_out
     redirect_to root_path
