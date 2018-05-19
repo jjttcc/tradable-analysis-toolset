@@ -99,30 +99,6 @@ class ApplicationController < ActionController::Base
     @period_types
   end
 
-  # pre  :signed_in do signed_in? end
-  # post :result_not_nil do |result| result != nil && result.class == Array end
-  # type :out => Array
-#!!!!!oldoldold!!!!!!
-  def oldold____symbol_list(no_save = false)
-    if @symbols.nil? then
-      if current_user.mas_session != nil then
-        @symbols = current_user.mas_session.symbols
-      end
-      if @symbols.nil? then
-        client = mas_client
-        client.request_symbols
-        @symbols = client.symbols
-        if current_user.mas_session != nil then
-          current_user.mas_session.symbols = @symbols
-          if ! no_save then
-            current_user.mas_session.save
-          end
-        end
-      end
-    end
-    @symbols
-  end
-
   def period_type_start_year
     Rails.configuration.earliest_year
   end
@@ -139,7 +115,11 @@ class ApplicationController < ActionController::Base
 
   ###  Basic operations
 
-  # !!!!TO-DO: Supply documentation!!!!
+  # Execute the passed-in block (via 'yield') - expected to be a
+  # "mas_client.request_..." call.  If the block returns true (which
+  # indicates that the block's MAS-server request has failed), force a
+  # reconnection to the next socket port.  Continue this process until the
+  # block returns false or we run out of ports.
   def do_mas_request
     while yield do
       # For next yield, recreate @mas_client, connected via the "next port"

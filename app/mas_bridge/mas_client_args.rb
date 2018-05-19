@@ -42,23 +42,10 @@ $log.debug("[] - result: #{result}")
   end
 
   # Shift such that settings[:port] is the next port in the list of
-  # configured ports.  Raise an exception if there are no more ports.
+  # configured ports.
   def shift_to_next_port
     Rails.application.config.current_port_index += 1
     @port_shifted = true
-  end
-
-  # Shift such that settings[:port] is the next port in the list of
-  # configured ports.  Raise an exception if there are no more ports.
-  def old____shift_to_next_port
-    Rails.application.config.current_port_index += 1
-    current_port = Rails.configuration.mas_ports[
-      Rails.application.config.current_port_index]
-    if current_port != nil then
-      @hashtable[:port] = current_port
-    else
-      raise "No more ports available"
-    end
   end
 
   # Perform a reset such that settings[:port] is the first port in the list of
