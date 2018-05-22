@@ -32,10 +32,8 @@ class MasClientArgs
       when /port/
         result = Rails.configuration.mas_ports[
                   Rails.application.config.current_port_index]
-$log.debug("[] - result: #{result}")
       when /timeout/
         result = Rails.configuration.timeout_seconds
-$log.debug("[] - result: #{result}")
       end
     end
     result
