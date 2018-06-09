@@ -1,1 +1,73 @@
-RAILS_ENV=production rails s -p 9998
+#!/usr/bin/env bash
+# vim: expandtab
+
+progname=$(basename $0)
+dirname=$(dirname $0)
+
+prepare_environment() {
+    curdir=$PWD
+    if [ -z "$TATDIR" -o ! -d "$TATDIR" ]; then
+        echo "Fatal error: env. var. TATDIR not set" >&2
+        exit 26
+    fi
+    if [ -z "$MAS" -o ! -d "$MAS" ]; then
+        echo "Fatal error: env. var. MAS not set" >&2
+        exit 27
+    fi
+    MAS_SCRIPT_DIR=$MAS/src/scripts/external/external_web
+    MAS_SCRIPT_FILES="retrieve_tradable_config.rb \
+retrieve_tradable_data.rb url_query.rb"
+    cd $MAS_SCRIPT_DIR || {
+        echo "Could not cd to $MAS_SCRIPT_DIR - aborting ..." >&2
+        exit 28
+    }
+    if ! ls $MAS_SCRIPT_FILES >/dev/null; then
+        echo "Fatal: One or more external script files is missing" >&2
+        exit 29
+    fi
+    if [ -z "$MAS_RUNDIR" ]; then
+        MAS_RUNDIR=$TATDIR/library/test/masdev
+    fi
+    start_mas=$MAS_RUNDIR/../../bin/startmas
+    if ! [ -x $ext_script_path ]; then
+        echo "startmas script ($start_mas) not found - aborting..." >&2
+        exit 30
+    fi
+    ext_script_path=$MAS_RUNDIR/scripts
+    if ! [ -e $ext_script_path ]; then
+        mkdir -p $ext_script_path || {
+            echo "Failed to create $ext_script_path - aborting..." >&2
+            exit 31
+        }
+    fi
+    for f in $MAS_SCRIPT_FILES; do
+        ln -s $MAS_SCRIPT_DIR/$f $ext_script_path/ 2>/dev/null
+        if ! [ -s $ext_script_path/$f ]; then
+            echo "command 'ln -s $MAS_SCRIPT_DIR/$f $ext_script_path/' " >&2
+            echo "FAILED - aborting ..." >&2
+            exit 32
+        fi
+    done
+    eval $start_mas
+    cd $curdir
+}
+
+run_development() {
+    port=3000
+    if [ $# -gt 0 ]; then
+        port=$1
+    fi
+    rails server -b 0.0.0.0 -p $port
+}
+
+case $progname in
+    runprod)
+        export MAS_RUNDIR=$TATDIR/library/prod/mas
+        prepare_environment
+        RAILS_ENV=production rails server -b 0.0.0.0 -p 9998
+    ;;
+    rundev)
+        prepare_environment
+        run_development $*
+    ;;
+esac
