@@ -1,0 +1,18 @@
+Tue May 29 22:18:58 CDT 2018
+
+There appears to be a bug in which "Volume > Yesterday's Volume EMA", with
+monthly period-type, produces virtually the same results for each of a set
+of several symbols (when requested at the same time from the client's
+POV and with a set of more than one analyzer in addition to "Volume > ...").
+This was tried, e.g., with aapl, adbe, amzn, fb, f - with
+"MACD Crossover", "Stochastic %D Crossover", and "Volume > ...", for dates
+2015/05/08 to 2018/05/30 (run on 5/29).
+
+Oddly, with these same analyzers, when daily period-type is used, this does
+not occur for the same event generator ("Volume > Yesterday's ..."); but
+then several apparent duplicate events were spotted for multiple symbols
+for the other analyzers - not impossible, but unlikely, and perhaps due to
+the same bug.
+
+This needs to be researched more.  I haven't determined at all the cause of
+the bug or even whether it's in the client or the server.

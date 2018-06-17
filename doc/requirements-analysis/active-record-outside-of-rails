@@ -1,0 +1,18 @@
+URLs discussing use of ActiveRecord independent of a web-server/rails -
+This facility may be needed for the component of TAT responsible for
+executing "background" analyses configured in the database via the TAT
+rails application.  I.e., it will be similar to cron, running scheduled
+analyses for each user (the schedule, of course, stored in the database)
+and "notifying" the user of the resulting analysis events.  Obviously, no
+web server is required for this task, but the same database written to by
+the rails application will need to be accessed (writes as well as reads,
+most likely):
+
+https://www.techcareerbooster.com/blog/use-activerecord-in-your-ruby-project
+https://stackoverflow.com/questions/27594300/how-to-use-activerecord-outside-rails
+https://github.com/thuss/standalone-migrations
+
+google searches:
+
+https://www.google.com/search?q=use+activerecord+without+rails&oq=use+activerecor&aqs=chrome.0.0j69i57j0l4.10143j0j7&sourceid=chrome&ie=UTF-8
+https://www.google.com/search?q=use+activerecord+without+OR+%22separate+from%22+web+server&oq=use&aqs=chrome.0.69i59l2j69i57j69i65l3.4320j0j4&sourceid=chrome&ie=UTF-8

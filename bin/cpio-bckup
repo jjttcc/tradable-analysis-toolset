@@ -1,0 +1,10 @@
+#!/bin/bash
+
+if [ $# -ne 2 ]; then
+    echo "Usage: $0 <dest-host> <dest-path>" >&2
+    exit 22
+fi
+targethost=$1
+dest=$2
+
+cpio -o -Bav -H crc | ssh $targethost "cd $dest ; cpio -i -vumd"

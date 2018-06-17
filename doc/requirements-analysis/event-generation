@@ -1,0 +1,174 @@
+Concepts:
+
+  - analysis profile [DB]: Set of specs to use for a run; all events for
+    a run are tagged/associated with the profile used for the run.
+  - analysis run: An event-generation/analysis run that uses a specific
+    profile and that produces an analysis report
+  - analysis report [DB?]: A structured "report" of the results of a run.
+  - notification profile [DB]: a "schedule" <@@define this, please@@> and
+    associated analysis profile that results in a (usually?/always?)
+    periodic analysis run with run times defined by the "schedule"
+
+
+Characteristics of the important "Concepts":
+
+  - analysis profile: name; ...
+  - analysis run:     profile; user(?); date/time; "subrun"s(?),
+    user-notification-method/device; ...
+  - analysis report:  profile-name; date/time of run; ...; the report
+    (important - or possibly all - compoentns) will be stored in the
+    database.
+
+Scenarios:
+
+User creates an analysis profile with the GUI/web-interface.  User chooses
+option to run the analysis with that profile and an "analysis report" is
+displayed when it completes.  User then chooses option to save that profile
+to the database.  (Or the user can make changes to the profile, run another
+report, save the profile, or etc.)  When the profile is saved, the user is
+also given the option to save the results of any report he runs with that
+(now persistent) profile to he database, as well; or he can simply exit the
+profile-creation/editing page, or start on another profile, or log out.
+
+It will probably be useful to provide a "streamlined" way of creating a
+profile and running analysis with it - for a new user that just wants to
+quickly try the system out or an existing user who sometimes wants to just
+set up and run some quick analyses to check out something or other.
+This might look similar to the current home (e.g.,
+"http://10.10.1.22:3000/") screen (with the option to choose a stock and
+period-type and hit "view chart" or, below that, to choose a set of stock
+symbols and a set of analyzers and start/end dates, then hit "run analysis".
+But period-type will probably also need to be added - for each analyzer.
+Maybe on first use a "default profile", with default values, will be used
+for this page and the user can (right away or later) edit this profile,
+or, if she has created and saved one or more profiles at this point, choose
+one of those profiles to use for this screen.
+
+User (from the appropriate web page/URL) chooses one (or more) of his
+analysis profiles to edit, changes start-/end-dates, adds and remove
+event generators, and chooses 0 or more event generators to edit -
+for generator g do 0 or more of:
+  - Change the period type of g.
+  - Change the value of one or more of g's parameters.
+
+
+User deletes one or more analysis profiles.
+
+User creates a "notification profile" (is there a better name?), which
+consists of:
+  - an analysis profile (selected by name?)
+  - the schedule by which the profile will be run - perhaps a one-time run
+    will be possible (e.g., run this profile next Monday at 16:30 Eastern
+    Time), but usually the schedule will result in a periodic run - e.g.,
+    "run this profile every trading day at 16:30", or "run this profile
+    every hour during regular market hours on trading days".
+  - The methods/media (often just one, but can be several) the user has
+    specified to be notified of resulting events.
+
+A scheduled analysis run occurs for user X, which results in an email (or
+text, push notification, database update, ... - according to what the user
+specified in her notification profile) sent to user X with a formatted
+report of each event generated during the run.
+
+=============================================================================
+
+Components, or subcomponents of entities, classes, etc. that are implied
+by the above concepts:
+
+
+analysis profile:
+
+profile name
+start-date[1]
+end-date (which will often be "now")
+analyzer set (i.e., sub-profile for each analyzer chosen)
+
+
+analyzer profile (each member of "analyzer set"):
+
+evgen-id (AKA event-id or event-generator-id)
+evgen name
+period-type
+parameter settings
+
+Other ideas to be developed or discarded:
+  - The user will have the option to specify (in the "notification profile"
+    or perhaps the "analysis profile") that all generated events be stored
+    in the database and whether or not, for any run, any event that is
+    identical (same even-type, date, ...) to one stored in the database
+    will be discarded.  This is to allow the user, if she wishes, to not be
+    notified of such duplicate events.
+  - Optionally, display trading events on the stock/commodity chart.
+
+NOTES
+
+[1] The same start- and end-dates will need to be used for all analyzers in
+an analysis profile, since that's how the event-data request is structured.
+If the user desires more flexibility - e.g., a different start- and
+end-date for each analyzer in the "analyzer set" -, this might lead to
+something more complex, such as the modeling profiles with the composite
+pattern - e.g., the "analysis profile" above would become an "atomic
+profile", supplemented with something like: "abstract profile" and
+"composite profile".
+
+# vim: expandtab
+
+
+=============================================================================
+
+[new ideas to incorporate as of Mon Jun 11 22:08:32 CDT 2018]
+
+classes or entities or whatever - i.e., likely will end up in database:
+
+notification profile:
+
+  - schedule
+  - analysis-profile
+  - notification-recipients (list)
+
+analysis profile:
+
+  - name
+  - event-generation-profiles (list)
+
+event-generation-profile:
+
+  - event-generation-specifications (list)
+  - end-date (often "now")
+  - period-length (determines start date)
+
+event-generation-specification:
+
+  - event-generation-id
+  - period-type
+  - parameter-specifications (list)
+
+parameter-specification:
+
+  - parameter-id (or name?)
+  - value
+
+
+notification-recipient:
+
+  - notification-media-specifications (list)
+
+
+notification-media-specification:
+
+  - medium        (e.g., email, text, ...)
+  - recipient-id  (e.g., recip@users.org when medium is 'email')
+
+
+An analysis-profile has 0 or more event-generation-profiles.
+Each of those event-generation-profiles has a set of
+event-generation-specifications and an end-date and period-length,
+so that the same start/end-date/time will be applied to each
+event-generator specified in event-generation-specifications.
+The event-generation-specification ids a specific event-generator and
+includes the parameter settings (parameter-specifications) to use for that
+event-generator.
+
+Thus a scheduled (or ad-hoc) analysis run will use one analysis profile,
+which will run a set of analyses, each of which has a start- and
+end-date/time and will use one or more event-generators.

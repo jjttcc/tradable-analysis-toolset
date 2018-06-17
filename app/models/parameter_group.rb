@@ -1,3 +1,13 @@
+=begin
+CREATE TABLE "parameter_groups" ("id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
+"name" varchar
+"user_id" integer
+"created_at" datetime NOT NULL
+"updated_at" datetime NOT NULL);
+CREATE INDEX "index_parameter_groups_on_name" ON "parameter_groups" ("name");
+CREATE INDEX "index_parameter_groups_on_user_id" ON "parameter_groups" ("user_id");
+=end
+
 class ParameterGroup < ApplicationRecord
   belongs_to :user
   validates :user_id, presence: true
