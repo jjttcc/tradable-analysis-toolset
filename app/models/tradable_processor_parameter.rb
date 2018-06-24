@@ -3,11 +3,9 @@ CREATE TABLE "tradable_processor_parameters" ("id" INTEGER PRIMARY KEY AUTOINCRE
 "name" varchar
 "value" varchar
 "data_type" varchar
-"parameter_group_id" integer
 "tradable_processor_id" integer
 "created_at" datetime NOT NULL
 "updated_at" datetime NOT NULL);
-CREATE INDEX "index_tradable_processor_parameters_on_parameter_group_id" ON "tradable_processor_parameters" ("parameter_group_id");
 CREATE INDEX "index_tradable_processor_parameters_on_tradable_processor_id" ON "tradable_processor_parameters" ("tradable_processor_id");
 =end
 
@@ -17,8 +15,8 @@ VALID_PARAMETER_TYPES = ['integer', 'real']
 # an analyzer, for the MAS server - e.g.: MACD settings of 12, 26, 9 (3
 # parameters)
 class TradableProcessorParameter < ApplicationRecord
-  belongs_to :parameter_group
-  validates :parameter_group_id, presence: true
+  #!!!!implement this:!!! belongs_to :tradable_processor
+  #Add this??: validates :tradable_processor_id, presence: true #!!!!!
   validates :name, presence: true, length: { maximum: 255 }
   validates :value, presence: true, length: { maximum: 255 }
   validates :data_type, presence: true, length: { maximum: 7 }, 

@@ -1,12 +1,8 @@
 TradableAnalysisToolset::Application.routes.draw do
-  get 'parameter_groups/edit'
-
-  get 'parameter_groups/new'
-
   post "charts/index"
   post "tradable_analyzers/index"
 
-#  get "tradable_analyzers/index"
+#!!!  get "tradable_analyzers/index"  #!!!???
 
   resources :users
   resources :sessions, :only => [:new, :create, :destroy]

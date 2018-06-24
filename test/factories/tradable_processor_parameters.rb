@@ -3,7 +3,6 @@ FactoryGirl.define do
     name "MyString"
     value "MyString"
     data_type "MyString"
-    ParameterGroup nil
     TradableProcessor nil
   end
 end

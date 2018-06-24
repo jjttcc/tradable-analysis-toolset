@@ -22,9 +22,17 @@ class User < ApplicationRecord
   attr_accessor   :password
 
   has_many :period_type_specs, :dependent => :destroy
+=begin
+#!!!!!remove/clean-this-stuff-up:
   has_many :parameter_groups,  :dependent => :destroy
   #!!!??:has_many :tradable_processor_parameters, :through => :parameter_groups,
   #!!!??  :dependent => :destroy
+
+# The above might be replaced by something like:
+  has_many :tradable_indicators,   :dependent => :destroy
+  has_many :analysis_profiles,     :dependent => :destroy
+  has_many :notification_profiles, :dependent => :destroy
+=end
   has_one  :mas_session,       :dependent => :destroy
 
   validates :email_addr, :presence       => true,

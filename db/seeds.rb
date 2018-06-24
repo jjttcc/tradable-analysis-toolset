@@ -11,7 +11,7 @@ require 'period_type_constants'
 connection = ActiveRecord::Base.connection()
 
 if ENV['RAILS_ENV'] == "test"
-  require 'test_constants'
+  require_relative '../test/test_constants'
 
   admin_email, nonadmin_email = TestConstants::ADMIN_EMAIL,
     TestConstants::NONADMIN_EMAIL
