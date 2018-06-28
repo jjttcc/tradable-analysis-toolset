@@ -1,27 +1,38 @@
 Concepts:
 
+CONSIDER!!!!:
+  TradableProcessor -> TradableProcessorSpecification
+  get rid of: TradableAnalyzer and TradableIndicator
+  (period-type would be used for both tradable analyzers and tradable
+  indicators.)
+
   - analysis profile [DB]: Set of specs to use for a run; all events for
     a run are tagged/associated with the profile used for the run.
   - analysis run: An event-generation/analysis run that uses a specific
     profile and that produces an analysis report
   - analysis report [DB?]: A structured "report" of the results of a run.
   - notification profile [DB]: a "schedule" <@@define this, please@@> and
-    associated analysis profile that results in a (usually?/always?)
-    periodic analysis run with run times defined by the "schedule"
+    associated analysis profile that results in a periodic analysis run with
+    run times defined by the "schedule"
 
 
-Characteristics of the important "Concepts":
+List of concepts mentioned above or implied by the above (some of which
+imply models/database-tables):
 
-  - analysis profile: name; ...
-  - analysis run:     profile; user(?); date/time; "subrun"s(?),
-    user-notification-method/device; ...
-  - analysis report:  profile-name; date/time of run; ...; the report
-    (important - or possibly all - compoentns) will be stored in the
+  - analysis profile
+  - analysis run
+  - analysis report: profile-name; date/time of run; ...; the report
+    (important - or possibly all - components) will be stored in the
     database.
+  - user-notification-method/device
+  - tradable-processor
+  - tradable-indicator
+  - tradable-analyzer
+[more????!!!]
 
 Scenarios:
 
-User creates an analysis profile with the GUI/web-interface.  User chooses
+(1) User creates an analysis profile with the GUI/web-interface.  User chooses
 option to run the analysis with that profile and an "analysis report" is
 displayed when it completes.  User then chooses option to save that profile
 to the database.  (Or the user can make changes to the profile, run another
@@ -30,7 +41,7 @@ also given the option to save the results of any report he runs with that
 (now persistent) profile to he database, as well; or he can simply exit the
 profile-creation/editing page, or start on another profile, or log out.
 
-It will probably be useful to provide a "streamlined" way of creating a
+(2) It will probably be useful to provide a "streamlined" way of creating a
 profile and running analysis with it - for a new user that just wants to
 quickly try the system out or an existing user who sometimes wants to just
 set up and run some quick analyses to check out something or other.
@@ -44,17 +55,55 @@ for this page and the user can (right away or later) edit this profile,
 or, if she has created and saved one or more profiles at this point, choose
 one of those profiles to use for this screen.
 
-User (from the appropriate web page/URL) chooses one (or more) of his
+(3) User (from the appropriate web page/URL) chooses one (or more) of his
 analysis profiles to edit, changes start-/end-dates, adds and remove
 event generators, and chooses 0 or more event generators to edit -
 for generator g do 0 or more of:
   - Change the period type of g.
   - Change the value of one or more of g's parameters.
 
+[how to keep implied settings for all indicators selected for the current
+chart for the current period type.]
+(4a) On the charting page, user chooses one or more indicators to add to the
+chart.  Each charted indicator will, of course, use the period-type that
+was chosen for the current chart.  (If the user changes the period type
+of the chart, all selected indicators will, of course, again use this
+same period type.)  The user can choose one of the charted indicators
+(using an interface/page/... to-be-determined) and change the indicator's
+parameter settings.  Once the user has confirmed these changes (for the
+currently-selected indicator), the new parameter settings will be saved in
+the database.  Whenever an indicator is selected to be charted, its last
+settings will be retrieved from the database and used for the chart.  If
+there are no settings in the DB yet for that indicator, default settings
+will be used.  NOTE: indicator parameters saved in the database may need
+a period type - e.g., EMA for weekly or monthly data might need a shorter
+n-value than for daily data[1]. (CORRECTION: The period-type probably
+belongs with the tradable-indicator, not the parameter(s).)
 
-User deletes one or more analysis profiles.
+(4b) On the charting page, user changes the period-type.  The database
+is queried for each indicator for the indicator's parameter settings
+for that period-type (and the request to the MAS server is adjusted
+accordingly).  For any indicator for which parameters are not in the
+database for that period-type, the previous parameter settings (i.e.,
+the settings for the old period-type) for that indicator are used for the
+chart.  If the user then edits one of these indicators, these settings
+will then be saved to the database for the current period-type, as
+described in 4a.  (NOTE: This scenario assumes that the default parameter
+settings for a particular indicator apply to all period types.  On the
+other hand, if there are default settings for each period type, those
+settings will, of course, be used if there are no settings in the database
+for that particular indicator/period-type.)
 
-User creates a "notification profile" (is there a better name?), which
+(5) User (from the appropriate web page/URL) chooses one (or more) of his
+analysis profiles to edit, changes start-/end-dates, adds and remove
+event generators, and chooses 0 or more event generators to edit -
+for generator g do 0 or more of:
+  - Change the period type of g.
+  - Change the value of one or more of g's parameters.
+
+(6) User deletes one or more analysis profiles.
+
+(7) User creates a "notification profile" (is there a better name?), which
 consists of:
   - an analysis profile (selected by name?)
   - the schedule by which the profile will be run - perhaps a one-time run
@@ -65,64 +114,18 @@ consists of:
   - The methods/media (often just one, but can be several) the user has
     specified to be notified of resulting events.
 
-A scheduled analysis run occurs for user X, which results in an email (or
+(8) A scheduled analysis run occurs for user X, which results in an email (or
 text, push notification, database update, ... - according to what the user
 specified in her notification profile) sent to user X with a formatted
 report of each event generated during the run.
 
 =============================================================================
 
-Components, or subcomponents of entities, classes, etc. that are implied
-by the above concepts:
-
-
-analysis profile:
-
-profile name
-start-date[1]
-end-date (which will often be "now")
-analyzer set (i.e., sub-profile for each analyzer chosen)
-
-
-analyzer profile (each member of "analyzer set"):
-
-evgen-id (AKA event-id or event-generator-id)
-evgen name
-period-type
-parameter settings
-
-Other ideas to be developed or discarded:
-  - The user will have the option to specify (in the "notification profile"
-    or perhaps the "analysis profile") that all generated events be stored
-    in the database and whether or not, for any run, any event that is
-    identical (same even-type, date, ...) to one stored in the database
-    will be discarded.  This is to allow the user, if she wishes, to not be
-    notified of such duplicate events.
-  - Optionally, display trading events on the stock/commodity chart.
-
-NOTES
-
-[1] The same start- and end-dates will need to be used for all analyzers in
-an analysis profile, since that's how the event-data request is structured.
-If the user desires more flexibility - e.g., a different start- and
-end-date for each analyzer in the "analyzer set" -, this might lead to
-something more complex, such as the modeling profiles with the composite
-pattern - e.g., the "analysis profile" above would become an "atomic
-profile", supplemented with something like: "abstract profile" and
-"composite profile".
-
-# vim: expandtab
-
-
-=============================================================================
-
-[new ideas to incorporate as of Mon Jun 11 22:08:32 CDT 2018]
-
 classes or entities or whatever - i.e., likely will end up in database:
 
 notification profile:
 
-  - schedule
+  - schedule [TBD]
   - analysis-profile
   - notification-recipients (list)
 
@@ -133,31 +136,41 @@ analysis profile:
 
 event-generation-profile:
 
-  - event-generation-specifications (list)
-  - end-date (often "now")
+  - event-generation-specifications (list of tradable-analyzer)
+  - end-date (often "now") [2]
   - period-length (determines start date)
 
-event-generation-specification:
+tradable-processor:
 
-  - event-generation-id
+  - processor-id/name
+  - parameters (list of tradable-processor-parameter)
+
+tradable-analyzer < tradable-processor:
+
   - period-type
-  - parameter-specifications (list)
 
-parameter-specification:
+tradable-processor-parameter[1]:
 
   - parameter-id (or name?)
   - value
-
+  - data-type
 
 notification-recipient:
 
   - notification-media-specifications (list)
 
-
 notification-media-specification:
 
   - medium        (e.g., email, text, ...)
   - recipient-id  (e.g., recip@users.org when medium is 'email')
+
+tradable-indicator < tradable-processor
+
+tradable-event
+
+  - event-id?
+  - datetime
+  - analyzer...???
 
 
 An analysis-profile has 0 or more event-generation-profiles.
@@ -172,3 +185,34 @@ event-generator.
 Thus a scheduled (or ad-hoc) analysis run will use one analysis profile,
 which will run a set of analyses, each of which has a start- and
 end-date/time and will use one or more event-generators.
+
+=============================================================================
+
+Other ideas to be developed or discarded:
+  - The user will have the option to specify (in the "notification profile"
+    or perhaps the "analysis profile") that all generated events be stored
+    in the database and whether or not, for any run, any event that is
+    identical (same even-type, date, ...) to one stored in the database
+    will be discarded.  This is to allow the user, if she wishes, to not be
+    notified of such duplicate events.
+  - Optionally, display trading events on the stock/commodity chart.
+
+NOTES
+
+[1] "tradable-processor-parameter"s (TPPs) for indicators might need a
+"period-type" attribute.  (See the "On the charting page," paragraph under
+"Scenarios".)  TPPs for tradable-analyzers will probably not need a
+period-type, since, for analyzers, period-type is associated with the
+tradable-analyzer itself.
+
+[2] The same start- and end-dates will need to be used for all analyzers in
+an analysis profile, since that's how the event-data request is structured.
+If the user desires more flexibility - e.g., a different start- and
+end-date for each analyzer in the "analyzer set" -, this might lead to
+something more complex, such as the modeling profiles with the composite
+pattern - e.g., the "analysis profile" above would become an "atomic
+profile", supplemented with something like: "abstract profile" and
+"composite profile".  (to-do: consider discarding this!!!)
+
+=============================================================================
+# vim: expandtab
