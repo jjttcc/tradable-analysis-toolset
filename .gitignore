@@ -24,7 +24,7 @@ work/
 library
 
 
-files
+*files
 tags
 
 /bin/runtest_tee

@@ -1,10 +1,7 @@
 Concepts:
 
 CONSIDER!!!!:
-  TradableProcessor -> TradableProcessorSpecification
-  get rid of: TradableAnalyzer and TradableIndicator
-  (period-type would be used for both tradable analyzers and tradable
-  indicators.)
+  TradableProcessorSpecification
 
   - analysis profile [DB]: Set of specs to use for a run; all events for
     a run are tagged/associated with the profile used for the run.
@@ -62,8 +59,9 @@ for generator g do 0 or more of:
   - Change the period type of g.
   - Change the value of one or more of g's parameters.
 
-[how to keep implied settings for all indicators selected for the current
-chart for the current period type.]
+[!!!how to keep implied settings for all indicators selected for the current
+chart for the current period type - possible answer: see
+"charting-specification"]
 (4a) On the charting page, user chooses one or more indicators to add to the
 chart.  Each charted indicator will, of course, use the period-type that
 was chosen for the current chart.  (If the user changes the period type
@@ -73,12 +71,9 @@ same period type.)  The user can choose one of the charted indicators
 parameter settings.  Once the user has confirmed these changes (for the
 currently-selected indicator), the new parameter settings will be saved in
 the database.  Whenever an indicator is selected to be charted, its last
-settings will be retrieved from the database and used for the chart.  If
-there are no settings in the DB yet for that indicator, default settings
-will be used.  NOTE: indicator parameters saved in the database may need
-a period type - e.g., EMA for weekly or monthly data might need a shorter
-n-value than for daily data[1]. (CORRECTION: The period-type probably
-belongs with the tradable-indicator, not the parameter(s).)
+settings associated with the chart's current period-type will be retrieved
+from the database and used for the chart.  If there are no settings in the DB
+yet for that indicator/period-type, default settings will be used.
 
 (4b) On the charting page, user changes the period-type.  The database
 is queried for each indicator for the indicator's parameter settings
@@ -92,7 +87,13 @@ described in 4a.  (NOTE: This scenario assumes that the default parameter
 settings for a particular indicator apply to all period types.  On the
 other hand, if there are default settings for each period type, those
 settings will, of course, be used if there are no settings in the database
-for that particular indicator/period-type.)
+for that particular indicator/period-type.)  Note: For simplicity, it might
+be wise to use, for an indicator, the same parameter settings for all
+period types since most users will probably not want different parameter
+settings for different period types.  In this case, to allow the user to
+have different settings per period-type, there will need to be a "switch"
+of some kind to allow changing an indicator's parameters only for the
+current period type.
 
 (5) User (from the appropriate web page/URL) chooses one (or more) of his
 analysis profiles to edit, changes start-/end-dates, adds and remove
@@ -136,24 +137,30 @@ analysis profile:
 
 event-generation-profile:
 
-  - event-generation-specifications (list of tradable-analyzer)
-  - end-date (often "now") [2]
-  - period-length (determines start date)
+  - end-date (often "now")
+  - analysis-period-length (determines start date)
+  - event-generation-specifications (list of tradable-processor-specification)
 
-tradable-processor:
+tradable-processor-specification:
 
+  - specification-name[?]
   - processor-id/name
+  - period-type
   - parameters (list of tradable-processor-parameter)
 
-tradable-analyzer < tradable-processor:
-
-  - period-type
-
-tradable-processor-parameter[1]:
+tradable-processor-parameter:
 
   - parameter-id (or name?)
   - value
   - data-type
+
+charting-specification:
+
+  - period-type
+  - end-date (usually "now")
+  - charting-period-length (determines start date)
+  - top-indicators (e.g., EMA; probably tradable-processor-specification)
+  - bottom-indicators (e.g., MACD; probably tradable-processor-specification)
 
 notification-recipient:
 
@@ -163,8 +170,6 @@ notification-media-specification:
 
   - medium        (e.g., email, text, ...)
   - recipient-id  (e.g., recip@users.org when medium is 'email')
-
-tradable-indicator < tradable-processor
 
 tradable-event
 
@@ -178,11 +183,12 @@ Each of those event-generation-profiles has a set of
 event-generation-specifications and an end-date and period-length,
 so that the same start/end-date/time will be applied to each
 event-generator specified in event-generation-specifications.
-The event-generation-specification ids a specific event-generator and
-includes the parameter settings (parameter-specifications) to use for that
+The event-generation-specification (AKA tradable-processor-specification)
+ids a specific event-generator and includes the parameter settings
+(parameter-specifications), and the period-type, to use for that
 event-generator.
 
-Thus a scheduled (or ad-hoc) analysis run will use one analysis profile,
+Thus a scheduled or ad-hoc analysis run will use one analysis profile,
 which will run a set of analyses, each of which has a start- and
 end-date/time and will use one or more event-generators.
 
@@ -196,23 +202,6 @@ Other ideas to be developed or discarded:
     will be discarded.  This is to allow the user, if she wishes, to not be
     notified of such duplicate events.
   - Optionally, display trading events on the stock/commodity chart.
-
-NOTES
-
-[1] "tradable-processor-parameter"s (TPPs) for indicators might need a
-"period-type" attribute.  (See the "On the charting page," paragraph under
-"Scenarios".)  TPPs for tradable-analyzers will probably not need a
-period-type, since, for analyzers, period-type is associated with the
-tradable-analyzer itself.
-
-[2] The same start- and end-dates will need to be used for all analyzers in
-an analysis profile, since that's how the event-data request is structured.
-If the user desires more flexibility - e.g., a different start- and
-end-date for each analyzer in the "analyzer set" -, this might lead to
-something more complex, such as the modeling profiles with the composite
-pattern - e.g., the "analysis profile" above would become an "atomic
-profile", supplemented with something like: "abstract profile" and
-"composite profile".  (to-do: consider discarding this!!!)
 
 =============================================================================
 # vim: expandtab

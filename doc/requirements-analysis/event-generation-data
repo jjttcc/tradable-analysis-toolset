@@ -1,0 +1,78 @@
+                    EVENT-GENERATION-RELATED DATABASE TABLES
+
+notification_profile:
+
+  schedule: <TBD>
+  - notification-recipients (list)
+
+analysis_profiles:
+
+  name
+  notification_profile_id
+
+event_generation_profiles:
+
+  end_date: datetime [null represents "now"]
+  analysis_period_length: integer [minutes]
+  analysis_profile_id
+
+tradable_processor_specifications:
+
+  name
+  processor_id/name: [integer OR string?]
+  period_type_id: integer [See PeriodTypeConstants]
+  event_generation_profile_id[1]
+
+tradable_processor_parameters:
+
+  parameter_id/name: [integer OR string]
+  value: string
+  data_type: string
+  tradable_processor_specification_id
+
+charting_specifications:
+
+  [TBD]
+  end_date: datetime [null represents "now"]
+  charting_period_length: integer [minutes]
+  period_type_id: integer [See PeriodTypeConstants]
+
+notification_recipients:
+
+  name: string
+  - notification-media-specifications (list)
+  notification_profile_id
+
+notification_media_specifications:
+
+  medium: <TBD>   [e.g., email, text, ...]
+  recipient_id    (e.g., recip@users.org when medium is 'email')
+  notification_recipient_id
+
+
+[IN PROGRESS]
+
+tradable_events:
+
+  - event-id?
+  - datetime
+  - analyzer...???
+
+chart_positions:
+
+  position: string {"top", "bottom"}
+
+indicator_chart_positions: (maps each indicator to "top" or "bottom" of chart)
+
+  chart_position_id
+  indicator_id
+
+
+NOTES:
+
+[1] Suggestion: Instead of the foreign key, event_generation_profile_id, in
+tradable_processor_specifications, use a "join table" to associate one or
+more tradable_processor_specifications with one (or more?)
+event_generation_profiles.  This especially makes sense if
+tradable_processor_specifications are used for indicators as well as
+analyzers.

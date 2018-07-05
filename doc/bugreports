@@ -1,4 +1,4 @@
-Tue May 29 22:18:58 CDT 2018
+Tue May 29, 2018
 
 There appears to be a bug in which "Volume > Yesterday's Volume EMA", with
 monthly period-type, produces virtually the same results for each of a set
@@ -16,3 +16,12 @@ the same bug.
 
 This needs to be researched more.  I haven't determined at all the cause of
 the bug or even whether it's in the client or the server.
+
+Tue Jul  3, 2018
+
+Charting interface: Sometimes the start or end date has to be changed twice
+to take effect.  E.g., Change start date from 2010/01/01 to 2012/01/01 and
+hit "go".  Sometimes, the date will revert back to 2010/01/01; if it is
+then changed to 2012/01/01 a 2nd time and "go" hit, the change will take
+hold.  (I think this bug shows up if [maybe iff] the date change is made
+just after a "change-period-type", "hit go" sequence.)
