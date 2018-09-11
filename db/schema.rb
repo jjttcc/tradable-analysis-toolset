@@ -10,7 +10,44 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20180623222555) do
+ActiveRecord::Schema.define(version: 20180903102228) do
+
+  create_table "analysis_profiles", force: :cascade do |t|
+    t.string   "name"
+    t.string   "analysis_client_type"
+    t.integer  "analysis_client_id"
+    t.datetime "created_at",           null: false
+    t.datetime "updated_at",           null: false
+    t.index ["analysis_client_type", "analysis_client_id"], name: "index_analysis_profiles_on_analysis_client_type_and_id"
+  end
+
+  create_table "analysis_schedules", force: :cascade do |t|
+    t.string   "name"
+    t.boolean  "active"
+    t.string   "triggered_by_type"
+    t.integer  "triggered_by_id"
+    t.integer  "user_id"
+    t.datetime "created_at",        null: false
+    t.datetime "updated_at",        null: false
+    t.index ["triggered_by_type", "triggered_by_id"], name: "index_analysis_schedules_on_triggered_by_type_and_id"
+    t.index ["user_id"], name: "index_analysis_schedules_on_user_id"
+  end
+
+  create_table "event_based_triggers", force: :cascade do |t|
+    t.integer  "triggered_event_type"
+    t.boolean  "active"
+    t.datetime "created_at",           null: false
+    t.datetime "updated_at",           null: false
+  end
+
+  create_table "event_generation_profiles", force: :cascade do |t|
+    t.integer  "analysis_profile_id"
+    t.datetime "end_date"
+    t.integer  "analysis_period_length_seconds"
+    t.datetime "created_at",                     null: false
+    t.datetime "updated_at",                     null: false
+    t.index ["analysis_profile_id"], name: "index_event_generation_profiles_on_analysis_profile_id"
+  end
 
   create_table "mas_sessions", force: :cascade do |t|
     t.integer  "user_id"
@@ -29,6 +66,15 @@ ActiveRecord::Schema.define(version: 20180623222555) do
     t.datetime "updated_at"
     t.string   "category"
     t.index ["user_id"], name: "index_period_type_specs_on_user_id"
+  end
+
+  create_table "periodic_triggers", force: :cascade do |t|
+    t.integer  "interval_seconds"
+    t.time     "time_window_start"
+    t.time     "time_window_end"
+    t.integer  "daily_schedule"
+    t.datetime "created_at",        null: false
+    t.datetime "updated_at",        null: false
   end
 
   create_table "sessions", force: :cascade do |t|
@@ -54,18 +100,21 @@ ActiveRecord::Schema.define(version: 20180623222555) do
     t.string   "name"
     t.string   "value"
     t.string   "data_type"
-    t.integer  "tradable_processor_id"
-    t.datetime "created_at",            null: false
-    t.datetime "updated_at",            null: false
-    t.index ["tradable_processor_id"], name: "index_tradable_processor_parameters_on_tradable_processor_id"
+    t.datetime "created_at",                          null: false
+    t.datetime "updated_at",                          null: false
+    t.integer  "sequence_number"
+    t.integer  "tradable_processor_specification_id"
+    t.index ["tradable_processor_specification_id"], name: "index_trad_proc_params_on_tradable_processor_specification_id"
   end
 
-  create_table "tradable_processors", force: :cascade do |t|
-    t.string   "name"
-    t.string   "tp_type"
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
-    t.index ["name"], name: "index_tradable_processors_on_name", unique: true
+  create_table "tradable_processor_specifications", force: :cascade do |t|
+    t.integer  "event_generation_profile_id"
+    t.integer  "processor_id"
+    t.string   "processor_name"
+    t.integer  "period_type"
+    t.datetime "created_at",                  null: false
+    t.datetime "updated_at",                  null: false
+    t.index ["event_generation_profile_id"], name: "index_tradable_processor_specs_on_event_generation_profile_id"
   end
 
   create_table "tradables", force: :cascade do |t|

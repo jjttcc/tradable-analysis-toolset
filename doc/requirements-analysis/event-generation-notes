@@ -1,0 +1,59 @@
+PeriodicTrigger:
+  time_window_start is the time to begin the periodic analysis
+  time_window_end is the time to end the periodic analysis
+  interval_seconds is the period
+  daily_schedule identifies which type of daily schedule it is (e.g., a
+    simple M-F schedule, or a US stocks-trading-day schedule).  It might
+    just be used as a key that identifies which object (i.e., in memory) to
+    use to figure out if "today" is a "trading day".
+
+Example:
+
+time_window_start = 9:00
+time_window_end   = 16:30
+interval_seconds  = 1800
+
+The above fields mean that the associated AnalysisSchedule is to be run
+(its AnalysisProfiles are to be run) starting at 9am, for every half-hour,
+until 4:30 pm - every day.
+!!!!!Question: How to, e.g., only run on M - F, skip holidays, etc.?
+Do we need an association to some kind of date map?
+
+
+EventBasedTrigger:
+
+!!!![TBC]
+
+
+Summary of changes:
+
+New models/tables:
+
+rails g model PeriodicTrigger interval_seconds:integer time_window_start:time \
+  time_window_end:time daily_schedule:integer
+rails g model EventBasedTrigger triggered_event_type:integer active:boolean
+rails g model AnalysisSchedule name:string active:boolean \
+  triggered_by:references{polymorphic} user:references
+rails g model AnalysisProfile name:string \
+  analysis_client:references{polymorphic}
+rails g model EventGenerationProfile AnalysisProfile:references \
+  end_date:datetime analysis_period_length_seconds:integer
+!!!...{TPSpec}
+
+Migrations:
+
+# Remove TradableProcessor table and reference to it from
+# TradableProcessorParameter:
+rails g migration DropTradableProcessor
+# Add sequence_number column to TradableProcessorParameter:
+rails g migration AddSequenceNumberToTradableProcessorParameter sequence_number:integer
+# Set up association: TradableProcessorSpecification has_many
+# TradableProcessorParameters:
+rails g migration \
+  AddTradableProcessorSpecificationToTradableProcessorParameter \
+  tradable_processor_specification:references
+
+!!!Next (after adding TPP migrations): Copy $PWD to ~/*/<x> somewhere and do
+a trial run in <x> to see if the migrations succeed.  If they do, then do
+the migrations here; if they don't, fix them, etc....!!!!
+

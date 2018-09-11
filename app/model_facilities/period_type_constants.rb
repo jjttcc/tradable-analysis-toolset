@@ -40,7 +40,7 @@ module PeriodTypeConstants
     @@period_types.include?(name)
   end
 
-  ### IDs ###
+  ### IDs, based on seconds-per-period-type ###
   # (period-type name constants are defined in TimePeriodTypeConstants.)
 
   ONE_MINUTE_ID = 60

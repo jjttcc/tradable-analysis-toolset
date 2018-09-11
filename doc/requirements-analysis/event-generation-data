@@ -1,41 +1,125 @@
                     EVENT-GENERATION-RELATED DATABASE TABLES
 
-notification_profile:
 
-  schedule: <TBD>
-  - notification-recipients (list)
+rails g model PeriodicTrigger interval_seconds:integer time_window_start:time \
+  time_window_end:time daily_schedule:integer
+rails g model EventBasedTrigger triggered_event_type:integer active:boolean
+rails g model AnalysisSchedule name:string active:boolean \
+  triggered_by:references{polymorphic} \ # PeriodicTrigger or EventBasedTrigger
+  user:references
+rails g model AnalysisProfile name:string \
+  analysis_client:references{polymorphic} # User or AnalysisSchedule
+rails g model EventGenerationProfile AnalysisProfile:references \
+  end_date:datetime analysis_period_length_seconds:integer
+rails g model TradableProcessorSpecification EventGenerationProfile:references \
+  processor_id:integer processor_name:string period_type:integer
+
+(NotificationRecipients? AnalysisSchedule:references?)
+
+tradable-processor-specification:
+
+  - processor-id
+  - processor-name
+  - period-type
+  - parameters (list of tradable-processor-parameter)
+
+{
+event_generation_profiles:
+
+  end_date: datetime [null represents "now"]
+  analysis_period_length: integer [seconds]
+  analysis_profile_id (null NOT allowed)
+}
+
+(
+[https://stackoverflow.com/questions/25937298/ruby-on-rails-global-activerecordenum]
+[http://api.rubyonrails.org/v5.2.0/classes/ActiveRecord/Enum.html]
+module TriggeredEventType
+  extend ActiveSupport::Concern
+  included do
+    enum triggered_event_type: {
+      user_triggered:         1,
+      EOD_US_stocks:          2,
+    }
+  end
+  # (Add a map for triggered_event_type => description?!!!)
+end
+class EventBasedTrigger < ApplicationRecord
+  include TriggeredEventType
+end
+)
+(
+PeriodicTrigger: suggestion: Include logic outside of the database that
+  determines whether "today" is a trading day, rather than using a field
+  in the database for this.  (Looks like we need a MarketSchedule class,
+  with descendants such as NYSE_Schedule, CBOT_Schedule, etc.)
+  [https://wallstreetdaily.com/nyse-stock-market-holiday-closings-schedule/]
+EventBasedTrigger is probably just a name/boolean pair - e.g., if
+"EOD data available", set active (hot/triggered/...?) = true where name =
+"eod-available"
+)
+([old/obsolete - use for reference:]
+trigger_event_types:
+  "user-triggered", "user ordered
+  "EOD US stocks", "For US stocks: today's EOD data is available"
+)
+{ Consider: use polymorphic association:
+class AnalysisProfile < ApplicationRecord
+  belongs_to :analysis_client, polymorphic: true
+end
+
+class User < ApplicationRecord
+  has_many :analysis_profiles, as: :analysis_client
+end
+
+class AnalysisSchedule < ApplicationRecord
+  has_many :analysis_profiles, as: :analysis_client
+OR:
+  has_one :analysis_profiles, as: :analysis_client
+(probably has_many, but usually, or at least often, just one)
+  has_many :notification_recipients
+end
+}
+
+analysis-schedules
+
+  - schedule: <TBD>
+  (- analysis-profiles (list or one?))
+  (- notification-recipients (list))
+  (- user_id)
 
 analysis_profiles:
 
   name
-  notification_profile_id
+  user_id (null NOT allowed)
+  notification_profile_id (null allowed) [remove this/use join-table?]
 
 event_generation_profiles:
 
   end_date: datetime [null represents "now"]
-  analysis_period_length: integer [minutes]
-  analysis_profile_id
+  analysis_period_length: integer [seconds]
+  analysis_profile_id (null NOT allowed)
 
 tradable_processor_specifications:
 
-  name
-  processor_id/name: [integer OR string?]
+  name [removed]
+  processor_id: integer
+  processor_name: string
   period_type_id: integer [See PeriodTypeConstants]
-  event_generation_profile_id[1]
+
+event_generation_tradable_processor_specifications: (join table)
+[obsolete, I think]
+
+  tradable_processor_specification_id: integer
+  event_generation_profile_id: integer
 
 tradable_processor_parameters:
 
-  parameter_id/name: [integer OR string]
+  name: string
+  sequence_number: integer
   value: string
   data_type: string
   tradable_processor_specification_id
-
-charting_specifications:
-
-  [TBD]
-  end_date: datetime [null represents "now"]
-  charting_period_length: integer [minutes]
-  period_type_id: integer [See PeriodTypeConstants]
 
 notification_recipients:
 
@@ -51,6 +135,18 @@ notification_media_specifications:
 
 
 [IN PROGRESS]
+
+charting_specifications:
+
+  [TBD]
+  end_date: datetime [null represents "now"]
+  charting_period_length: integer [minutes]
+  period_type_id: integer [See PeriodTypeConstants]
+
+charting_tradable_processor_specifications: ([proposed] join table)
+
+  tradable_processor_specification_id: integer
+  charting_specification_id: integer
 
 tradable_events:
 
@@ -69,10 +165,3 @@ indicator_chart_positions: (maps each indicator to "top" or "bottom" of chart)
 
 
 NOTES:
-
-[1] Suggestion: Instead of the foreign key, event_generation_profile_id, in
-tradable_processor_specifications, use a "join table" to associate one or
-more tradable_processor_specifications with one (or more?)
-event_generation_profiles.  This especially makes sense if
-tradable_processor_specifications are used for indicators as well as
-analyzers.

@@ -1,6 +1,5 @@
 Concepts:
 
-CONSIDER!!!!:
   TradableProcessorSpecification
 
   - analysis profile [DB]: Set of specs to use for a run; all events for
@@ -25,7 +24,6 @@ imply models/database-tables):
   - tradable-processor
   - tradable-indicator
   - tradable-analyzer
-[more????!!!]
 
 Scenarios:
 
@@ -45,7 +43,7 @@ set up and run some quick analyses to check out something or other.
 This might look similar to the current home (e.g.,
 "http://10.10.1.22:3000/") screen (with the option to choose a stock and
 period-type and hit "view chart" or, below that, to choose a set of stock
-symbols and a set of analyzers and start/end dates, then hit "run analysis".
+symbols and a set of analyzers and start/end dates, then hit "run analysis").
 But period-type will probably also need to be added - for each analyzer.
 Maybe on first use a "default profile", with default values, will be used
 for this page and the user can (right away or later) edit this profile,
@@ -95,16 +93,9 @@ have different settings per period-type, there will need to be a "switch"
 of some kind to allow changing an indicator's parameters only for the
 current period type.
 
-(5) User (from the appropriate web page/URL) chooses one (or more) of his
-analysis profiles to edit, changes start-/end-dates, adds and remove
-event generators, and chooses 0 or more event generators to edit -
-for generator g do 0 or more of:
-  - Change the period type of g.
-  - Change the value of one or more of g's parameters.
+(5) User deletes one or more analysis profiles.
 
-(6) User deletes one or more analysis profiles.
-
-(7) User creates a "notification profile" (is there a better name?), which
+(6) User creates a "notification profile" (is there a better name?), which
 consists of:
   - an analysis profile (selected by name?)
   - the schedule by which the profile will be run - perhaps a one-time run
@@ -115,22 +106,104 @@ consists of:
   - The methods/media (often just one, but can be several) the user has
     specified to be notified of resulting events.
 
-(8) A scheduled analysis run occurs for user X, which results in an email (or
+(7) An analysis run occurs for user X, which results in an email (or
 text, push notification, database update, ... - according to what the user
 specified in her notification profile) sent to user X with a formatted
-report of each event generated during the run.
+report of each event generated during the run.  Below is a more detailed
+breakdown of what occurs before (i.e., triggers) and during an analysis run.
+
+(7a) [(7) - triggering of analysis run, in detail, with an EventBasedTrigger]
+[part 1: (US EOD example)]
+A daemon process assigned to, each trading day, wait for and report when
+end-of-day data is available discovers that, a few minutes after market
+closing time for US stocks, EOD data for US stocks is available.  The
+process then updates the record in "event_based_triggers" table where
+'triggered_event_type' = EOD_US_stocks: It sets 'active' to true.
+(Note: In other words, this event invokes the trigger (by setting 'active'
+to true).)
+[part 2:]
+(Note: action/process is triggered by the above event - i.e., it starts
+analysis as a result of the event.)
+Another daemon process (whose job is to periodically check for new
+trigger events [e.g., in the event_based_triggers or periodic_triggers table])
+discovers (via a query such as "select id from event_based_triggers where
+active = true") that the record in event_based_triggers for EOD_US_stocks
+with the 'active' attribute set to true.  It then:
+
+  - Updates 'status' to "running" (from "completed") in the analysis_runs
+    [proposed] table.  (Other possible states might include: "stopped" and
+    "failed".) [subject to data-model change/elaboration/extension]
+  - Starts the corresponding analysis run [See (7c).]
+(Note: This design might change such that the daemon process in 7a-part1
+starts the analysis run instead of this process (i.e., in 7a-part2)
+starting it - in other words, the 7a-part2 process might be eliminated.
+However, my current thinking is that the 2-process version documented above
+is a better, more flexible design.)
+
+(7b) [(7) - triggering of analysis run, in detail, with an PeriodicTrigger]
+A daemon process assigned to, each trading day, function as an alarm clock
+and take the time settings in PeriodicTrigger, and when a configured time
+occurs:
+
+  - Updates 'status' to "running" in the analysis_runs table.  (See
+    "Updates 'status'..." in (7a) for more details.)
+  - "wakes up" (or starts) the scheduled analysis run.
+
+(Note: this is an action/process that is triggered by a time-based event -
+In other words, the scheduled time being reached is the trigger and this
+process's starting of a corresponding analysis run is the action resulting
+from the trigger.)
+(Note2: This will logically involve analysis of intraday data since a
+periodic run of every <n> minutes, several times a day does not make
+sense for daily data since that data won't have changed during the day.
+[Hmm, perhaps that's not true - e.g., EOD data has a "close" that can later
+be updated due to after-hours trading - investigate!!])
+
+(7c) [(7) - analysis run - details of how the analysis is started]
+When an analysis run is triggered (either due to an event [7a] or a
+time-alarm [7b]), the "AnalysisSchedule"s associated with the *Trigger object
+(i.e., PeriodicTrigger or EventBasedTrigger) are found via a database query
+(on the triggered_by_type and triggered_by_id fields of AnalysisSchedule).
+For each resulting AnalysisSchedule, s:
+
+  - Retrieve all of s's "AnalysisProfile"s (via analysis_client_type and
+    analysis_client_id).
+  - For each AnalysisProfile, p, belonging to s:
+      - Extract the specs for the run from p's attributes.
+      - Invoke the analysis using those specs as criteria [to be
+        continued/further-elaborated...!!!!]
 
 =============================================================================
 
 classes or entities or whatever - i.e., likely will end up in database:
 
-notification profile:
+user:
 
-  - schedule [TBD]
-  - analysis-profile
+  - ...
+  - scheduled-analysis-profiles (list)
+  - analysis-profiles (list)
+
+analysis-schedule (name: WIP):
+
+  - name
+  - triggered_by: triggering_event [time or change][1][2]
+  - active: boolean (false means the schedule/record is ignored)
+  - analysis-profiles (list or one?)
   - notification-recipients (list)
 
-analysis profile:
+triggering_event (i.e., event that triggers an analysis run):
+(maybe just 'trigger' instead of 'triggering_event')
+
+  - type ('time' or 'change')
+  - contents (e.g., '2032/05/12@11:00:00' or 'EOD data available')
+
+schedule (name?) [WIP - probably obsolete]
+
+  - name
+  - trigger: event [i.e., time-triggered-event or change-triggered-event][1][2]
+  - trigger_type ('time', or 'change')
+
+analysis-profile:
 
   - name
   - event-generation-profiles (list)
@@ -138,19 +211,21 @@ analysis profile:
 event-generation-profile:
 
   - end-date (often "now")
-  - analysis-period-length (determines start date)
+  - analysis-period-length (determines start date) [todo: document in code!!!]
   - event-generation-specifications (list of tradable-processor-specification)
 
 tradable-processor-specification:
 
-  - specification-name[?]
-  - processor-id/name
+  - specification-name[?] (suggestion: no 'name' needed)
+  - processor-id
+  - processor-name
   - period-type
   - parameters (list of tradable-processor-parameter)
 
 tradable-processor-parameter:
 
-  - parameter-id (or name?)
+  - name
+  - sequence_number
   - value
   - data-type
 
@@ -191,6 +266,29 @@ event-generator.
 Thus a scheduled or ad-hoc analysis run will use one analysis profile,
 which will run a set of analyses, each of which has a start- and
 end-date/time and will use one or more event-generators.
+
+NOTES:
+
+[1] time-triggered-event: "event" triggered, or defined, by the actual time
+coinciding with a scheduled "alarm" time.  (E.g., scheduled "alarm" time is
+14:30EST and the real/actual time is now 14:30:00EST)
+change-triggered-event:   "event" triggered, or defined, by a specific
+occurrence, or event, that causes a detectable change in the system or
+environment.  (E.g., The latest EOD data becomes available for the current
+day.)
+[2] This trigger/event might be represented via 2 (or more?) different
+tables.  E.g.: a time-triggered-event in a (name-in-flux) "time_triggers"
+table; and a change-triggered-event in an (name-in-flux)
+"environmental-changes" (name-in-flux) table.  Possible example of
+use of change-triggered-event table: A periodic monitoring process discovers
+that EOD data is now available for all stocks.  The process creates a new
+record in the "environmental-changes" table.  If the record/event is of the
+right type (which it will be if the trigger is supposed to be that
+"eod-data-available"), an assigned agent (process/function) checking the
+analysis-schedule.trigger will find that it has been triggered (i.e., the
+awaited event has occurred and has not yet been processed) and will as a
+result invoke an analysis run using the analysis-profile for the
+analysis-schedule record being checked.
 
 =============================================================================
 
