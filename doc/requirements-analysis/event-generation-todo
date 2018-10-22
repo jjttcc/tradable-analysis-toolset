@@ -5,20 +5,16 @@ create model: TradableProcessorSpecification.
 }
 event-generation and related to-do list (not currently prioritized)
 
-  - Add association: User has-many AnalysisSchedule (including, in User -
-    add has_many analysis_profiles, and, for AnalysisSchedule model
-    generation, user:references)
+  - period-type specs are likely obsolete - if so, remove it/them.
   - Look into whether we need a "date_map" (or something like that)
     attribute/association for PeriodicTrigger.  (See event-generation-notes.)
   - Flesh out more details of the triggering of analysis runs.
   - TradableObjectFactory [modify, incorporate]
   - TradableEvent (probably: new model) [1]
-  - [x]TradableProcessorSpecification [new]
-  - TradableProcessor (remove it or modify it?) [removed table, need to
-    remove model *.rb file.]
+  - TradableProcessor: remove it (removed table, need to
+    remove model *.rb file.)
   - [Study code to refresh memory re. relevant detailed design.]
   - MasMonitor is likely obsolete (currently low priority)
-  - period-type specs are likely obsolete (currently low priority)
   - Figure out when to go back to the main workspace (
     .../tradable-analysis-toolset).
 
@@ -44,3 +40,7 @@ Completed
 
   - differences between current TradableProcessorParameter and the
     new model.
+  - Add association: User has-many AnalysisSchedule (including, in User -
+    add has_many analysis_profiles, and, for AnalysisSchedule model
+    generation, user:references)
+  - TradableProcessorSpecification [new]

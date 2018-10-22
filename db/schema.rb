@@ -24,12 +24,12 @@ ActiveRecord::Schema.define(version: 20180903102228) do
   create_table "analysis_schedules", force: :cascade do |t|
     t.string   "name"
     t.boolean  "active"
-    t.string   "triggered_by_type"
-    t.integer  "triggered_by_id"
+    t.string   "trigger_type"
+    t.integer  "trigger_id"
     t.integer  "user_id"
-    t.datetime "created_at",        null: false
-    t.datetime "updated_at",        null: false
-    t.index ["triggered_by_type", "triggered_by_id"], name: "index_analysis_schedules_on_triggered_by_type_and_id"
+    t.datetime "created_at",   null: false
+    t.datetime "updated_at",   null: false
+    t.index ["trigger_type", "trigger_id"], name: "index_analysis_schedules_on_trigger_type_and_id"
     t.index ["user_id"], name: "index_analysis_schedules_on_user_id"
   end
 

@@ -33,7 +33,7 @@ displayed when it completes.  User then chooses option to save that profile
 to the database.  (Or the user can make changes to the profile, run another
 report, save the profile, or etc.)  When the profile is saved, the user is
 also given the option to save the results of any report he runs with that
-(now persistent) profile to he database, as well; or he can simply exit the
+(now persistent) profile to the database, as well; or he can simply exit the
 profile-creation/editing page, or start on another profile, or log out.
 
 (2) It will probably be useful to provide a "streamlined" way of creating a
@@ -163,7 +163,7 @@ be updated due to after-hours trading - investigate!!])
 When an analysis run is triggered (either due to an event [7a] or a
 time-alarm [7b]), the "AnalysisSchedule"s associated with the *Trigger object
 (i.e., PeriodicTrigger or EventBasedTrigger) are found via a database query
-(on the triggered_by_type and triggered_by_id fields of AnalysisSchedule).
+(on the trigger_type and trigger_id fields of AnalysisSchedule).
 For each resulting AnalysisSchedule, s:
 
   - Retrieve all of s's "AnalysisProfile"s (via analysis_client_type and
@@ -186,7 +186,7 @@ user:
 analysis-schedule (name: WIP):
 
   - name
-  - triggered_by: triggering_event [time or change][1][2]
+  - trigger: triggering_event [time or change][1][2]
   - active: boolean (false means the schedule/record is ignored)
   - analysis-profiles (list or one?)
   - notification-recipients (list)

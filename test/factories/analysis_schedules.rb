@@ -2,7 +2,7 @@ FactoryGirl.define do
   factory :analysis_schedule do
     name "MyString"
     active false
-    triggered_by nil
+    trigger nil
     user nil
   end
 end

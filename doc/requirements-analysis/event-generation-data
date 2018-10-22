@@ -5,7 +5,7 @@ rails g model PeriodicTrigger interval_seconds:integer time_window_start:time \
   time_window_end:time daily_schedule:integer
 rails g model EventBasedTrigger triggered_event_type:integer active:boolean
 rails g model AnalysisSchedule name:string active:boolean \
-  triggered_by:references{polymorphic} \ # PeriodicTrigger or EventBasedTrigger
+  trigger:references{polymorphic} \ # PeriodicTrigger or EventBasedTrigger
   user:references
 rails g model AnalysisProfile name:string \
   analysis_client:references{polymorphic} # User or AnalysisSchedule

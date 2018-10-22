@@ -1,4 +1,5 @@
 =begin
+#!!!!!NOTE: This spec is out of date - remove it or fix it!!!!!!
 CREATE TABLE "tradable_processor_parameters" ("id" INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL
 "name" varchar
 "value" varchar
@@ -17,6 +18,7 @@ VALID_PARAMETER_TYPES = ['integer', 'real']
 class TradableProcessorParameter < ApplicationRecord
   #!!!!implement this:!!! belongs_to :tradable_processor
   #Add this??: validates :tradable_processor_id, presence: true #!!!!!
+#!!!TO-DO: document sequence_number
   validates :name, presence: true, length: { maximum: 255 }
   validates :value, presence: true, length: { maximum: 255 }
   validates :data_type, presence: true, length: { maximum: 7 }, 

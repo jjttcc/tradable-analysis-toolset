@@ -7,8 +7,12 @@ class TradableObjectFactory
 
   # A new TradableAnalyzer with the specified name and id
   def new_analyzer(name:, id:, period_type:)
-    TradableAnalyzer.create!(name: name, event_id: id,
-                             is_intraday: is_intraday(period_type))
+    result = TradableAnalyzer.find_by_event_id(id)
+    if result == nil then
+      TradableAnalyzer.create!(name: name, event_id: id,
+                               is_intraday: is_intraday(period_type))
+    end
+    result
   end
 
   def new_event(date:, time:, id:, type_id:, analyzers:)
@@ -27,7 +31,29 @@ class TradableObjectFactory
   end
 
   def new_parameter(name:, type_desc:, value:)
-    FunctionParameter.new(name, type_desc, value)
+    result = FunctionParameter.new(name, type_desc, value)
+puts "[new_parameter called - returning: #{result.inspect}]"
+    result
+  end
+
+  # A "new" "tradable_analyzer" with the specified name and id - retrieved
+  # from the database if it can be found, otherwise, instantiated and saved
+  # to the database.  (retrieves/creates TradableProcessorSpecification)
+  def new_analyzer_or_maybe_not(name:, id:, period_type:)
+    result = TradableProcessorSpecification.find(id)
+    if result.nil? then
+      ###!!!How to set event_generation_profile_id?!!!
+      ###!!!Answer: Create the TPS somewhere else!!!!
+#!!!      result = TradableProcessorSpecification.create!(processor_id: id,
+#!!!        processor_name: name, period_type: id_for(period_type))
+    end
+puts "TOF::new_analyzer - result: #{result.inspect}"
+=begin
+#!!!!Reminder: Might need to create this, too, and associate the two types.
+    TradableAnalyzer.create!(name: name, event_id: id,
+                             is_intraday: is_intraday(period_type))
+=end
+    result
   end
 
 end
