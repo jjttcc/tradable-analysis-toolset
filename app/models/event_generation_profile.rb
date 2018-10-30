@@ -5,10 +5,11 @@
 #!!!!!TO-DO: Determine and implement the logic for "now" (e.g., end_date =
 #!!!!!null => "now")
 class EventGenerationProfile < ApplicationRecord
-  include Contracts::DSL
+  include Contracts::DSL, PeriodTypeConstants
 
   belongs_to :analysis_profile
-  has_many   :tradable_processor_specifications #!!!!{event-gen}
+  has_many   :tradable_processor_specifications, dependent: :destroy
+  validates  :analysis_period_length_seconds, presence: true
 
   public
 
@@ -27,8 +28,7 @@ class EventGenerationProfile < ApplicationRecord
     if ending_date.nil? then
       ending_date = DateTime.now
     end
-#!!!!!TO-DO: Put 86400 into a constant:!!!!!!
-    days = analysis_period_length_seconds / 86400
+    days = analysis_period_length_seconds / DAILY_ID
     result = ending_date - days.days
     result
   end

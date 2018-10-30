@@ -1,3 +1,3 @@
 class PeriodicTrigger < ApplicationRecord
-  has_many :analysis_schedules, as: :trigger #!!!!{event-gen}
+  has_many :analysis_schedules, as: :trigger
 end

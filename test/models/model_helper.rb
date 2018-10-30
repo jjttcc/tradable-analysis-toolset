@@ -8,10 +8,13 @@ module ModelHelper
                 :password => 'barfoobing',
                 :password_confirmation => 'barfoobing'}
   BAD_EMAIL1 = {:email_addr => 'tester@professional#testers.org'}
+  PERSISTENT_USERS = []
+  PERSISTENT_TRIGGERS = []
 
   # A new user, not saved
   def self.new_user(e)
     result = User.new(GOOD_ARGS1.merge(:email_addr => e))
+    PERSISTENT_USERS << result
     result
   end
 
@@ -19,12 +22,24 @@ module ModelHelper
   def self.new_user_saved(e)
     result = User.new(GOOD_ARGS1.merge(:email_addr => e))
     result.save!
+    PERSISTENT_USERS << result
     result
+  end
+
+  # Delete persistent users.
+  def self.cleanup
+    PERSISTENT_USERS.each do |u|
+      u.destroy
+    end
+    PERSISTENT_TRIGGERS.each do |t|
+      t.destroy
+    end
   end
 
   # A new EventBasedTrigger for user 'user'
   def self.new_eb_trigger(active = false)
     result = EventBasedTrigger.create(active: active)
+    PERSISTENT_TRIGGERS << result
     result
   end
 

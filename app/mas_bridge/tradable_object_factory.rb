@@ -32,13 +32,13 @@ class TradableObjectFactory
 
   def new_parameter(name:, type_desc:, value:)
     result = FunctionParameter.new(name, type_desc, value)
-puts "[new_parameter called - returning: #{result.inspect}]"
     result
   end
 
   # A "new" "tradable_analyzer" with the specified name and id - retrieved
   # from the database if it can be found, otherwise, instantiated and saved
   # to the database.  (retrieves/creates TradableProcessorSpecification)
+#!!!!!!!!!!!!!!!!!!finish/switch-to this or delete it!!!!!!!!!!
   def new_analyzer_or_maybe_not(name:, id:, period_type:)
     result = TradableProcessorSpecification.find(id)
     if result.nil? then

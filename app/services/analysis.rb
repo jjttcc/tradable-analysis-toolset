@@ -16,32 +16,28 @@ class Analysis
 
   ###  Basic operations
 
-  pre :trigger_in_database do |trigger|
-    ! trigger.nil? && ! trigger.new_record? end
   # Perform an analysis run for all "EventGenerationProfile"s belonging to
   # 'trigger' on 'symbol'.
+  pre :trigger_in_database do |trigger|
+    ! trigger.nil? && ! trigger.new_record? end
   def run_triggered_analysis(trigger, symbol)
     @resulting_events = []
     trigger.analysis_schedules.each do |sched|
       sched.analysis_profiles.each do |prof|
-puts "\nFor #{symbol}, analyzing profile #{prof.name} - details:" #!!!!!
-puts "#{prof.inspect}"
         analyze_profile(prof, symbol)
-#!!!!TO-DO: Set 'error' on error.
         if ! error then
           changed
           notify_observers(self, prof)
         else
-puts "'run_triggered_analysis' failed on #{prof}, #{symbol}" #!!!!!
-          #!!!!!Report/log the error, somehow!!!!
+#!!!!TO-DO: Deal with the error appropriately!!!
         end
       end
     end
   end
 
-  pre :prof_stored do |profile| ! profile.nil? && ! profile.new_record? end
   # Perform an analysis run for all "EventGenerationProfile"s belonging to
   # AnalysisProfile 'profile' on 'symbol'.
+  pre :prof_stored do |profile| ! profile.nil? && ! profile.new_record? end
   def run_analysis_on_profile(profile, symbol)
     @resulting_events = []
     analyze_profile(profile, symbol)
@@ -49,8 +45,7 @@ puts "'run_triggered_analysis' failed on #{prof}, #{symbol}" #!!!!!
       changed
       notify_observers(self, profile)
     else
-puts "'run_analysis_on_profile' failed on #{profile}, #{symbol}" #!!!!!
-      #!!!!!Report/log the error, somehow!!!!
+#!!!!TO-DO: Deal with the error appropriately!!!
     end
   end
 
@@ -63,8 +58,6 @@ puts "'run_analysis_on_profile' failed on #{profile}, #{symbol}" #!!!!!
 # !!!!  'notify_observers')!!!! (probably not, since Analysis knows about it
 # !!!!! directly and can thus notify it directly!!!!!!!!!!!!#####!!!!!
 #!!!!!Results for the last analysis run with respect to 'object'
-def obsolete_remove_me__analysis_results_for(object)
-end
 
   private
 
@@ -78,10 +71,10 @@ end
 
   ###  Implementation
 
-  pre :prof_in_database do |prof|
-    ! prof.nil? && ! prof.new_record? end
   # Perform an analysis run for all "EventGenerationProfile"s belonging to
   # AnalysisProfile 'prof' on 'symbol'.
+  pre :prof_in_database do |prof|
+    ! prof.nil? && ! prof.new_record? end
   def analyze_profile(prof, symbol)
     prof.event_generation_profiles.each do |eg_prof|
       period_types = eg_prof.tradable_processor_specifications.map do |spec|

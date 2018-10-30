@@ -21,7 +21,7 @@ class MasSession < ApplicationRecord
   validates :user_id, :presence => true
 
   belongs_to :user
-  has_many   :tradable_analyzers, :dependent => :destroy
+  has_many   :tradable_analyzers, dependent: :destroy
 
   public ###  Access
 

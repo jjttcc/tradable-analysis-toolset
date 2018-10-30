@@ -14,7 +14,6 @@ PARAM_TYPE     = 'integer'
 
 class EventBasedTriggerTest < ActiveSupport::TestCase
   include PeriodTypeConstants
-#!!!!!  include PeriodTypeConstants, TriggeredEventType
 
   def test_new
     trigger = EventBasedTrigger.new(active: false)

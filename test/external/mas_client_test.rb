@@ -20,9 +20,7 @@ class MasClientTest < MiniTest::Test
 
   def teardown
     if $client.logged_in then $client.logout end
-    if $analysis_user then
-      $analysis_user.delete
-    end
+    ModelHelper::cleanup
   end
 
   def test_create_client
@@ -69,22 +67,10 @@ class MasClientTest < MiniTest::Test
     analyzer.add_observer(checker)
     symbol = 'ibm'
     triggers = $analysis_spec.triggers
-#####
-    $analysis_client.request_analyzers(symbol, MasClient::DAILY)
-    assert ! $analysis_client.communication_failed &&
-      !  $analysis_client.server_error, "SERVER RETURNED FAILURE STATUS"
-    analyzers = $analysis_client.analyzers
-=begin
-!!!To-do: Make sure that each TradableProcessorSpecification associated
-with each member of 'triggers' matches one element of 'analyzers' (i.e.,
-processor_id and processor_name matches the corresponding attributes of one
-element of 'analyzers').
-=end
-    assert analyzers.length > 0, 'Some analyzers'
-#####
     begin
     triggers.each do |t|
       assert ! t.new_record?, 'trigger must be in database'
+      change_params(t, $analysis_client, false)
       analyzer.run_triggered_analysis(t, symbol)
     end
     rescue StandardError => e
@@ -105,6 +91,7 @@ element of 'analyzers').
       assert u.analysis_profiles.count > 0, 'user has >= 1 profile'
       u.analysis_profiles.each do |p|
         assert ! p.new_record?, 'profile must be in database'
+        change_params(p, $analysis_client, false)
         analyzer.run_analysis_on_profile(p, symbol)
       end
     end
@@ -113,54 +100,21 @@ element of 'analyzers').
   # Test analysis runs "triggered" by *Trigger objects with two different
   # TP-parameters settings and check that the results differ.
   def test_triggered_analysis_with_param_mod
-#!!!!!TO-DO: Force use of unchanging, past end-date.!!!!!!
-    analysis_setup
+    param_analysis_setup
     analyzer = Analysis.new($analysis_client)
-    checker = ParameterModCheck.new(10, 23)
+    checker = ParameterModCheck.new
     analyzer.add_observer(checker)
     symbol = 'ibm'
     triggers = $analysis_spec.triggers
-puts "run A:"
     triggers.each do |t|
       assert ! t.new_record?, 'trigger must be in database'
-puts "testing trigger #{t.inspect} [run A]"
       change_params(t, $analysis_client, false)
       analyzer.run_triggered_analysis(t, symbol)
     end
-puts "run B:"
     triggers.each do |t|
       assert ! t.new_record?, 'trigger must be in database'
-puts "testing trigger #{t.inspect} [run B]"
       change_params(t, $analysis_client, true)
       analyzer.run_triggered_analysis(t, symbol)
-    end
-  end
-
-  # Notification callback from Observable
-  def update(analyzer, target)
-puts "<<<<UPDATE>>> called"
-raise "OBSOLETE, DUDE!"
-    if
-      target.class == EventBasedTrigger || target.class == PeriodicTrigger
-    then
-      puts "trigger analysis happened"
-    else
-      assert target.class == AnalysisProfile,
-        "'target' should be AnalysisProfile"
-      puts "profile analysis happened"
-    end
-    all_events = analyzer.resulting_events
-    assert all_events != nil, '"events" exists'
-    puts "Total of #{all_events.count} resulting events"
-    expected_threshold = 25
-    assert all_events.count > expected_threshold, "NOT:reasonable number of " +
-      "analysis events (#{all_events.count}, expected > #{expected_threshold})"
-    if all_events.count > 1 then
-      all_events.each do |e|
-        assert_kind_of TradableEventInterface, e
-        assert_kind_of String, e.event_type
-        assert e.datetime != nil, 'valid datetime'
-      end
     end
   end
 
@@ -178,14 +132,15 @@ raise "OBSOLETE, DUDE!"
     $analysis_spec = AnalysisSpecification.new([$analysis_user])
   end
 
-  def analysis_setup_wo_params
+  def param_analysis_setup
     $analysis_user = User.find_by_email_addr(ANA_USER)
     if $analysis_user.nil? then
       $analysis_user = ModelHelper::new_user_saved(ANA_USER)
     end
     $analysis_client = MasClientTools::mas_client(user: $analysis_user,
                                              next_port: false)
-    $analysis_spec = AnalysisSpecification.new([$analysis_user], true)
+    $analysis_spec = AnalysisSpecification.new([$analysis_user],
+                                               false, true)
   end
 
   ### Implementation - utilities
@@ -203,18 +158,26 @@ raise "OBSOLETE, DUDE!"
     result
   end
 
-  def change_params(t, mas_client, new = false)
-    specs = specs_for_trigger(t)
+  # TradableProcessorSpecification objects associated with AnalysisProfile 'p'
+  def specs_for_profile(p)
+    result = []
+    p.event_generation_profiles.each do |egp|
+      result.concat(egp.tradable_processor_specifications)
+    end
+    result
+  end
+
+  def change_params(owner, mas_client, use_new_values = false)
+    if owner.class == AnalysisProfile then
+      specs = specs_for_profile(owner)
+    else
+      specs = specs_for_trigger(owner)
+    end
     specs.each do |s|
-      period_type = PeriodTypeConstants::name_for[s.period_type]
-puts "sname, sptype: #{s.name}, #{period_type}"
-mas_client.request_analysis_parameters(s.name, period_type) #!!!!!!!
-puts "#{mas_client.analysis_parameters.count} params back from MAS server:"
-mas_client.analysis_parameters.each do |p|
-pp p
-      end
-puts "s's name: #{s.name}"
-      if new then
+      assert s.name != nil && ! s.name.empty?, "spec must have a valid name"
+      mas_client.request_analysis_parameters(s.name, s.period_type_name)
+      params_from_mas = mas_client.analysis_parameters
+      if use_new_values then
         param_values = AnalysisSpecification::NEW_PARAM_VALUES
         # Set existing TradableProcessorParameter to new values.
         (0 .. param_values.count - 1).each do |i|
@@ -227,21 +190,37 @@ puts "s's name: #{s.name}"
         param_values = AnalysisSpecification::OLD_PARAM_VALUES
         (1 .. param_values.count).each do |seqno|
           param = ModelHelper::tradable_proc_parameter_for(s,
-            AnalysisSpecification::PARAM_NAME, param_values[seqno - 1],
+            params_from_mas[seqno - 1].name, param_values[seqno - 1],
             AnalysisSpecification::PARAM_TYPE, seqno)
         end
       end
       s.tradable_processor_parameters.each do |p|
         mas_client.request_analysis_parameters_modification(
-          s.name, period_type, "#{p.sequence_number}:#{p.value}")
+          s.name, s.period_type_name, "#{p.sequence_number}:#{p.value}")
       end
-#!!!!!Check for error!!!!!!
-if mas_client.communication_failed || mas_client.server_error then
-puts "[there was an ERROR!!!!!!]"
-else
-puts "[THERE WAS NO error!]"
-end
-puts "[ERROR MSG: #{mas_client.last_error_msg}]"
+      mas_client.request_analysis_parameters(s.name, s.period_type_name)
+      updated_params_from_mas = mas_client.analysis_parameters
+      param_with_seqno = {}
+      s.tradable_processor_parameters.each do |p|
+        param_with_seqno[p.sequence_number] = p
+      end
+      # Check that the params updated in the server match those currently
+      # stored in the database:
+      position = 1
+      updated_params_from_mas.each do |p|
+        param = param_with_seqno[position]
+        assert param != nil, "param #{position} present"
+        assert param.name == p.name, "correct name [" +
+          "'#{param.name}' should be '#{p.name}']"
+        assert param.data_type == p.type_desc[0..param.data_type.length-1],
+          "(at pos #{position}) correct data_type ['#{param.data_type}' " +
+          "should be included in '#{p.type_desc}']"
+        assert param.value == p.value, "(at pos #{position}) correct value [" +
+          "'#{param.value}' should be '#{p.value}']"
+        position += 1
+      end
+      assert ! (mas_client.communication_failed || mas_client.server_error),
+        "error reported from server #{mas_client.last_error_msg}"
     end
   end
 
@@ -261,30 +240,40 @@ class AnalysisSpecification
   ANA_PROF2        = 'mas-client-test-profile2'
   USER_PROF1       = 'mas-client-test-user-profile1'
   USER_PROF2       = 'mas-client-test-user-profile2'
+  PARAM_PROF1      = 'mas-client-test-param-profile1'
+  PARAM_PROF2      = 'mas-client-test-param-profile2'
 
   PROC_ID          =  2
   PROC_NAME        =  '<slot-for-obsolete-name-attribute>'
   PARAM_NAME       =  'n-value'
   PARAM_TYPE       =  'integer'
-  OLD_PARAM_VALUES =  ['12','26','12','26','6']
-  NEW_PARAM_VALUES =  ['5','13','5','13','6']
+  OLD_PARAM_VALUES =  ['13','29','13','29','9']
+  NEW_PARAM_VALUES =  ['5','11','5','11','5']
   DAY_SECS         =  24            *       60        *  60
   FIVE_DAYS        =  DAY_SECS      *       5
   DAYS_725         =  DAY_SECS      *       725
   THRESHOLD_FOR    =   {
-    USER_PROF1     =>  25,
-    USER_PROF2     =>  50,
+    USER_PROF1     =>  12,
+    USER_PROF2     =>  37,
   }
   SECS_FOR         =   {
     USER_PROF1     =>  DAY_SECS            *    565,
     USER_PROF2     =>  DAY_SECS            *    1565,
+    ANA_PROF1      =>  DAY_SECS            *    54,
+    ANA_PROF2      =>  DAY_SECS            *    66,
+    PARAM_PROF1    =>  DAY_SECS            *    74,
+    PARAM_PROF2    =>  DAY_SECS            *    197,
   }
   END_DATE_FOR     =   {
     USER_PROF1     =>  DateTime.new(2018,  01,  01),
     USER_PROF2     =>  DateTime.new(2015,  01,  01),
+    ANA_PROF1      =>  DateTime.new(2012,  01,  01),
+    ANA_PROF2      =>  DateTime.new(2012,  01,  01),
+    PARAM_PROF1    =>  DateTime.new(2008,  12,  31),
+    PARAM_PROF2    =>  DateTime.new(2014,  12,  31),
   }
 
-  def initialize(users, skip_params = false)
+  def initialize(users, skip_params = false, param_test = false)
     @users = users
     @triggers = activated_triggers
     if @triggers.empty? then
@@ -294,10 +283,15 @@ class AnalysisSpecification
       @triggers[0].EOD_US_stocks!
       schedule = ModelHelper::new_schedule_for(users[0], ANA_SCHEDULE,
                                                @triggers[0])
-      profile1 = full_profile(ANA_PROF1, schedule, skip_params)
-      profile2 = full_profile(ANA_PROF2, schedule, skip_params)
+      if param_test then
+        profile1 = full_profile_params(PARAM_PROF1, schedule)
+        profile2 = full_profile_params(PARAM_PROF2, schedule)
+      else
+        profile1 = full_profile(ANA_PROF1, schedule, skip_params)
+        profile2 = full_profile(ANA_PROF2, schedule, skip_params)
+      end
     end
-    if users[0].analysis_profiles.count < 9 then
+    if ! param_test && users[0].analysis_profiles.count < 9 then
       uprofile1 = users_profile(USER_PROF1, users[0], skip_params)
       uprofile2 = users_profile(USER_PROF2, users[0], skip_params)
     end
@@ -308,7 +302,23 @@ class AnalysisSpecification
   # which has a TradableProcessorParameter.
   def full_profile(name, schedule, skip_param = false)
     result = ModelHelper::new_profile_for_schedule(schedule, name)
-    eg_profile = ModelHelper::evgen_profile_for(result, nil, DAYS_725)
+    secs = SECS_FOR[name]; enddate = END_DATE_FOR[name]
+    eg_profile = ModelHelper::evgen_profile_for(result, enddate, secs)
+    tp_spec = ModelHelper::tradable_proc_spec_for(eg_profile, PROC_ID,
+                                               PROC_NAME, DAILY_ID)
+    param = ModelHelper::tradable_proc_parameter_for(tp_spec, PARAM_NAME,
+      OLD_PARAM_VALUES[0], PARAM_TYPE, 1)
+    result
+  end
+
+  # For TradableProcessorParameter test - An AnalysisProfile, owned by
+  # schedule, with the expected associations:
+  # an EventGenerationProfile, which has a TradableProcessorSpecification,
+  # which has a TradableProcessorParameter.
+  def full_profile_params(name, schedule)
+    result = ModelHelper::new_profile_for_schedule(schedule, name)
+    secs = SECS_FOR[name]; enddate = END_DATE_FOR[name]
+    eg_profile = ModelHelper::evgen_profile_for(result, enddate, secs)
     tp_spec = ModelHelper::tradable_proc_spec_for(eg_profile, PROC_ID,
                                                PROC_NAME, DAILY_ID)
     param = ModelHelper::tradable_proc_parameter_for(tp_spec, PARAM_NAME,
@@ -320,7 +330,6 @@ class AnalysisSpecification
   # an EventGenerationProfile, which has a TradableProcessorSpecification,
   # which has a TradableProcessorParameter.
   def users_profile(name, user, skip_param = false)
-puts "UPPPPPPPPPPPPPPPPPPPPPPPPPP"
     result = ModelHelper::new_profile_for_user(user, name)
     secs = SECS_FOR[name]; enddate = END_DATE_FOR[name]
     eg_profile = ModelHelper::evgen_profile_for(result, enddate, secs)
@@ -347,12 +356,11 @@ class AnalysisCheck < MiniTest::Test
   public
 
   def check_all_events(analyzer, target, expected_threshold)
-puts "[cae] target: #{target.inspect}"  #!!!!!
     all_events = analyzer.resulting_events
     assert all_events != nil, '"events" exists'
     puts "Total of #{all_events.count} resulting events"
-    assert all_events.count > expected_threshold, "NOT:reasonable number of " +
-      "analysis events (#{all_events.count}, expected > #{expected_threshold})"
+    assert all_events.count == expected_threshold, "unexpected number of " +
+      "analysis events (#{all_events.count}, expected: #{expected_threshold})"
     if all_events.count > 0 then
       all_events.each do |e|
         assert_kind_of TradableEventInterface, e
@@ -362,16 +370,17 @@ puts "[cae] target: #{target.inspect}"  #!!!!!
     end
   end
 
-  def check_events(analyzer, target, expected_threshold)
+  def check_events(analyzer, target, expected_count)
     event_gen_profs = target.event_generation_profiles
-puts "target: #{target.inspect}"  #!!!!!
     events = event_gen_profs[0].last_analysis_results
     assert events != nil, '"events" exists'
     puts "Total of #{events.count} resulting events"
-#!!!    expected_threshold = AnalysisSpecification::THRESHOLD_FOR[target.name]
-puts "et for #{target.name}: #{expected_threshold}" #!!!!!
-    assert events.count > expected_threshold, "NOT:reasonable number of " +
-      "analysis events (#{events.count}, expected > #{expected_threshold})"
+    puts "[check_events] analyzer: #{analyzer}"
+    puts "target: #{target.inspect}"
+    puts "count: #{events.count}"
+    puts "expected_count: #{expected_count}"
+    assert events.count == expected_count, "unexpected number of " +
+      "analysis events (#{events.count}, expected: #{expected_count})"
     if events.count > 0 then
       events.each do |e|
         assert_kind_of TradableEventInterface, e
@@ -385,35 +394,43 @@ end
 
 class TriggeredAnalysisCheck < AnalysisCheck
 
-  DEFAULT_THRESHOLD = 25
+  THRESHOLD_FOR = {
+    AnalysisSpecification::ANA_PROF1 => 2,
+    AnalysisSpecification::ANA_PROF2 => 5
+  }
 
   # Notification callback from Observable
   def update(analyzer, profile)
     assert profile.class == AnalysisProfile, ''
-    check_all_events(analyzer, profile, DEFAULT_THRESHOLD)
+    check_all_events(analyzer, profile, THRESHOLD_FOR[profile.name])
   end
 
 end
 
 class ParameterModCheck < TriggeredAnalysisCheck
 
+  OLD_THRESHOLD_FOR = {
+    AnalysisSpecification::PARAM_PROF1 => 2,
+    AnalysisSpecification::PARAM_PROF2 => 5
+  }
+  NEW_THRESHOLD_FOR = {
+    AnalysisSpecification::PARAM_PROF1 => 3,
+    AnalysisSpecification::PARAM_PROF2 => 6
+  }
+
   # Notification callback from Observable
   def update(analyzer, profile)
     assert profile.class == AnalysisProfile, ''
     if ! @checked[profile] then
-puts "First time checking profile [#{profile}]"
-      check_events(analyzer, profile, @old_threshold)
+      check_events(analyzer, profile, OLD_THRESHOLD_FOR[profile.name])
       @checked[profile] = true
     else
-puts "Second time checking profile [#{profile}]"
-      check_events(analyzer, profile, @new_threshold)
+      check_events(analyzer, profile, NEW_THRESHOLD_FOR[profile.name])
     end
   end
 
-  def initialize(old_threshold, new_threshold)
+  def initialize
     @checked = {}
-    @old_threshold = old_threshold
-    @new_threshold = new_threshold
     super(nil)
   end
 

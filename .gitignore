@@ -43,3 +43,4 @@ mas-client.log*
 .vimrc
 *.newwork
 obsolete
+.vim/

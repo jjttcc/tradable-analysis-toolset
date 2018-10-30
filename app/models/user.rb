@@ -22,9 +22,9 @@ class User < ApplicationRecord
   attr_accessor   :password
 
 #!!!!!NOTE: "period_type_specs" needs to go!!!!!:
-  has_many :period_type_specs, :dependent => :destroy
-  has_many :analysis_schedules  #!!!!{event-gen}
-  has_many :analysis_profiles, as: :analysis_client #!!!!{event-gen}
+  has_many :period_type_specs,  dependent: :destroy
+  has_many :analysis_schedules, dependent: :destroy
+  has_many :analysis_profiles, as: :analysis_client, dependent: :destroy
 =begin
 #!!!!!remove/clean-this-stuff-up:
   has_many :parameter_groups,  :dependent => :destroy
