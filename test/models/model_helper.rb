@@ -36,9 +36,19 @@ module ModelHelper
     end
   end
 
-  # A new EventBasedTrigger for user 'user'
+  # A new EventBasedTrigger
   def self.new_eb_trigger(active = false)
     result = EventBasedTrigger.create(active: active)
+    PERSISTENT_TRIGGERS << result
+    result
+  end
+
+  # (Stub) A new PeriodicTrigger
+  def self.new_periodic_trigger(interval_seconds = 3600, timew_start, timew_end)
+    result = PeriodicTrigger.create(interval_seconds: interval_seconds,
+                                    time_window_start: timew_start,
+                                    time_window_end: timew_end)
+    # ???schedule_type???
     PERSISTENT_TRIGGERS << result
     result
   end
@@ -74,9 +84,9 @@ module ModelHelper
   end
 
   # A new TradableProcessorSpecification, attached to 'prof' (AnalysisProfile)
-  def self.tradable_proc_spec_for(evgen_prof, proc_id, proc_name, ptype)
+  def self.tradable_proc_spec_for(evgen_prof, proc_id, ptype)
     result = evgen_prof.tradable_processor_specifications.create(
-      processor_id: proc_id, processor_name: proc_name, period_type: ptype)
+      processor_id: proc_id, period_type: ptype)
     result
   end
 

@@ -12,7 +12,7 @@ rails g model AnalysisProfile name:string \
 rails g model EventGenerationProfile AnalysisProfile:references \
   end_date:datetime analysis_period_length_seconds:integer
 rails g model TradableProcessorSpecification EventGenerationProfile:references \
-  processor_id:integer processor_name:string period_type:integer
+  processor_id:integer period_type:integer
 
 (NotificationRecipients? AnalysisSchedule:references?)
 
@@ -104,7 +104,6 @@ tradable_processor_specifications:
 
   name [removed]
   processor_id: integer
-  processor_name: string
   period_type_id: integer [See PeriodTypeConstants]
 
 event_generation_tradable_processor_specifications: (join table)

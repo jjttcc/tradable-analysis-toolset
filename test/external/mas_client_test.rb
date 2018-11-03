@@ -59,7 +59,7 @@ class MasClientTest < MiniTest::Test
   end
 
   # Test analysis runs "triggered" by *Trigger objects.
-  # (To-do: PeriodicTrigger test)
+  # (To-do: Add/test "PeriodicTrigger"s)
   def test_triggered_analysis
     analysis_setup
     analyzer = Analysis.new($analysis_client)
@@ -276,6 +276,7 @@ class AnalysisSpecification
   def initialize(users, skip_params = false, param_test = false)
     @users = users
     @triggers = activated_triggers
+    @triggers.concat(periodic_triggers)
     if @triggers.empty? then
       # No triggers found in DB - Make a new one.
       @triggers = []
@@ -304,8 +305,7 @@ class AnalysisSpecification
     result = ModelHelper::new_profile_for_schedule(schedule, name)
     secs = SECS_FOR[name]; enddate = END_DATE_FOR[name]
     eg_profile = ModelHelper::evgen_profile_for(result, enddate, secs)
-    tp_spec = ModelHelper::tradable_proc_spec_for(eg_profile, PROC_ID,
-                                               PROC_NAME, DAILY_ID)
+    tp_spec = ModelHelper::tradable_proc_spec_for(eg_profile, PROC_ID, DAILY_ID)
     param = ModelHelper::tradable_proc_parameter_for(tp_spec, PARAM_NAME,
       OLD_PARAM_VALUES[0], PARAM_TYPE, 1)
     result
@@ -319,8 +319,7 @@ class AnalysisSpecification
     result = ModelHelper::new_profile_for_schedule(schedule, name)
     secs = SECS_FOR[name]; enddate = END_DATE_FOR[name]
     eg_profile = ModelHelper::evgen_profile_for(result, enddate, secs)
-    tp_spec = ModelHelper::tradable_proc_spec_for(eg_profile, PROC_ID,
-                                               PROC_NAME, DAILY_ID)
+    tp_spec = ModelHelper::tradable_proc_spec_for(eg_profile, PROC_ID, DAILY_ID)
     param = ModelHelper::tradable_proc_parameter_for(tp_spec, PARAM_NAME,
       OLD_PARAM_VALUES[0], PARAM_TYPE, 1)
     result
@@ -333,8 +332,7 @@ class AnalysisSpecification
     result = ModelHelper::new_profile_for_user(user, name)
     secs = SECS_FOR[name]; enddate = END_DATE_FOR[name]
     eg_profile = ModelHelper::evgen_profile_for(result, enddate, secs)
-    tp_spec = ModelHelper::tradable_proc_spec_for(eg_profile, PROC_ID,
-                                               PROC_NAME, DAILY_ID)
+    tp_spec = ModelHelper::tradable_proc_spec_for(eg_profile, PROC_ID, DAILY_ID)
     param = ModelHelper::tradable_proc_parameter_for(tp_spec, PARAM_NAME,
       OLD_PARAM_VALUES[0], PARAM_TYPE, 1)
     result
@@ -345,6 +343,15 @@ class AnalysisSpecification
   def activated_triggers
     result = EventBasedTrigger.all.select do |t|
       t.active && t.analysis_schedules.count > 0
+    end
+    result
+  end
+
+  # periodic triggers - i.e., whose trigger time has occurred
+  # (Stub)
+  def periodic_triggers
+    result = PeriodicTrigger.all.select do |t|
+      ####Stub
     end
     result
   end
@@ -383,6 +390,7 @@ class AnalysisCheck < MiniTest::Test
       "analysis events (#{events.count}, expected: #{expected_count})"
     if events.count > 0 then
       events.each do |e|
+puts "e: #{e.inspect}"
         assert_kind_of TradableEventInterface, e
         assert_kind_of String, e.event_type
         assert e.datetime != nil, 'valid datetime'

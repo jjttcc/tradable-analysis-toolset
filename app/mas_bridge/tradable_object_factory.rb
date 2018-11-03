@@ -45,7 +45,7 @@ class TradableObjectFactory
       ###!!!How to set event_generation_profile_id?!!!
       ###!!!Answer: Create the TPS somewhere else!!!!
 #!!!      result = TradableProcessorSpecification.create!(processor_id: id,
-#!!!        processor_name: name, period_type: id_for(period_type))
+#!!!        period_type: id_for(period_type))
     end
 puts "TOF::new_analyzer - result: #{result.inspect}"
 =begin

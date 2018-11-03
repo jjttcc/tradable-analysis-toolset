@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20180903102228) do
+ActiveRecord::Schema.define(version: 20181102062222) do
 
   create_table "analysis_profiles", force: :cascade do |t|
     t.string   "name"
@@ -35,9 +35,9 @@ ActiveRecord::Schema.define(version: 20180903102228) do
 
   create_table "event_based_triggers", force: :cascade do |t|
     t.integer  "triggered_event_type"
-    t.boolean  "active"
-    t.datetime "created_at",           null: false
-    t.datetime "updated_at",           null: false
+    t.boolean  "active",               default: false, null: false
+    t.datetime "created_at",                           null: false
+    t.datetime "updated_at",                           null: false
   end
 
   create_table "event_generation_profiles", force: :cascade do |t|
@@ -72,7 +72,7 @@ ActiveRecord::Schema.define(version: 20180903102228) do
     t.integer  "interval_seconds"
     t.time     "time_window_start"
     t.time     "time_window_end"
-    t.integer  "daily_schedule"
+    t.integer  "schedule_type"
     t.datetime "created_at",        null: false
     t.datetime "updated_at",        null: false
   end
@@ -110,7 +110,6 @@ ActiveRecord::Schema.define(version: 20180903102228) do
   create_table "tradable_processor_specifications", force: :cascade do |t|
     t.integer  "event_generation_profile_id"
     t.integer  "processor_id"
-    t.string   "processor_name"
     t.integer  "period_type"
     t.datetime "created_at",                  null: false
     t.datetime "updated_at",                  null: false

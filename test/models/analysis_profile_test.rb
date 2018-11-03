@@ -6,7 +6,6 @@ PROFILE_NAME1  = 'profile 1'
 PROFILE_NAME2  = 'profile 2'
 FIVE_DAYS      = 25 * 60 * 60 * 5
 PROC_ID        = 5
-PROC_NAME      = 'Exponential Moving Average'
 PARAM_NAME     = 'n-value'
 PARAM_VALUE    = '13'
 PARAM_TYPE     = 'integer'
@@ -51,8 +50,7 @@ class AnalysisProfileTest < ActiveSupport::TestCase
     u = init_database_with_user
     profile = ModelHelper::new_profile_for_user(u, PROFILE_NAME1)
     eg_profile = ModelHelper::evgen_profile_for(profile, nil, FIVE_DAYS)
-    spec = ModelHelper::tradable_proc_spec_for(eg_profile, PROC_ID,
-                                               PROC_NAME, DAILY_ID)
+    spec = ModelHelper::tradable_proc_spec_for(eg_profile, PROC_ID, DAILY_ID)
     param = ModelHelper::tradable_proc_parameter_for(spec, PARAM_NAME,
                                                      PARAM_VALUE, PARAM_TYPE)
     value(u).must_be :valid?
