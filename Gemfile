@@ -14,6 +14,7 @@ gem 'bootstrap-sass'
 gem 'yahoo-finance'
 gem 'gon'
 gem 'ffi', '1.9.24'
+gem 'sprockets', '3.7.2'
 
 
 gem 'sass-rails'
