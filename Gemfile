@@ -13,6 +13,7 @@ gem 'bootstrap-will_paginate'
 gem 'bootstrap-sass'
 gem 'yahoo-finance'
 gem 'gon'
+gem 'ffi', '1.9.24'
 
 
 gem 'sass-rails'
