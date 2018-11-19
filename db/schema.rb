@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20181102062222) do
+ActiveRecord::Schema.define(version: 20181116151615) do
 
   create_table "analysis_profiles", force: :cascade do |t|
     t.string   "name"
@@ -94,6 +94,14 @@ ActiveRecord::Schema.define(version: 20181102062222) do
     t.datetime "created_at",     null: false
     t.datetime "updated_at",     null: false
     t.index ["mas_session_id"], name: "index_tradable_analyzers_on_mas_session_id"
+  end
+
+  create_table "tradable_entities", id: false, force: :cascade do |t|
+    t.string   "symbol",     null: false
+    t.string   "name"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["symbol"], name: "index_tradable_entities_on_symbol", unique: true
   end
 
   create_table "tradable_processor_parameters", force: :cascade do |t|

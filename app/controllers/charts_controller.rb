@@ -161,12 +161,16 @@ $log.debug("sd hash: #{start_date_hash.inspect}") #!!!!!!
 
   def tradable_name(symbol)
     # Look first in the database reference table
-    t = Tradable.find_by_symbol(symbol)
+    sym = symbol.upcase
+    t = Rails.cache.fetch("#{sym}/stock_symbol", expires_in: 168.hours) do
+      $log.debug("[cache of TradableEntity] had to query for '#{sym}'")
+      TradableEntity.find_by_symbol(sym)
+    end
     if t.nil? then
       # Record for 'symbol' is not yet in the table - look for it.
       begin
-        name = $external_tradable_info.name_for(symbol)
-        Tradable.create(name: name, symbol: symbol)
+        name = $external_tradable_info.name_for(sym)
+        TradableEntity.create(name: name, symbol: sym)
       rescue => e
         $log.debug("[#{__FILE__},#{__LINE__}] TradableTools.new or " +
                    "name_for failed [#{e}]")

@@ -1,0 +1,2 @@
+class TradableEntity < ApplicationRecord
+end

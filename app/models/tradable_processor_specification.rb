@@ -4,12 +4,12 @@
 class TradableProcessorSpecification < ApplicationRecord
   include Contracts::DSL
 
-  belongs_to :event_generation_profile
+  belongs_to :event_generation_profile, touch: true
   has_many   :tradable_processor_parameters, dependent: :destroy
 
   public
 
-  # 'event_id' of the associated TradableAnalyzer
+  # 'event_id' of the associated TradableAnalyzer (alias for 'processor_id')
   post :is_analyzer_event_id do |result| result == processor_id &&
     result == TradableAnalyzer.find_by_event_id(result).event_id end
   def event_id; processor_id end

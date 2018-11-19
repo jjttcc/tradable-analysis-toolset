@@ -18,6 +18,9 @@ class PagesController < ApplicationController
     set_appname
     if current_user != nil then
       @ana_startdate, @ana_enddate = nil, nil
+      if symbol_list.empty? then
+        raise "fatal error: symbol list is empty"
+      end
       @analyzers = analyzers_from_mas_session
       current_user.analysis_specs.each do |spec|
         if spec.period_type == PeriodTypeConstants::DAILY then
