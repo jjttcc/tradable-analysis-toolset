@@ -10,7 +10,7 @@ class SessionsControllerTest < ActionController::TestCase
 
   def test_correct_title
     get :new
-    assert_select 'title', /sign\s+in/i, 'sign-in title'
+    assert_select 'title', /log\s+in/i, 'sign-in title'
   end
 
   def setup
@@ -22,7 +22,7 @@ class SessionsControllerTest < ActionController::TestCase
   def test_bad_values
     post :create, params: { session: @bad_attr }
     assert_response :success, 'normal response expected'
-    assert_select 'title', /sign in/i, 'expected title'
+    assert_select 'title', /log in/i, 'expected title'
     assert flash.now[:error] != nil && flash.now[:error] =~ /invalid/i,
       "flash error msg expected"
   end

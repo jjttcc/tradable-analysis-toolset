@@ -4,19 +4,30 @@
     %>
   <nav class="round-all">
     <ul>
-      <li><%= link_to "Home", root_path %></li>
+      <li><%= link_to t('.home'), root_path %></li>
       <% if signed_in? %>
-        <li><%= link_to 'Settings', current_user %></li>
-        <li><%= link_to 'Account', edit_user_path(current_user) %></li>
+        <li><%= link_to t('.settings'), current_user %></li>
+        <li><%= link_to t('.account'), edit_user_path(current_user) %></li>
         <% if current_user.admin? %>
-          <li><%= link_to 'Users', users_path %></li>
+          <li><%= link_to t('.users'), users_path %></li>
         <% end %>
       <% end %>
-      <li><%= link_to "Help", help_path %></li>
+      <li><%= link_to t('.help'), help_path %></li>
       <% if signed_in? %>
-        <li><%= link_to 'Sign out', signout_path %></li>
+        <li><%= link_to t('.sign-out'), signout_path %></li>
       <% else %>
-        <li><%= link_to "Sign in", signin_path %></li>
+        <li><%= link_to t('.sign-in'), signin_path %></li>
+      <% end %>
+      <% if ! signed_in? then %>
+        <nav class="round-lang">
+          <% cur_locale = I18n.locale; locale_for = {
+            'English' => :en, '简体中文' => :'zh-CN', '繁體中文' => :'zh-TW'} %>
+          <% locale_for.keys.each do |lang| %>
+            <% if cur_locale != locale_for[lang] %>
+              <li><%= link_to lang, { locale: locale_for[lang] } %></li>
+            <% end %>
+          <% end %>
+        </nav>
       <% end %>
     </ul>
   </nav>

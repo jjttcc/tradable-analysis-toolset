@@ -40,12 +40,12 @@ class UsersController < ApplicationController
     success = true
     @user = User.new(user_params)
     mas_cl = mas_client
-    if mas_cl.nil?
+    if mas_cl.nil? then
       success = false
       failure_reason = @error_msg
     else
       @user.create_mas_session(mas_session_key: mas_cl.session_key)
-      if @user.save
+      if @user.save then
         appname = Rails.configuration.application_name
         flash[:success] = "Welcome to #{appname}."
         sign_in(@user)
@@ -55,7 +55,7 @@ class UsersController < ApplicationController
         failure_reason = "Database update failed."
       end
     end
-    if not success
+    if not success then
       @title = NEW_USER_TITLE
       flash[:failure] = "Operation failed: #{failure_reason}"
       render 'new'
@@ -72,7 +72,7 @@ class UsersController < ApplicationController
   pre :signed_in do signed_in? end
   def update
     @user = User.find(params[:id])
-    if @user.update_attributes(user_params)
+    if @user.update_attributes(user_params) then
       flash[:success] = "Settings updated."
       redirect_to @user
     else
@@ -87,7 +87,7 @@ class UsersController < ApplicationController
                         tgt == current_user || tgt == nil end
   def destroy
     u = User.find(params[:id])
-    if u != current_user
+    if u != current_user then
       u.destroy
       flash[:success] = "#{u.email_addr} deleted"
     else
@@ -105,13 +105,15 @@ class UsersController < ApplicationController
 
   def ensure_correct_user
     user = User.find(params[:id])
-    if user != current_user
+    if user != current_user then
       redirect_to root_path
     end
+  rescue ActiveRecord::RecordNotFound => e
+    redirect_to root_path
   end
 
   def ensure_admin
-    if ! current_user.admin?
+    if ! current_user.admin? then
       redirect_to root_path
     end
   end

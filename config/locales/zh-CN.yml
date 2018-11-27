@@ -1,0 +1,18 @@
+zh-CN:
+  pages:
+    home:
+      'run-analysis': "进行分析"
+  layouts:
+    header:
+      'home':     '家'
+      'settings': '设置'
+      'account':  '帐户'
+      'users':    '用户'
+      'help':     '救命'
+      'sign-out': '登出'
+      'log-out':  '登出'
+      'sign-in':  '登录'
+      'log-in':   '登录'
+  'email-address': '电子邮件地址'
+  'about':         '关于'
+  'help':          '帮助'

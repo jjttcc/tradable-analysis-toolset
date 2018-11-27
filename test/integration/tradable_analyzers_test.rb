@@ -16,14 +16,16 @@ class TradableAnalyzersTest < ActionDispatch::IntegrationTest
   def test_run_with_no_selections
     visit root_path
     click_button 'Run analysis'
-    assert current_path == root_path, 'redirected to root'
+    assert (current_path == root_path ||
+            current_path == locale_path(root_path)), 'redirected to root'
   end
 
   def test_run_missing_analyzer
     visit root_path
     select(TARGET_SYMBOL, :from => 'symbols')
     click_button 'Run analysis'
-    assert current_path == root_path, 'redirected to root'
+    assert (current_path == root_path ||
+            current_path == locale_path(root_path)), 'redirected to root'
   end
 
   def test_run_missing_symbol
@@ -31,7 +33,8 @@ class TradableAnalyzersTest < ActionDispatch::IntegrationTest
     visit root_path
     select(analyzer, :from => 'analyzers')
     click_button 'Run analysis'
-    assert current_path == root_path, 'redirected to root'
+    assert (current_path == root_path ||
+            current_path == locale_path(root_path)), 'redirected to root'
   end
 
   def test_run_with_selections
@@ -49,7 +52,9 @@ class TradableAnalyzersTest < ActionDispatch::IntegrationTest
     click_button 'Run analysis'
     assert page.has_content?(/[1-9][0-9]*\s+events/), 'has > 0 events'
     assert page.has_content?(analyzer_desc), 'has analyzer'
-    assert current_path == tradable_analyzers_index_path, 'ta index'
+    assert (current_path == tradable_analyzers_index_path ||
+            current_path == locale_path(tradable_analyzers_index_path)),
+            'ta index'
   end
 
   def test_run_with_multi_symbols
@@ -68,7 +73,9 @@ class TradableAnalyzersTest < ActionDispatch::IntegrationTest
     click_button 'Run analysis'
     assert page.has_content?(/\b[1-9]\d*\s+events/), 'has 1 or more events'
     assert page.has_content?(analyzer_desc), 'has analyzer'
-    assert current_path == tradable_analyzers_index_path, 'ta index'
+    assert (current_path == tradable_analyzers_index_path ||
+            current_path == locale_path(tradable_analyzers_index_path)),
+            'ta index'
   end
 
 end

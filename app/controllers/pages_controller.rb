@@ -3,6 +3,8 @@ require 'ruby_contracts'
 class PagesController < ApplicationController
   include Contracts::DSL
 
+  public
+
   def set_appname
     @appname = Rails.configuration.application_name
   end

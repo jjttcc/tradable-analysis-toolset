@@ -62,8 +62,8 @@ class UsersTest < ActionDispatch::IntegrationTest
       describe "success" do
         it "should sign a user in and out" do
           user = signed_in_user
-          click_link 'Sign out'   # prove signed in
-          click_link 'Sign in'    # prove signed out
+          click_link 'Log out'   # prove signed in
+          click_link 'Log in'    # prove signed out
         end
       end
     end

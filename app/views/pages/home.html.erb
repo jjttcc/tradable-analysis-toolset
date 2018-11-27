@@ -36,7 +36,7 @@
           <%= f.label :end_date, "end:" %>
           <%= select_date(@ana_enddate, prefix: 'enddate',
                           use_short_month: true) %>
-          <%= f.submit 'Run analysis' %>
+          <%= f.submit t('.run-analysis', default: 'translation not found') %>
         <% end %>
       <% end %>
       </p>

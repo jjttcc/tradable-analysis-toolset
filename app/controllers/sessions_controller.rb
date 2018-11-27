@@ -5,7 +5,7 @@ class SessionsController < ApplicationController
 
   public
 
-  SIGN_IN_TITLE = 'Sign in'
+  SIGN_IN_TITLE = 'Log in'
 
   def new
     @title = SIGN_IN_TITLE

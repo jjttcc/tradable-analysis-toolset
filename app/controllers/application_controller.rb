@@ -1,4 +1,6 @@
 class ApplicationController < ActionController::Base
+  public
+
   protect_from_forgery
   include SessionsHelper, ControllerErrorHandling
   # NOTE: Using Contracts::DSL in test and development causes problems in
@@ -6,6 +8,8 @@ class ApplicationController < ActionController::Base
 
   helper_method :mas_client, :symbol_list, :period_types,
     :period_type_start_year, :period_type_end_year
+
+  before_action :set_locale
 
   public
 
@@ -111,9 +115,7 @@ class ApplicationController < ActionController::Base
     MasClientTools::number_of_available_ports
   end
 
-  protected
-
-  ###  Basic operations
+  protected ###  Basic operations
 
   # Execute the passed-in block (via 'yield') - expected to be a
   # "mas_client.request_..." call.  If the block returns true (which
@@ -151,6 +153,18 @@ class ApplicationController < ActionController::Base
     if not signed_in? then
       deny_access
     end
+  end
+
+  protected ###  Locale
+
+  def set_locale
+    locale = params[:locale].to_s.strip.to_sym
+    I18n.locale = I18n.available_locales.include?(locale) ? locale :
+      I18n.default_locale
+  end
+
+  def default_url_options(options={})
+    { locale: I18n.locale }
   end
 
 end

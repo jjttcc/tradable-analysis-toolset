@@ -53,7 +53,8 @@
       </h3>
     </td>
     <td class="sidebar round">
-      <strong>email address: </strong><br/><%= @user.email_addr %><br/>
+      <strong><%= t('email-address') %>:</strong><br/>
+          <%= @user.email_addr %><br/>
       <strong>URL: </strong><%= link_to user_path(@user), @user %><br/>
       <strong>Period-type specs: </strong><%= @user.period_type_specs.count %>
     </td>

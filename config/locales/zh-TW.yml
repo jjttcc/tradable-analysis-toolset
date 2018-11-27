@@ -1,0 +1,18 @@
+zh-TW:
+  pages:
+    home:
+      'run-analysis': "進行分析"
+  layouts:
+    header:
+      'home':    '家'
+      'settings': '設置'
+      'account':  '帳戶'
+      'users':    '用戶'
+      'help':     '救命'
+      'sign-out': '登出'
+      'log-out':  '登出'
+      'sign-in':  '登錄'
+      'log-in':   '登錄'
+  'email-address': '電子郵件地址'
+  'about':         '關於'
+  'help':          '幫助'

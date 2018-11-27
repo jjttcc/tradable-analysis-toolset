@@ -120,4 +120,14 @@ class ActiveSupport::TestCase
     result
   end
 
+  # The path 'pth' with locale taken into account
+  def locale_path(pth)
+    result = ''
+    if pth == '/' then
+      result = pth + I18n.locale.to_s
+    else
+      result = '/' + I18n.locale.to_s + pth
+    end
+  end
+
 end

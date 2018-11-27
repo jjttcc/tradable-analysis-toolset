@@ -30,7 +30,7 @@ class LayoutLinksTest < ActionDispatch::IntegrationTest
   test "should have sign-in page at '/signin'" do
     get '/signin'
     assert_response :success
-    assert_select 'title', /Sign in/
+    assert_select 'title', /Log in/
   end
 
   test "should have sign-out page at '/signout'" do
@@ -43,14 +43,14 @@ class LayoutLinksTest < ActionDispatch::IntegrationTest
     first(:link, 'Help').click
     click_link 'Home'
     click_link 'About'
-    click_link 'Sign in'
+    click_link 'Log in'
   end
 
   describe "when not logged in" do
     test 'should have a sign-in link' do
       get '/'
       assert_select 'a[href=?]', "#{signin_path}",
-        { :count => 1, :text => 'Sign in' }
+        { :count => 1, :text => 'Log in' }
     end
   end
 
@@ -65,7 +65,7 @@ class LayoutLinksTest < ActionDispatch::IntegrationTest
     test 'should have a sign-out link' do
       sign_in(@good_user)
       visit root_path
-      page.find_link('Sign out').wont_be_nil
+      page.find_link('Log out').wont_be_nil
     end
 
     test 'should have a profile link' do

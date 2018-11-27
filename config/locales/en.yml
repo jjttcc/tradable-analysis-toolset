@@ -1,5 +1,21 @@
-# Sample localization file for English. Add more files in this directory for other locales.
-# See https://github.com/svenfuchs/rails-i18n/tree/master/rails%2Flocale for starting points.
+# (See https://github.com/svenfuchs/rails-i18n/tree/master/rails%2Flocale for
+# starting points.)
 
 en:
-  hello: "Hello world"
+  pages:
+    home:
+      'run-analysis': 'Run analysis'
+  layouts:
+    header:
+      'home':      'Home'
+      'settings':  'Settings'
+      'account':   'Account'
+      'users':     'Users'
+      'help':      'Help'
+      'sign-out':  'Log out'
+      'log-out':   'Log out'
+      'sign-in':   'Log in'
+      'log-in':    'Log in'
+  'email-address': 'email address'
+  'about':         'About'
+  'help':          'Help'
