@@ -37,8 +37,8 @@ module ModelHelper
   end
 
   # A new EventBasedTrigger
-  def self.new_eb_trigger(active = false)
-    result = EventBasedTrigger.create(active: active)
+  def self.new_eb_trigger(activated = false)
+    result = EventBasedTrigger.create(activated: activated)
     PERSISTENT_TRIGGERS << result
     result
   end

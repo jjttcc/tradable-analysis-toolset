@@ -16,6 +16,12 @@ class MasClientTest < MiniTest::Test
 
   def setup
     $client = new_logged_in_client
+    if TradableAnalyzer.all.count <= 2 then
+      # Force the "tradable analyzers" to be retrieved from the MAS server
+      # and saved to the database.
+      $client.request_analyzers(TARGET_SYMBOL, MasClient::DAILY)
+      analyzers = $client.analyzers
+    end
   end
 
   def teardown
@@ -280,7 +286,7 @@ class AnalysisSpecification
     if @triggers.empty? then
       # No triggers found in DB - Make a new one.
       @triggers = []
-      @triggers << ModelHelper::new_eb_trigger(active: true)
+      @triggers << ModelHelper::new_eb_trigger(activated: true)
       @triggers[0].EOD_US_stocks!
       schedule = ModelHelper::new_schedule_for(users[0], ANA_SCHEDULE,
                                                @triggers[0])
@@ -342,7 +348,7 @@ class AnalysisSpecification
   # trigger an analysis
   def activated_triggers
     result = EventBasedTrigger.all.select do |t|
-      t.active && t.analysis_schedules.count > 0
+      t.activated && t.analysis_schedules.count > 0
     end
     result
   end
@@ -378,6 +384,8 @@ class AnalysisCheck < MiniTest::Test
   end
 
   def check_events(analyzer, target, expected_count)
+    assert ! expected_count.nil? && expected_count >= 0,
+      "expected_count invalid: '#{expected_count}'"
     event_gen_profs = target.event_generation_profiles
     events = event_gen_profs[0].last_analysis_results
     assert events != nil, '"events" exists'
@@ -390,7 +398,6 @@ class AnalysisCheck < MiniTest::Test
       "analysis events (#{events.count}, expected: #{expected_count})"
     if events.count > 0 then
       events.each do |e|
-puts "e: #{e.inspect}"
         assert_kind_of TradableEventInterface, e
         assert_kind_of String, e.event_type
         assert e.datetime != nil, 'valid datetime'
@@ -409,7 +416,10 @@ class TriggeredAnalysisCheck < AnalysisCheck
 
   # Notification callback from Observable
   def update(analyzer, profile)
-    assert profile.class == AnalysisProfile, ''
+    assert profile.class == AnalysisProfile, 'expected class'
+    assert profile.analysis_client != nil, 'profile has client'
+    assert profile.event_generation_profiles != nil &&
+      profile.event_generation_profiles.count > 0, 'profile has EGPs'
     check_all_events(analyzer, profile, THRESHOLD_FOR[profile.name])
   end
 
@@ -428,7 +438,10 @@ class ParameterModCheck < TriggeredAnalysisCheck
 
   # Notification callback from Observable
   def update(analyzer, profile)
-    assert profile.class == AnalysisProfile, ''
+    assert profile.class == AnalysisProfile, 'expected class'
+    assert profile.analysis_client != nil, 'profile has client'
+    assert profile.event_generation_profiles != nil &&
+      profile.event_generation_profiles.count > 0, 'profile has EGPs'
     if ! @checked[profile] then
       check_events(analyzer, profile, OLD_THRESHOLD_FOR[profile.name])
       @checked[profile] = true
@@ -449,6 +462,9 @@ class ProfileAnalysisCheck < AnalysisCheck
   # Notification callback from Observable
   def update(analyzer, profile)
     assert profile.class == AnalysisProfile, 'correct type for profile'
+    assert profile.analysis_client != nil, 'profile has client'
+    assert profile.event_generation_profiles != nil &&
+      profile.event_generation_profiles.count > 0, 'profile has EGPs'
     check_events(analyzer, profile,
                  AnalysisSpecification::THRESHOLD_FOR[profile.name])
   end

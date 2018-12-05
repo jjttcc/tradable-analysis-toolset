@@ -15,9 +15,9 @@ class EventBasedTriggerTest < ActiveSupport::TestCase
   include PeriodTypeConstants
 
   def test_new
-    trigger = EventBasedTrigger.new(active: false)
+    trigger = EventBasedTrigger.new(activated: false)
     trigger.EOD_US_stocks!
-    assert trigger.active == false, "'active' is false"
+    assert trigger.activated == false, "'activated' is false"
     assert trigger.EOD_US_stocks?, "tr-event-type is 'EOD_US_stocks'"
     value(trigger).must_be :valid?
   end
@@ -36,7 +36,7 @@ class EventBasedTriggerTest < ActiveSupport::TestCase
     value(profile1).must_be :valid?
     value(profile2).must_be :valid?
 
-    assert ! trigger.active, 'trigger - supposed to default to inactive.'
+    assert ! trigger.activated, 'trigger - supposed to default to ! activated.'
     assert trigger.analysis_schedules.include?(schedule),
       'trigger has the schedule'
     assert our_user.analysis_schedules.include?(schedule),

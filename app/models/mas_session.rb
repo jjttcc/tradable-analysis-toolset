@@ -21,9 +21,15 @@ class MasSession < ApplicationRecord
   validates :user_id, :presence => true
 
   belongs_to :user
-  has_many   :tradable_analyzers, dependent: :destroy
 
   public ###  Access
+
+  def tradable_analyzers
+    if @tradable_analyzers.nil? then
+      @tradable_analyzers = TradableAnalyzer.all
+    end
+    result = @tradable_analyzers
+  end
 
   # The last stored user-selected period-type name
   post :result_is_string do |result| result.nil? || result.class == String end

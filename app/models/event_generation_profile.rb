@@ -1,9 +1,18 @@
-# Settings for event generation for the associated tradable processors
-# (that is, "TradableProcessorSpecification"s)
+=begin
+  # The date-time at which the analysis is to end
+  end_date:                       datetime
+
+  # Used to determine 'start_date'
+  analysis_period_length_seconds: integer
+=end
+
+# Settings for analysis runs - with configured "start" and "end"
+# date/times -, using the associated tradable processors (i.e.,
+# "TradableProcessorSpecification"s)
 # Note: 'end_date' and 'analysis_period_length_seconds' are used to
 # determine the start and end dates for analysis.
 #!!!!!TO-DO: Determine and implement the logic for "now" (e.g., end_date =
-#!!!!!null => "now")
+#!!!!!null => "now")  [!!!!Put this note somewhere - e.g., tat-todo!!!!]
 class EventGenerationProfile < ApplicationRecord
   include Contracts::DSL, PeriodTypeConstants
 

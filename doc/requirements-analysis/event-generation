@@ -7,9 +7,8 @@ Concepts:
   - analysis run: An event-generation/analysis run that uses a specific
     profile and that produces an analysis report
   - analysis report [DB?]: A structured "report" of the results of a run.
-  - notification profile [DB]: a "schedule" <@@define this, please@@> and
-    associated analysis profile that results in a periodic analysis run with
-    run times defined by the "schedule"
+  - analysis schedule [DB]: a "schedule", and associated analysis profile,
+    that results in an (periodic or event-triggered analysis) run.
 
 
 List of concepts mentioned above or implied by the above (some of which
@@ -118,9 +117,9 @@ A daemon process assigned to, each trading day, wait for and report when
 end-of-day data is available discovers that, a few minutes after market
 closing time for US stocks, EOD data for US stocks is available.  The
 process then updates the record in "event_based_triggers" table where
-'triggered_event_type' = EOD_US_stocks: It sets 'active' to true.
-(Note: In other words, this event invokes the trigger (by setting 'active'
-to true).)
+'triggered_event_type' = EOD_US_stocks: It sets 'active' ('activated'?) to
+true.  (Note: In other words, this event invokes the trigger (by setting
+'active' ['activated'] to true).)
 [part 2:]
 (Note: action/process is triggered by the above event - i.e., it starts
 analysis as a result of the event.)
@@ -189,7 +188,7 @@ analysis-schedule (name: WIP):
   - trigger: triggering_event [time or change][1][2]
   - active: boolean (false means the schedule/record is ignored)
   - analysis-profiles (list or one?)
-  - notification-recipients (list)
+  - notification-targets (list)
 
 triggering_event (i.e., event that triggers an analysis run):
 (maybe just 'trigger' instead of 'triggering_event')
@@ -237,21 +236,27 @@ charting-specification:
   - top-indicators (e.g., EMA; probably tradable-processor-specification)
   - bottom-indicators (e.g., MACD; probably tradable-processor-specification)
 
-notification-recipient:
+notification-target:
 
-  - notification-media-specifications (list)
+  - medium_type        (e.g., email, text, ...)
+  - contact_identifier (an email-addr, or a phone-#, or ...)
+  - extra_data         (optional field for, e.g., more id info, etc.)
+  - user_id            (i.e., 1 user to many notification-targets)
+  - owners             (i.e., many analysis_profiles to many notif-tgts)
 
-notification-media-specification:
+analysis-event
 
-  - medium        (e.g., email, text, ...)
-  - recipient-id  (e.g., recip@users.org when medium is 'email')
-
-tradable-event
-
-  - event-id?
+  - event-id
   - datetime
-  - analyzer...???
+  - signal-type
 
+(non-persistent entities/classes)
+
+Notifer (uses NotificationTarget, uses NotificationMessage)
+  descendants:
+    EmailNotifier
+    TextNotifer
+    PhoneNotifer
 
 An analysis-profile has 0 or more event-generation-profiles.
 Each of those event-generation-profiles has a set of

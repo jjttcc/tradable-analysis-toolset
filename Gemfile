@@ -17,6 +17,7 @@ gem 'rails-i18n'
 gem 'ffi', '1.9.24'
 gem 'sprockets', '3.7.2'
 gem 'loofah', '2.2.3'
+gem "passenger", ">= 5.0.25", require: "phusion_passenger/rack_handler"
 
 gem 'sass-rails'
 gem 'coffee-rails'

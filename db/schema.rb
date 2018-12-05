@@ -10,14 +10,15 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20181116151615) do
+ActiveRecord::Schema.define(version: 20181205111333) do
 
   create_table "analysis_profiles", force: :cascade do |t|
     t.string   "name"
     t.string   "analysis_client_type"
     t.integer  "analysis_client_id"
-    t.datetime "created_at",           null: false
-    t.datetime "updated_at",           null: false
+    t.datetime "created_at",                           null: false
+    t.datetime "updated_at",                           null: false
+    t.boolean  "save_results",         default: false, null: false
     t.index ["analysis_client_type", "analysis_client_id"], name: "index_analysis_profiles_on_analysis_client_type_and_id"
   end
 
@@ -35,7 +36,7 @@ ActiveRecord::Schema.define(version: 20181116151615) do
 
   create_table "event_based_triggers", force: :cascade do |t|
     t.integer  "triggered_event_type"
-    t.boolean  "active",               default: false, null: false
+    t.boolean  "activated",            default: false, null: false
     t.datetime "created_at",                           null: false
     t.datetime "updated_at",                           null: false
   end
@@ -90,10 +91,8 @@ ActiveRecord::Schema.define(version: 20181116151615) do
     t.text     "name"
     t.integer  "event_id"
     t.boolean  "is_intraday"
-    t.integer  "mas_session_id"
-    t.datetime "created_at",     null: false
-    t.datetime "updated_at",     null: false
-    t.index ["mas_session_id"], name: "index_tradable_analyzers_on_mas_session_id"
+    t.datetime "created_at",  null: false
+    t.datetime "updated_at",  null: false
   end
 
   create_table "tradable_entities", id: false, force: :cascade do |t|

@@ -10,14 +10,20 @@ class TradableProcessorSpecification < ApplicationRecord
   public
 
   # 'event_id' of the associated TradableAnalyzer (alias for 'processor_id')
+  pre  :analyzers_stored do TradableAnalyzer.all.count > 0 end
   post :is_analyzer_event_id do |result| result == processor_id &&
-    result == TradableAnalyzer.find_by_event_id(result).event_id end
-  def event_id; processor_id end
+          result == TradableAnalyzer.find_by_event_id(result).event_id end
+  def event_id
+    processor_id
+  end
 
   # 'name' of the associated TradableAnalyzer
+  pre  :analyzers_stored do TradableAnalyzer.all.count > 0 end
   post :is_analyzer_name do |result|
-    result == TradableAnalyzer.find_by_event_id(event_id).name end
-  def name; TradableAnalyzer.find_by_event_id(event_id).name end
+          result == TradableAnalyzer.find_by_event_id(event_id).name end
+  def name
+    TradableAnalyzer.find_by_event_id(event_id).name
+  end
 
   # name for 'period_type'
   def period_type_name

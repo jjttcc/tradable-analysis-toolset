@@ -10,7 +10,7 @@ event-generation and related to-do list (not currently prioritized)
     attribute/association for PeriodicTrigger.  (See event-generation-notes.)
   - Flesh out more details of the triggering of analysis runs.
   - TradableObjectFactory [modify, incorporate]
-  - TradableEvent (probably: new model) [1]
+  - AnalysisEvent (probably: new model) [1]
   - TradableProcessor: remove it (removed table, need to
     remove model *.rb file.)
   - [Study code to refresh memory re. relevant detailed design.]
