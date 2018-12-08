@@ -10,13 +10,20 @@ CREATE TABLE "tradable_processor_parameters" ("id" INTEGER PRIMARY KEY AUTOINCRE
 CREATE INDEX "index_tradable_processor_parameters_on_tradable_processor_id" ON "tradable_processor_parameters" ("tradable_processor_id");
 =end
 
+=begin
+name:            varchar
+value:           varchar
+data_type:       varchar
+sequence_number: integer
+=end
+
 VALID_PARAMETER_TYPES = ['integer', 'real']
 
 # Parameters containing a value, to be used as settings for an indicator or
 # an analyzer, for the MAS server - e.g.: MACD settings of 12, 26, 9 (3
 # parameters)
 class TradableProcessorParameter < ApplicationRecord
-  #!!!!implement this:!!! belongs_to :tradable_processor
+  belongs_to :tradable_processor_specification
   #Add this??: validates :tradable_processor_id, presence: true #!!!!!
 #!!!TO-DO: document sequence_number
   validates :name, presence: true, length: { maximum: 255 }

@@ -16,19 +16,33 @@ class Analysis
 
   ###  Basic operations
 
-  # Perform an analysis run for all "EventGenerationProfile"s belonging to
-  # 'trigger' on 'symbol'.
+  # For each schedule, s, in trigger.analysis_schedules for which s.active:
+  #   For each profile, p, in s.analysis_profiles:
+  #     For each evgen-profile, egp, in p.event_generation_profiles:
+  #       Perform an analysis run on the tradable IDd by 'symbol' for all
+  #         egp.tradable_processor_specifications
   pre :trigger_in_database do |trigger|
     ! trigger.nil? && ! trigger.new_record? end
+  pre :activated do |trigger| trigger.activated end
   def run_triggered_analysis(trigger, symbol)
     @resulting_events = []
-    trigger.analysis_schedules.each do |sched|
+    trigger.analysis_schedules.select {|s| s.active}.each do |sched|
       sched.analysis_profiles.each do |prof|
+        if ! prof.save_results then
+          create_analysis_run(prof)
+        end
         analyze_profile(prof, symbol)
         if ! error then
           changed
+puts "[rta] notify_observers for #{prof}"
           notify_observers(self, prof)
+          if ! prof.save_results then
+            mark_analysis_run_completed(prof)
+          end
         else
+          if ! prof.save_results then
+            mark_analysis_run_failed(prof)
+          end
 #!!!!TO-DO: Deal with the error appropriately!!!
         end
       end
@@ -43,6 +57,7 @@ class Analysis
     analyze_profile(profile, symbol)
     if ! error then
       changed
+puts "[raop] notify_observers for #{profile}"
       notify_observers(self, profile)
     else
 #!!!!TO-DO: Deal with the error appropriately!!!
@@ -91,6 +106,30 @@ class Analysis
         raise mas_client.last_error_msg
       end
     end
+  end
+
+  # Create and save an initial AnalysisRun record for each of
+  # profile.event_generation_profiles.
+  def create_analysis_run(profile)
+#!!!!!Don't forget to begin a transaction!!!!
+puts "create_analysis_run stub for #{profile}"
+#!!!!!Don't forget to close the transaction!!!!
+  end
+
+  # Mark, in the database, each AnalysisRun record associated with
+  # profile.event_generation_profiles as 'failed'.
+  def mark_analysis_run_failed(profile)
+#!!!!!Don't forget to begin a transaction!!!!
+puts "mark_analysis_run_failed stub for #{profile}"
+#!!!!!Don't forget to close the transaction!!!!
+  end
+
+  # Mark, in the database, each AnalysisRun record associated with
+  # profile.event_generation_profiles as 'completed'.
+  def mark_analysis_run_completed(profile)
+#!!!!!Don't forget to begin a transaction!!!!
+puts "mark_analysis_run_completed stub for #{profile}"
+#!!!!!Don't forget to close the transaction!!!!
   end
 
 end

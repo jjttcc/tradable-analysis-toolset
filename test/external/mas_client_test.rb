@@ -289,7 +289,7 @@ class AnalysisSpecification
       @triggers << ModelHelper::new_eb_trigger(activated: true)
       @triggers[0].EOD_US_stocks!
       schedule = ModelHelper::new_schedule_for(users[0], ANA_SCHEDULE,
-                                               @triggers[0])
+                                               @triggers[0], true)
       if param_test then
         profile1 = full_profile_params(PARAM_PROF1, schedule)
         profile2 = full_profile_params(PARAM_PROF2, schedule)

@@ -26,7 +26,8 @@ class EventBasedTriggerTest < ActiveSupport::TestCase
     our_user = ModelHelper::new_user_saved('triggered-event-fanatic@tests.org')
     trigger = ModelHelper::new_eb_trigger
     trigger.EOD_US_stocks!
-    schedule = ModelHelper::new_schedule_for(our_user, SCHEDULE_NAME1, trigger)
+    schedule = ModelHelper::new_schedule_for(our_user, SCHEDULE_NAME1,
+                                             trigger, true)
     profile1 = full_profile(PROFILE_NAME1, schedule)
     profile2 = full_profile(PROFILE_NAME2, schedule)
 

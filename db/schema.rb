@@ -10,26 +10,28 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20181205111333) do
+ActiveRecord::Schema.define(version: 20181208024813) do
 
   create_table "analysis_profiles", force: :cascade do |t|
-    t.string   "name"
-    t.string   "analysis_client_type"
-    t.integer  "analysis_client_id"
+    t.string   "name",                                 null: false
+    t.string   "analysis_client_type",                 null: false
+    t.integer  "analysis_client_id",                   null: false
     t.datetime "created_at",                           null: false
     t.datetime "updated_at",                           null: false
     t.boolean  "save_results",         default: false, null: false
     t.index ["analysis_client_type", "analysis_client_id"], name: "index_analysis_profiles_on_analysis_client_type_and_id"
+    t.index ["name", "analysis_client_id"], name: "index_analysis_profiles_on_name_and_analysis_client_id", unique: true
   end
 
   create_table "analysis_schedules", force: :cascade do |t|
-    t.string   "name"
-    t.boolean  "active"
+    t.string   "name",         null: false
+    t.boolean  "active",       null: false
     t.string   "trigger_type"
     t.integer  "trigger_id"
-    t.integer  "user_id"
+    t.integer  "user_id",      null: false
     t.datetime "created_at",   null: false
     t.datetime "updated_at",   null: false
+    t.index ["name", "user_id"], name: "index_analysis_schedules_on_name_and_user_id", unique: true
     t.index ["trigger_type", "trigger_id"], name: "index_analysis_schedules_on_trigger_type_and_id"
     t.index ["user_id"], name: "index_analysis_schedules_on_user_id"
   end
@@ -44,7 +46,7 @@ ActiveRecord::Schema.define(version: 20181205111333) do
   create_table "event_generation_profiles", force: :cascade do |t|
     t.integer  "analysis_profile_id"
     t.datetime "end_date"
-    t.integer  "analysis_period_length_seconds"
+    t.integer  "analysis_period_length_seconds", null: false
     t.datetime "created_at",                     null: false
     t.datetime "updated_at",                     null: false
     t.index ["analysis_profile_id"], name: "index_event_generation_profiles_on_analysis_profile_id"
@@ -88,9 +90,9 @@ ActiveRecord::Schema.define(version: 20181205111333) do
   end
 
   create_table "tradable_analyzers", force: :cascade do |t|
-    t.text     "name"
-    t.integer  "event_id"
-    t.boolean  "is_intraday"
+    t.text     "name",        null: false
+    t.integer  "event_id",    null: false
+    t.boolean  "is_intraday", null: false
     t.datetime "created_at",  null: false
     t.datetime "updated_at",  null: false
   end
@@ -116,8 +118,8 @@ ActiveRecord::Schema.define(version: 20181205111333) do
 
   create_table "tradable_processor_specifications", force: :cascade do |t|
     t.integer  "event_generation_profile_id"
-    t.integer  "processor_id"
-    t.integer  "period_type"
+    t.integer  "processor_id",                null: false
+    t.integer  "period_type",                 null: false
     t.datetime "created_at",                  null: false
     t.datetime "updated_at",                  null: false
     t.index ["event_generation_profile_id"], name: "index_tradable_processor_specs_on_event_generation_profile_id"
@@ -136,7 +138,7 @@ ActiveRecord::Schema.define(version: 20181205111333) do
     t.datetime "updated_at"
     t.string   "encrypted_password"
     t.string   "salt"
-    t.boolean  "admin",              default: false
+    t.boolean  "admin",              default: false, null: false
     t.index ["email_addr"], name: "index_users_on_email_addr", unique: true
   end
 

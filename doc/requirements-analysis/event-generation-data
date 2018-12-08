@@ -26,11 +26,10 @@ rails g migration CreateJoinTable analysis_profiles notification_targets
 #            name: 'ana_prof_notification_tgt', unique: true
 #end
 
-!!!!!!!!Don't forget: event_based_triggers:active->activate!!!!!!!!!!!
 rails g model AnalysisRun user:references status: integer \
   start_date:datetime end_date:datetime analysis_profile_name:string \
   run_start_time:datetime
-  # Need to add virtual attribute: completion_time
+  # Need to add virtual attribute: completion_time (updated_at or created_at)
 
 rails g model TradableProcessorRun analysis_run:references \
   processor_id:integer period_type:integer
@@ -177,11 +176,12 @@ charting_tradable_processor_specifications: ([proposed] join table)
 
 analysis_runs[1]:
 
-  - status                 (enum: :completed, :failed, [:running?, :stopped?])
-  - start_date             (evgen_profile.start_date)
-  - end_date               (evgen_profile.end_date)
-  - analysis_profile_name: string [2]
-  - run_start_time:        date-time
+  - status                   (enum: :completed, :failed, [:running?, :stopped?])
+  - start_date               (evgen_profile.start_date)
+  - end_date                 (evgen_profile.end_date)
+  - analysis_profile_name:   string [2]
+  - analysis_profile_client: string (user.emailaddr or ana-sched.name)
+  - run_start_time:          date-time
   - ['created_at' will function as 'completion_time' (virtual/query attrib)]
 
 tradable_processor_runs[3]:
@@ -200,8 +200,9 @@ analysis_events:
 
   - tradable_processor_run_id [FK]
   - event_type_id:  integer (MAS: known as event_id, or eventID) (See [4].)
-  - date_time:      date_time (date & time the run completed)
+  - date_time:      date_time (date & time of the "event" in the dataset)
   - signal_type[6]: string (length: 1 [7]; values: ['b','s','n','o'] [8])
+    [9]
 
 notification_targets:
 
@@ -259,3 +260,5 @@ class CreateXXX < ActiveRecord::Migration
   end
 end
 [8] See TYPE_TABLE in TradableEventInterface.
+[9] It might be useful to add a virtual "period_type" attribute/query (
+obtained from TradableProcessorRun).

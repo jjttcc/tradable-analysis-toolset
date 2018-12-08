@@ -53,40 +53,48 @@ module ModelHelper
     result
   end
 
-  # A new AnalysisProfile for user 'user'
+  # A new AnalysisProfile for user 'user', saved to the database
   def self.new_profile_for_user(user, name)
-    result = AnalysisProfile.create(name: name)
-    user.analysis_profiles << result
+    result = AnalysisProfile.new(name: name)
+    result.analysis_client = user
+    result.save
     result
   end
 
-  # A new AnalysisProfile for user 'user'
+  # A new AnalysisProfile for schedule 'schedule', saved to the database
   def self.new_profile_for_schedule(schedule, name)
-    result = AnalysisProfile.create(name: name)
-    schedule.analysis_profiles << result
+    result = AnalysisProfile.new(name: name)
+    result.analysis_client = schedule
+    result.save
     result
   end
 
   # A new AnalysisSchedule for 'user' (and 'trigger', if not nil)
-  def self.new_schedule_for(user, sched_name, trigger)
-    result = user.analysis_schedules.create(name: sched_name)
+  def self.new_schedule_for(user, sched_name, trigger, active = false)
+    result = AnalysisSchedule.new(name: sched_name, active: active)
+    result.user = user
     if trigger != nil then
-      trigger.analysis_schedules << result
+      result.trigger = trigger
     end
+    result.save
     result
   end
 
   # A new EventGenerationProfile, attached to 'prof' (AnalysisProfile)
   def self.evgen_profile_for(prof, enddt, period_secs)
-    result = prof.event_generation_profiles.create(end_date: enddt,
+    result = EventGenerationProfile.new(end_date: enddt,
         analysis_period_length_seconds: period_secs)
+    result.analysis_profile = prof
+    result.save
     result
   end
 
   # A new TradableProcessorSpecification, attached to 'prof' (AnalysisProfile)
   def self.tradable_proc_spec_for(evgen_prof, proc_id, ptype)
-    result = evgen_prof.tradable_processor_specifications.create(
-      processor_id: proc_id, period_type: ptype)
+    result = TradableProcessorSpecification.new(processor_id: proc_id,
+                                                 period_type: ptype)
+    result.event_generation_profile = evgen_prof
+    result.save
     result
   end
 
@@ -94,8 +102,10 @@ module ModelHelper
   # (TradableProcessorSpecification)
   def self.tradable_proc_parameter_for(tp_spec, name, value, datatype,
                                        seqno = 1)
-    result = tp_spec.tradable_processor_parameters.create(name: name,
-      value: value, data_type: datatype, sequence_number: seqno)
+    result = TradableProcessorParameter.new(name: name, value: value,
+               data_type: datatype, sequence_number: seqno)
+    result.tradable_processor_specification = tp_spec
+    result.save
     result
   end
 
