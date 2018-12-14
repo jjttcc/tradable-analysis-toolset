@@ -10,7 +10,16 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20181208024813) do
+ActiveRecord::Schema.define(version: 20181211104718) do
+
+  create_table "analysis_events", force: :cascade do |t|
+    t.integer  "tradable_event_set_id", null: false
+    t.datetime "date_time",             null: false
+    t.string   "signal_type",           null: false
+    t.datetime "created_at",            null: false
+    t.datetime "updated_at",            null: false
+    t.index ["tradable_event_set_id"], name: "index_analysis_events_on_tradable_event_set_id"
+  end
 
   create_table "analysis_profiles", force: :cascade do |t|
     t.string   "name",                                 null: false
@@ -21,6 +30,19 @@ ActiveRecord::Schema.define(version: 20181208024813) do
     t.boolean  "save_results",         default: false, null: false
     t.index ["analysis_client_type", "analysis_client_id"], name: "index_analysis_profiles_on_analysis_client_type_and_id"
     t.index ["name", "analysis_client_id"], name: "index_analysis_profiles_on_name_and_analysis_client_id", unique: true
+  end
+
+  create_table "analysis_runs", force: :cascade do |t|
+    t.integer  "user_id",                 null: false
+    t.integer  "status",                  null: false
+    t.datetime "start_date",              null: false
+    t.datetime "end_date",                null: false
+    t.string   "analysis_profile_name",   null: false
+    t.string   "analysis_profile_client", null: false
+    t.datetime "run_start_time",          null: false
+    t.datetime "created_at",              null: false
+    t.datetime "updated_at",              null: false
+    t.index ["user_id"], name: "index_analysis_runs_on_user_id"
   end
 
   create_table "analysis_schedules", force: :cascade do |t|
@@ -105,6 +127,23 @@ ActiveRecord::Schema.define(version: 20181208024813) do
     t.index ["symbol"], name: "index_tradable_entities_on_symbol", unique: true
   end
 
+  create_table "tradable_event_sets", force: :cascade do |t|
+    t.integer  "tradable_processor_run_id", null: false
+    t.string   "symbol",                    null: false
+    t.datetime "created_at",                null: false
+    t.datetime "updated_at",                null: false
+    t.index ["tradable_processor_run_id"], name: "index_tradable_event_sets_on_tradable_processor_run_id"
+  end
+
+  create_table "tradable_processor_parameter_settings", force: :cascade do |t|
+    t.integer  "tradable_processor_run_id", null: false
+    t.string   "name",                      null: false
+    t.string   "value",                     null: false
+    t.datetime "created_at",                null: false
+    t.datetime "updated_at",                null: false
+    t.index ["tradable_processor_run_id"], name: "index_tradable_proc_param_settings_on_tradable_proc_run_id"
+  end
+
   create_table "tradable_processor_parameters", force: :cascade do |t|
     t.string   "name"
     t.string   "value"
@@ -114,6 +153,15 @@ ActiveRecord::Schema.define(version: 20181208024813) do
     t.integer  "sequence_number"
     t.integer  "tradable_processor_specification_id"
     t.index ["tradable_processor_specification_id"], name: "index_trad_proc_params_on_tradable_processor_specification_id"
+  end
+
+  create_table "tradable_processor_runs", force: :cascade do |t|
+    t.integer  "analysis_run_id", null: false
+    t.integer  "processor_id",    null: false
+    t.integer  "period_type",     null: false
+    t.datetime "created_at",      null: false
+    t.datetime "updated_at",      null: false
+    t.index ["analysis_run_id"], name: "index_tradable_processor_runs_on_analysis_run_id"
   end
 
   create_table "tradable_processor_specifications", force: :cascade do |t|

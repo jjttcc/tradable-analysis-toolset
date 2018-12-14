@@ -49,6 +49,16 @@ class User < ApplicationRecord
 
   public
 
+  ###  Access
+
+  # Effective name of the user
+  alias_attribute :name, :email_addr
+
+  # "myself"
+  def user
+    self
+  end
+
   # Elements of 'period_type_specs' that specify short durations
   type out: Array
   pre :invariant do invariant end
@@ -71,6 +81,8 @@ class User < ApplicationRecord
       ! spec.for_analysis?
     end
   end
+
+  ###  Validation
 
   # Does 'submitted_pw' match 'password'?
   type :in => String

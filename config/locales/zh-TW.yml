@@ -4,11 +4,11 @@ zh-TW:
       'run-analysis': "進行分析"
   layouts:
     header:
-      'home':    '家'
+      'home':     '首頁'
       'settings': '設置'
       'account':  '帳戶'
       'users':    '用戶'
-      'help':     '救命'
+      'help':     '幫助'
       'sign-out': '登出'
       'log-out':  '登出'
       'sign-in':  '登錄'

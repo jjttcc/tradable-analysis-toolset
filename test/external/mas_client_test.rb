@@ -2,6 +2,15 @@ require_relative '../test_helper'
 require_relative '../models/model_helper'
 require 'ruby_contracts'
 
+def empty_db
+  [AnalysisEvent, AnalysisProfile, AnalysisRun, AnalysisSchedule,
+  TradableEventSet, TradableProcessorParameterSetting, EventBasedTrigger,
+  TradableProcessorParameter, EventGenerationProfile, TradableProcessorRun,
+  TradableProcessorSpecification, PeriodicTrigger].each do |model|
+    model.all.each { |record| record.destroy }
+  end
+end
+
 class MasClientTest < MiniTest::Test
   include Contracts::DSL, PeriodTypeConstants
 
@@ -77,7 +86,7 @@ class MasClientTest < MiniTest::Test
     triggers.each do |t|
       assert ! t.new_record?, 'trigger must be in database'
       change_params(t, $analysis_client, false)
-      analyzer.run_triggered_analysis(t, symbol)
+      analyzer.run_triggered_analysis(t, [symbol])
     end
     rescue StandardError => e
       assert false, "analysis failed [#{e}]"
@@ -98,7 +107,7 @@ class MasClientTest < MiniTest::Test
       u.analysis_profiles.each do |p|
         assert ! p.new_record?, 'profile must be in database'
         change_params(p, $analysis_client, false)
-        analyzer.run_analysis_on_profile(p, symbol)
+        analyzer.run_analysis_on_profile(p, [symbol])
       end
     end
   end
@@ -115,12 +124,40 @@ class MasClientTest < MiniTest::Test
     triggers.each do |t|
       assert ! t.new_record?, 'trigger must be in database'
       change_params(t, $analysis_client, false)
-      analyzer.run_triggered_analysis(t, symbol)
+      analyzer.run_triggered_analysis(t, [symbol])
     end
     triggers.each do |t|
       assert ! t.new_record?, 'trigger must be in database'
       change_params(t, $analysis_client, true)
-      analyzer.run_triggered_analysis(t, symbol)
+      analyzer.run_triggered_analysis(t, [symbol])
+    end
+  end
+
+  # Test analysis runs "triggered" by *Trigger objects with two different
+  # TP-parameters settings and check that the results differ.
+  # Similar to test_triggered_analysis_with_param_mod, but with more than 1
+  # analyzer and more than 1 symbol
+  def test_triggered_multi_symbol_analyzer_with_param_mod
+    param_analysis_setup
+    sym1 = 'ibm'; sym2 = 'jnj'
+    analyzer = Analysis.new($analysis_client)
+    checker = ParameterModCheck.new(counts: [
+      {sym1 => [2], sym2 => [4]},
+      {sym1 => [5], sym2 => [3]},
+      {sym1 => [3], sym2 => [5]},
+      {sym1 => [6], sym2 => [12]}])
+    analyzer.add_observer(checker)
+    symbols = [sym1, sym2]
+    triggers = $analysis_spec.triggers
+    triggers.each do |t|
+      assert ! t.new_record?, 'trigger must be in database'
+      change_params(t, $analysis_client, false)
+      analyzer.run_triggered_analysis(t, symbols)
+    end
+    triggers.each do |t|
+      assert ! t.new_record?, 'trigger must be in database'
+      change_params(t, $analysis_client, true)
+      analyzer.run_triggered_analysis(t, symbols)
     end
   end
 
@@ -280,6 +317,7 @@ class AnalysisSpecification
   }
 
   def initialize(users, skip_params = false, param_test = false)
+    empty_db
     @users = users
     @triggers = activated_triggers
     @triggers.concat(periodic_triggers)
@@ -368,42 +406,108 @@ class AnalysisCheck < MiniTest::Test
 
   public
 
-  def check_all_events(analyzer, target, expected_threshold)
+  def check_all_events(analyzer, profile, expected_threshold)
     all_events = analyzer.resulting_events
     assert all_events != nil, '"events" exists'
-    puts "Total of #{all_events.count} resulting events"
+    $log.debug("Total of #{all_events.count} resulting events")
     assert all_events.count == expected_threshold, "unexpected number of " +
       "analysis events (#{all_events.count}, expected: #{expected_threshold})"
     if all_events.count > 0 then
       all_events.each do |e|
         assert_kind_of TradableEventInterface, e
+        assert_respond_to e, :date_time, '"e" is missing "date_time"'
+        assert_respond_to e, :signal_type, '"e" is missing "signal_type"'
         assert_kind_of String, e.event_type
         assert e.datetime != nil, 'valid datetime'
       end
     end
   end
 
-  def check_events(analyzer, target, expected_count)
+  def check_events(analyzer, profile, expected_count)
     assert ! expected_count.nil? && expected_count >= 0,
       "expected_count invalid: '#{expected_count}'"
-    event_gen_profs = target.event_generation_profiles
-    events = event_gen_profs[0].last_analysis_results
-    assert events != nil, '"events" exists'
-    puts "Total of #{events.count} resulting events"
-    puts "[check_events] analyzer: #{analyzer}"
-    puts "target: #{target.inspect}"
-    puts "count: #{events.count}"
-    puts "expected_count: #{expected_count}"
-    assert events.count == expected_count, "unexpected number of " +
-      "analysis events (#{events.count}, expected: #{expected_count})"
-    if events.count > 0 then
-      events.each do |e|
-        assert_kind_of TradableEventInterface, e
-        assert_kind_of String, e.event_type
-        assert e.datetime != nil, 'valid datetime'
+    runs = profile.last_analysis_runs
+    assert runs.all? { |r| ! r.new_record? },
+      "analysis runs have been saved to the database"
+    if ! analyzer.error then
+      assert runs.all? { |r|
+        AnalysisRun.find(r.id).completed?
+      }, "successful analysis runs are expected to be 'completed'"
+    else
+      puts "(analysis failed: #{analyzer.error_message}}"
+      assert runs.all? { |r|
+        # (failed? OR running? because a failed DB transaction could mean
+        # the DB did not get updated as expected)
+        AnalysisRun.find(r.id).failed? || AnalysisRun.find(r.id).running?
+      }, "failed analysis runs are expected to be 'failed'"
+    end
+    runs.each do |r|
+      events = r.all_events
+      assert events != nil, '"events" exists'
+      $log.debug("Total of #{events.count} resulting events")
+      $log.debug("[check_events] analyzer: #{analyzer}")
+      $log.debug("profile: #{profile.inspect}")
+      $log.debug("count: #{events.count}")
+      $log.debug("expected_count: #{expected_count}")
+      assert events.count == expected_count, "unexpected number of " +
+        "analysis events (#{events.count}, expected: #{expected_count})"
+      if events.count > 0 then
+        events.each do |e|
+          assert ! e.new_record?, "Must be saved to DB: #{e}"
+          assert_kind_of TradableEventInterface, e
+          assert_kind_of String, e.event_type
+          assert e.datetime != nil, 'valid datetime'
+        end
       end
+      r.destroy   # (Clean up before next test run.)
     end
   end
+
+  def check_events_by_symbol(analyzer, profile, threshold_map)
+    assert ! threshold_map.nil? && threshold_map.count > 0,
+      "threshold_map invalid: '#{threshold_map.inspect}'"
+    runs = profile.last_analysis_runs
+    assert runs.count > 0, 'at least 1 analysis run'
+    assert runs.all? { |r| ! r.new_record? },
+      "analysis runs have been saved to the database"
+    if ! analyzer.error then
+      assert runs.all? { |r|
+        AnalysisRun.find(r.id).completed?
+      }, "successful analysis runs are expected to be 'completed'"
+    else
+      puts "(analysis failed: #{analyzer.error_message}}"
+      assert runs.all? { |r|
+        # (failed? OR running? because a failed DB transaction could mean
+        # the DB did not get updated re the 'failed' status)
+        AnalysisRun.find(r.id).failed? || AnalysisRun.find(r.id).running?
+      }, "failed analysis runs are expected to be 'failed' or 'running'"
+    end
+    # Assume only 1 run for the test.
+    r = runs[0]
+    (0..r.tradable_processor_runs.count - 1).each do |i|
+      tprun = r.tradable_processor_runs[i]
+      assert ! tprun.processor_name.nil?  && ! tprun.processor_name.empty?,
+        "TradableProcessorRun[#{tprun.processor_id}] proc name should exist"
+      threshold_map.keys.each do |symbol|
+        spec = threshold_map[symbol]
+        events = tprun.events_for_symbol(symbol)
+        assert events.count == spec[i],
+          "unexpected number of analysis events for '#{symbol}' " +
+          "(#{events.count}, expected: #{spec[i]})"
+        if events.count > 0 then
+          events.each do |e|
+            assert ! e.new_record?, "Must be saved to DB: #{e}"
+            assert_kind_of TradableEventInterface, e
+            assert_kind_of String, e.event_type
+            assert e.datetime != nil, 'valid datetime'
+          end
+        end
+      end
+    end
+    r.destroy   # (Clean up before next test run.)
+  end
+
+  private
 
 end
 
@@ -443,15 +547,37 @@ class ParameterModCheck < TriggeredAnalysisCheck
     assert profile.event_generation_profiles != nil &&
       profile.event_generation_profiles.count > 0, 'profile has EGPs'
     if ! @checked[profile] then
-      check_events(analyzer, profile, OLD_THRESHOLD_FOR[profile.name])
+      threshold = OLD_THRESHOLD_FOR[profile.name]
+      if ! @overridden_thresholds.empty? then
+        threshold = @overridden_thresholds[@update_count]
+      end
+      if threshold.class == Hash then
+        check_events_by_symbol(analyzer, profile, threshold)
+      else
+        check_events(analyzer, profile, threshold)
+      end
       @checked[profile] = true
     else
-      check_events(analyzer, profile, NEW_THRESHOLD_FOR[profile.name])
+      threshold = NEW_THRESHOLD_FOR[profile.name]
+      if ! @overridden_thresholds.empty? then
+        threshold = @overridden_thresholds[@update_count]
+      end
+      if threshold.class == Hash then
+        check_events_by_symbol(analyzer, profile, threshold)
+      else
+        check_events(analyzer, profile, threshold)
+      end
     end
+    @update_count += 1
   end
 
-  def initialize
+  def initialize(*args)
     @checked = {}
+    @overridden_thresholds = []
+    @update_count = 0
+    if args.count > 0 && args[0].keys.first == :counts then
+      @overridden_thresholds = args[0].values.first
+    end
     super(nil)
   end
 

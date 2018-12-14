@@ -26,9 +26,9 @@ rails g migration CreateJoinTable analysis_profiles notification_targets
 #            name: 'ana_prof_notification_tgt', unique: true
 #end
 
-rails g model AnalysisRun user:references status: integer \
+rails g model AnalysisRun user:references status:integer \
   start_date:datetime end_date:datetime analysis_profile_name:string \
-  run_start_time:datetime
+  analysis_profile_client:string run_start_time:datetime
   # Need to add virtual attribute: completion_time (updated_at or created_at)
 
 rails g model TradableProcessorRun analysis_run:references \
@@ -40,6 +40,7 @@ tradable_processor_run:references name:string value:string
 rails g model AnalysisEvent tradable_processor_run:references \
   event_type_id:integer date_time:datetime signal_type:string
 # Add:      t.string :signal_type, :limit => 1
+#!!!Note: event_type_id will probably go away - it's in the TPR.
 
 
 tradable-processor-specification:
@@ -182,7 +183,7 @@ analysis_runs[1]:
   - analysis_profile_name:   string [2]
   - analysis_profile_client: string (user.emailaddr or ana-sched.name)
   - run_start_time:          date-time
-  - ['created_at' will function as 'completion_time' (virtual/query attrib)]
+  - ['updated_at' will function as 'completion_time' (virtual/query attrib)]
 
 tradable_processor_runs[3]:
 
@@ -196,9 +197,15 @@ tradable_processor_parameter_settings:
   - name
   - value
 
-analysis_events:
+tradable_event_sets:
 
   - tradable_processor_run_id [FK]
+  - symbol
+
+analysis_events:
+
+  - tradable_event_set_id [FK]
+    [remove?:!!!]
   - event_type_id:  integer (MAS: known as event_id, or eventID) (See [4].)
   - date_time:      date_time (date & time of the "event" in the dataset)
   - signal_type[6]: string (length: 1 [7]; values: ['b','s','n','o'] [8])

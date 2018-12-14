@@ -18,6 +18,22 @@ class TradableObjectFactory
   def new_event(date:, time:, id:, type_id:, analyzers:)
     datetime = DateTime.new(date[0..3].to_i, date[4..5].to_i, date[6..7].to_i,
                             time[0..1].to_i, time[2..3].to_i, time[4..5].to_i)
+    selected_ans = analyzers.select {|a| a.event_id.to_s == id }
+    if selected_ans.length == 0 then
+      raise "new_event: id arg, #{id} " +
+        "does not identify any known analyzer."
+    else
+      analyzer = selected_ans[0]
+    end
+    result = AnalysisEvent.new(date_time: datetime, signal_type: type_id)
+    result.analyzer = analyzer
+    result.event_id = id
+    result
+  end
+
+  def obsolete___new_event(date:, time:, id:, type_id:, analyzers:)
+    datetime = DateTime.new(date[0..3].to_i, date[4..5].to_i, date[6..7].to_i,
+                            time[0..1].to_i, time[2..3].to_i, time[4..5].to_i)
     event_type_id = type_id
     selected_ans = analyzers.select {|a| a.event_id.to_s == id }
     if selected_ans.length == 0

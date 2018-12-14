@@ -16,15 +16,20 @@
 class EventGenerationProfile < ApplicationRecord
   include Contracts::DSL, PeriodTypeConstants
 
+  public
+
   belongs_to :analysis_profile
   has_many   :tradable_processor_specifications, dependent: :destroy
   validates  :analysis_period_length_seconds, presence: true
 
   public
 
-  attr_accessor :last_analysis_results
+  # The last AnalysisRun resulting from analysis based on self's specs
+  attr_accessor :last_analysis_run
 
   public
+
+  ###  Access
 
   # The start date for the scheduled analysis
   pre :valid_analysis_period do analysis_period_length_seconds >= 0 end
@@ -40,6 +45,14 @@ class EventGenerationProfile < ApplicationRecord
     days = analysis_period_length_seconds / DAILY_ID
     result = ending_date - days.days
     result
+  end
+
+  def client_name
+    analysis_profile.client_name
+  end
+
+  def user
+    analysis_profile.user
   end
 
 end
