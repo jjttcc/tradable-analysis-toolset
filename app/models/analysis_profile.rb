@@ -18,6 +18,9 @@ class AnalysisProfile < ApplicationRecord
 
   belongs_to :analysis_client, polymorphic: true
   has_many   :event_generation_profiles, dependent: :destroy
+  # (many-to-many: AnalysisProfile <=> NotificationAddress:)
+  has_many   :address_assignments, as: :address_user
+  has_many   :notification_addresses, :through => :address_assignments
 
   public
 

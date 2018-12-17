@@ -1,0 +1,68 @@
+                           SPECS FOR NOTIFICATION[5]
+
+# (Will have a many-to-many rel. with AnalysisProfile via join table.)
+rails g model NotificationAddress[4] user:references label:string \
+  medium_type:integer contact_identifier:string extra_data:string
+rails g model AddressAssigment address_user:references{polymorphic} \
+  notification_address:references
+# (maybe [this is probably obsolete]) Make it look like this:
+#create_join_table :analysis_profiles, :notification-addresses do |t|
+#  t.index :analysis_profile_id
+#  t.index :notification_address_id
+#  t.index [:analysis_profile_id, :notification_address_id],
+#            name: 'ana_prof_notification_tgt', unique: true
+#end
+rails g model Notification...
+
+rails g model NotificationAddress user:references label:string \
+  medium_type:integer contact_identifier:string extra_data:string
+
+notification-addresses[3][4]:
+
+  - label:string
+  - medium_type:        enum  (:email, :text, ...)
+  - contact_identifier: string (email-addr, phone-#, or ...)
+  - extra_data:         string (optional field for, e.g., more id info, etc.)
+  - user_id:            integer (i.e., 1 user to many notification-addresses)
+
+notifications[2][7]:
+
+  - status:integer           (e.g.: sent, delivered, failed, ...)
+  - error_message:string     (needed? if so, ! empty? if failed?)
+  - contact_idenfier:string  (e.g., email-addr, phone#, ...)
+  - (user_id)
+  - synopsis:string          (e.g., <subject>, or <some-kind-of-summary>)
+  - medium_type:integer
+  - source[2]                (object that caused the notification to occur)
+
+[1] From doc/requirements-analysis/event-generation:
+The user will have the option to specify ... whether or not ... any event
+that is identical ... to one stored in the database will be discarded. This
+is to allow the user ... to not be notified of such duplicate events.
+[2] use a polymorphic association ('source' used to be 'originator') - i.e.:
+  - source_id
+  - source_type)
+[3] A many-to-many polymorphic association might be appropriate for
+NotificationAddress and/or for Notification - e.g., see (1st&2nd answers):
+https://stackoverflow.com/questions/1128308/rails-many-to-many-polymorphic-relationships
+http://blog.hasmanythrough.com/2006/4/3/polymorphic-through
+A NotificationAddress has-many notification_clients (which could be type
+AnalysisProfile, or, maybe, User, or, etc.).  And, for example, an
+AnalysisProfile could be configured with many "NotificationAddress"s (e.g.,
+one for email, one for text, etc.)
+A Notification has-many sources (or originators - pick best name), which
+could be one or more of User, AnalysisRun, ErrorManager (imaginary future
+model), etc.  And, of course, a User, or AnalysisRun, etc. would have many
+Notifications.
+Q!!!!: Can a new model/type be added transparently/easily on the
+polymorphic side?  (E.g., Administrator, for Notification source.)
+A: (apparent answer: yes, I think):
+https://stackoverflow.com/questions/1799099/advantages-and-disadvantages-of-ruby-on-rails-polymorphic-relationships
+[4] Used to be called NotificationTarget.
+[5] Consider leaving AnalysisRun objects in the database, at least as long
+as associated Notification objects live there.  (But if the associated
+AnalysisProfile has save_results == false, don't keep the associated
+TradableProcessorRuns, AnalysisEvents, etc.)  A cleanup process could
+"expire&delete" (based on a [configured?] expiration age) all too-old
+AnalysisRuns and their associated Notifications.
+[7] Used to be analysis_notifications.

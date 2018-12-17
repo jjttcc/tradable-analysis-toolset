@@ -25,6 +25,8 @@ class User < ApplicationRecord
   has_many :period_type_specs,  dependent: :destroy
   has_many :analysis_schedules, dependent: :destroy
   has_many :analysis_profiles, as: :analysis_client, dependent: :destroy
+  # All notification_addresses owned by this user:
+  has_many :notification_addresses, dependent: :destroy
 =begin
 #!!!!!remove/clean-this-stuff-up:
   has_many :parameter_groups,  :dependent => :destroy

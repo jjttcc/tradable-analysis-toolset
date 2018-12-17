@@ -14,17 +14,7 @@ rails g model EventGenerationProfile AnalysisProfile:references \
 rails g model TradableProcessorSpecification EventGenerationProfile:references \
   processor_id:integer period_type:integer
 
-# (Will have a many-to-many rel. with AnalysisProfile via join table.)
-rails g model NotificationTarget user:references \
-  medium_type:integer contact_identifier:string extra_data:string
-rails g migration CreateJoinTable analysis_profiles notification_targets
-# (probably) Make it look like this:
-#create_join_table :analysis_profiles, :notification_targets do |t|
-#  t.index :analysis_profile_id
-#  t.index :notification_target_id
-#  t.index [:analysis_profile_id, :notification_target_id],
-#            name: 'ana_prof_notification_tgt', unique: true
-#end
+(For notification specs, see doc/requirements/notification.)
 
 rails g model AnalysisRun user:references status:integer \
   start_date:datetime end_date:datetime analysis_profile_name:string \
@@ -148,33 +138,6 @@ tradable_processor_parameters:
   data_type: string
   tradable_processor_specification_id
 
-notification_recipients:
-
-  name: string
-  - notification-media-specifications (list)
-  notification_profile_id
-
-notification_media_specifications:
-
-  medium: <TBD>   [e.g., email, text, ...]
-  recipient_id    (e.g., recip@users.org when medium is 'email')
-  notification_recipient_id
-
-
-[IN PROGRESS]
-
-charting_specifications:
-
-  [TBD]
-  end_date: datetime [null represents "now"]
-  charting_period_length: integer [minutes]
-  period_type_id: integer [See PeriodTypeConstants]
-
-charting_tradable_processor_specifications: ([proposed] join table)
-
-  tradable_processor_specification_id: integer
-  charting_specification_id: integer
-
 analysis_runs[1]:
 
   - status                   (enum: :completed, :failed, [:running?, :stopped?])
@@ -205,18 +168,23 @@ tradable_event_sets:
 analysis_events:
 
   - tradable_event_set_id [FK]
-    [remove?:!!!]
-  - event_type_id:  integer (MAS: known as event_id, or eventID) (See [4].)
   - date_time:      date_time (date & time of the "event" in the dataset)
   - signal_type[6]: string (length: 1 [7]; values: ['b','s','n','o'] [8])
     [9]
 
-notification_targets:
+[IN PROGRESS]
 
-  - medium_type:        enum  (:email, :text, ...)
-  - contact_identifier: string (email-addr, phone-#, or ...)
-  - extra_data:         string (optional field for, e.g., more id info, etc.)
-  - user_id:            integer (i.e., 1 user to many notification-targets)
+charting_specifications:
+
+  [TBD]
+  end_date: datetime [null represents "now"]
+  charting_period_length: integer [minutes]
+  period_type_id: integer [See PeriodTypeConstants]
+
+charting_tradable_processor_specifications: ([proposed] join table)
+
+  tradable_processor_specification_id: integer
+  charting_specification_id: integer
 
 chart_positions:
 
@@ -269,3 +237,4 @@ end
 [8] See TYPE_TABLE in TradableEventInterface.
 [9] It might be useful to add a virtual "period_type" attribute/query (
 obtained from TradableProcessorRun).
+[10] Likely to be replaced - See doc/requirements-analysis/notification.

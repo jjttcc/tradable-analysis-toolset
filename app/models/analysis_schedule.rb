@@ -1,5 +1,26 @@
+=begin
+name: varchar (NOT NULL)
+active: boolean (NOT NULL)
+trigger_type: varchar
+trigger_id: integer
+user_id: integer (NOT NULL)
+=end
+
+# Objects that are used to schedule, by means of an external "trigger"
+# object, a series of 'request_analysis' calls to the MAS server -
+# configured via 0 or more analysis_profiles - and the processing of the
+# resulting analysis-event data returned by the server.
 class AnalysisSchedule < ApplicationRecord
+  include Contracts::DSL
+
+  public
+
   belongs_to :trigger, polymorphic: true
   belongs_to :user
   has_many   :analysis_profiles, as: :analysis_client, dependent: :destroy
+
+#### (test/experiment!!!!!! [may not be permanent]): ####
+  # (many-to-many: User <=> NotificationAddress:)
+  has_many   :address_assignments, as: :address_user
+  has_many   :notification_addresses, :through => :address_assignments
 end

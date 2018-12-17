@@ -61,6 +61,30 @@ module ModelHelper
     result
   end
 
+  def self.new_notification_address_for_user(user, label,
+                                             contact = 'fake@fake.org')
+    result = NotificationAddress.new(label: label, contact_identifier: contact)
+    result.user = user
+    result.email!   # Default medium_type to 'email'.
+    result.save
+    result
+  end
+
+  # ('users' is an array - the address users.)
+  def self.new_notification_address_used_by(users, app_user, label,
+                                        contact = 'fake@fake.org')
+    result = NotificationAddress.new(label: label, contact_identifier: contact,
+                                    user: app_user)
+    result.text!   # Default medium_type to 'text'.
+    users.each do |u|
+      u.notification_addresses << result
+#puts "added #{result} to #{u.name}'s notif-addrs"
+#puts "users of #{result}: #{result.address_users.inspect}"
+    end
+    result.save
+    result
+  end
+
   # A new AnalysisProfile for schedule 'schedule', saved to the database
   def self.new_profile_for_schedule(schedule, name)
     result = AnalysisProfile.new(name: name)

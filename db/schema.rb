@@ -10,7 +10,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20181211104718) do
+ActiveRecord::Schema.define(version: 20181215131116) do
+
+  create_table "address_assignments", force: :cascade do |t|
+    t.string   "address_user_type",       null: false
+    t.integer  "address_user_id",         null: false
+    t.integer  "notification_address_id", null: false
+    t.datetime "created_at",              null: false
+    t.datetime "updated_at",              null: false
+    t.index ["address_user_type", "address_user_id"], name: "index_address_assignments_on_address_user_type_and_id"
+    t.index ["notification_address_id"], name: "index_address_assignments_on_notification_address_id"
+  end
 
   create_table "analysis_events", force: :cascade do |t|
     t.integer  "tradable_event_set_id", null: false
@@ -80,6 +90,18 @@ ActiveRecord::Schema.define(version: 20181211104718) do
     t.datetime "created_at"
     t.datetime "updated_at"
     t.text     "data"
+  end
+
+  create_table "notification_addresses", force: :cascade do |t|
+    t.integer  "user_id",            null: false
+    t.string   "label",              null: false
+    t.integer  "medium_type",        null: false
+    t.string   "contact_identifier", null: false
+    t.string   "extra_data"
+    t.datetime "created_at",         null: false
+    t.datetime "updated_at",         null: false
+    t.index ["label"], name: "index_notification_addresses_on_label", unique: true
+    t.index ["user_id"], name: "index_notification_addresses_on_user_id"
   end
 
   create_table "period_type_specs", force: :cascade do |t|
