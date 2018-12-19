@@ -56,18 +56,26 @@ class NotificationAddressTest < ActiveSupport::TestCase
     assert address.address_users[0] == profile, 'addr used by profile'
   end
 
-  def test_3_used_addresses_by_3_addrusers_mix
+  def test_3_used_addresses_by_3_addrusers_mix(schedule = nil,
+    profile1 = nil, profile2 = nil
+  )
     label1 = ADDR_NAME1
     label2 = ADDR_NAME2
     label3 = ADDR_NAME3
     prof1id, prof2id = nil, nil
     user = ModelHelper::new_user_saved(TEST_USER_ADDR)
     trigger = ModelHelper::new_eb_trigger()
-    schedule = ModelHelper::new_schedule_for(user, SCHED_NAME, trigger)
+    if schedule.nil? then
+      schedule = ModelHelper::new_schedule_for(user, SCHED_NAME, trigger)
+    end
     userid = user.id
     user.transaction do
-      profile1 = ModelHelper::new_profile_for_user(user, PROF_NAME1)
-      profile2 = ModelHelper::new_profile_for_user(user, PROF_NAME2)
+      if profile1.nil? then
+        profile1 = ModelHelper::new_profile_for_user(user, PROF_NAME1)
+      end
+      if profile2.nil? then
+        profile2 = ModelHelper::new_profile_for_user(user, PROF_NAME2)
+      end
       address1 = ModelHelper::new_notification_address_used_by(
         [profile1, schedule], user, label1)
       address2 = ModelHelper::new_notification_address_used_by(
@@ -100,6 +108,7 @@ class NotificationAddressTest < ActiveSupport::TestCase
     end
     all_addrs = NotificationAddress.all
     assert all_addrs.count == 3, 'total of 3 addresses'
+    return schedule, profile1, profile2
   end
 
 end

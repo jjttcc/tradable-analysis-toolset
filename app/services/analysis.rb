@@ -126,11 +126,26 @@ class Analysis
     end
   end
 
-  # Build all AnalysisRuns needed for 'prof'.
+  # Build all AnalysisRuns needed for AnalysisProfile 'prof'.
   def build_analysis_runs_for_profile(prof, symbols)
     prof.transaction do
+puts "<<<HERE!!!!!!!!>>>"
+puts "barufp - prof: #{prof.inspect}"
+puts "barufp - prof.notaddrs.count: #{prof.notification_addresses.count}"
+      # Build a Notification for each of prof's notification_addresses:
+      prof.notification_addresses.each do |addr|
+        notification = Notification.new(
+          contact_identifier: addr.contact_identifier, medium_type:
+          addr.medium_type, user: prof.user)
+        notification.notification_source = prof
+        notification.initial!   # i.e., set notification.status to initial
+puts "prof.notifications.count: #{prof.notifications.count}"
+      end
       prof.event_generation_profiles.each do |eg_prof|
         build_analysis_run(eg_prof, symbols)
+        prof.notifications.each do |n|
+          create_notification_for(n, eg_prof.last_analysis_run)
+        end
       end
     end
   rescue ActiveRecord::RecordInvalid => exception
@@ -140,6 +155,12 @@ class Analysis
       r.failed!
     end
   end
+
+# Create a notification for Notification 'n' (as child of 'n'), using
+# information from 'analysis_run'.
+#!!!!!!Move this down a bit after implementing...!!!
+def create_notification_for(n, analysis_run)
+end
 
   # Build an initial AnalysisRun, r, with 'status' of "running", for
   # evgen_profile and execute:
@@ -155,6 +176,7 @@ class Analysis
       analysis_profile_client: evgen_profile.client_name,
       run_start_time: run_start)
     run.running!  # (Set run.status to 'running'.)
+#!!!make-it-so: run.keep = evgen_profile.analysis_profile.save_results
     evgen_profile.tradable_processor_specifications.each do |s|
       tprun = TradableProcessorRun.new(processor_id: s.processor_id,
                                        period_type: s.period_type)

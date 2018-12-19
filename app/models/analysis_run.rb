@@ -11,6 +11,8 @@ run_start_time: datetime
 # values (start_date, end_date, set-of: {event_id, trad_pertype}) from the
 # associated EventGenerationProfile for which the analysis was performed
 class AnalysisRun < ApplicationRecord
+  include Contracts::DSL
+
   public
 
   belongs_to :user
@@ -23,10 +25,12 @@ class AnalysisRun < ApplicationRecord
     completed:  1,
     running:    2,
     failed:     3,
+    notified:   4,
   }
 
   public
 
+  post :exists do |result| ! result.nil? end
   def all_events
     result = []
     tradable_processor_runs.each do |r|

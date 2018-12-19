@@ -137,8 +137,13 @@ class MasClientTest < MiniTest::Test
   # TP-parameters settings and check that the results differ.
   # Similar to test_triggered_analysis_with_param_mod, but with more than 1
   # analyzer and more than 1 symbol
-  def test_triggered_multi_symbol_analyzer_with_param_mod
-    param_analysis_setup
+  def test_triggered_multi_symbol_analyzer_with_param_mod(setup: true)
+    if setup then
+puts "setting up - param_analysis_setup"
+      param_analysis_setup
+else
+puts "NOT SETTING UP - param_analysis_setup"
+    end
     sym1 = 'ibm'; sym2 = 'jnj'
     analyzer = Analysis.new($analysis_client)
     checker = ParameterModCheck.new(counts: [
@@ -159,6 +164,78 @@ class MasClientTest < MiniTest::Test
       change_params(t, $analysis_client, true)
       analyzer.run_triggered_analysis(t, symbols)
     end
+  end
+
+  require_relative '../models/notification_address_test.rb'
+
+  def no___test_notifications_1
+    notif_addr_test = NotificationAddressTest.new(nil)
+    assert ! notif_addr_test.nil?
+    param_analysis_setup
+    profs = AnalysisProfile.all
+    assert profs.count == 2, '2 profiles'
+    scheds = AnalysisSchedule.all
+    assert scheds.count == 1, '1 schedules'
+puts "PROFS: #{profs}"
+puts "PROFS.count: #{profs.count}"
+puts "scheds.count: #{scheds.count}"
+    s, p1, p2 = notif_addr_test.test_3_used_addresses_by_3_addrusers_mix(
+      scheds[0], profs[0], profs[1])
+    assert s == scheds[0], 'schedule'
+    assert p1 == profs[0], 'profile 1'
+    assert p2 == profs[1], 'profile 2'
+puts "s, p1, p2: #{s}, #{p1}, #{p2}"
+puts "s, p1, p2:\n#{s.inspect}, #{p1.inspect}, #{p2.inspect}"
+puts "(s, p1, p2).count: #{s.notification_addresses.count}\n" +
+"#{p1.notification_addresses.count}\n" + "#{p2.notification_addresses.count}"
+puts "s.notifaddrs: #{s.notification_addresses.inspect}"
+puts "p1.notifaddrs: #{p1.notification_addresses.inspect}"
+puts "p2.notifaddrs: #{p2.notification_addresses.inspect}"
+#    test_triggered_multi_symbol_analyzer_with_param_mod(with_notif: true)
+  end
+
+  def test_notifications_1
+    notif_addr_test = NotificationAddressTest.new(nil)
+    assert ! notif_addr_test.nil?
+    param_analysis_setup
+    profs = AnalysisProfile.all
+    assert profs.count == 2, '2 profiles'
+    scheds = AnalysisSchedule.all
+    assert scheds.count == 1, '1 schedules'
+puts "PROFS: #{profs}"
+puts "PROFS.count: #{profs.count}"
+puts "scheds.count: #{scheds.count}"
+    s, p1, p2 = notif_addr_test.test_3_used_addresses_by_3_addrusers_mix(
+      scheds[0], profs[0], profs[1])
+    assert s == scheds[0], 'schedule'
+    assert p1 == profs[0], 'profile 1'
+    assert p2 == profs[1], 'profile 2'
+puts "s, p1, p2: #{s}, #{p1}, #{p2}"
+puts "s, p1, p2:\n#{s.inspect}, #{p1.inspect}, #{p2.inspect}"
+puts "(s, p1, p2).count: #{s.notification_addresses.count}\n" +
+"#{p1.notification_addresses.count}\n" + "#{p2.notification_addresses.count}"
+puts "s.notifaddrs: #{s.notification_addresses.inspect}"
+puts "p1.notifaddrs: #{p1.notification_addresses.inspect}"
+puts "p2.notifaddrs: #{p2.notification_addresses.inspect}"
+    test_triggered_multi_symbol_analyzer_with_param_mod(setup: false)
+puts "p1.notification_addresses (#{p1.notification_addresses.count}):\n"
+    p1.notification_addresses.each do |n|
+      puts n.inspect
+    end
+puts "p2.notification_addresses (#{p2.notification_addresses.count}):\n"
+    p2.notification_addresses.each do |n|
+      puts n.inspect
+    end
+
+puts "p1.notifications (#{p1.notifications.count}):\n"
+    p1.notifications.each do |n|
+      puts n.inspect
+    end
+puts "p2.notifications (#{p2.notifications.count}):\n"
+    p2.notifications.each do |n|
+      puts n.inspect
+    end
+
   end
 
   private

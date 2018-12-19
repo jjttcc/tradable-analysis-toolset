@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20181215131116) do
+ActiveRecord::Schema.define(version: 20181218005352) do
 
   create_table "address_assignments", force: :cascade do |t|
     t.string   "address_user_type",       null: false
@@ -102,6 +102,21 @@ ActiveRecord::Schema.define(version: 20181215131116) do
     t.datetime "updated_at",         null: false
     t.index ["label"], name: "index_notification_addresses_on_label", unique: true
     t.index ["user_id"], name: "index_notification_addresses_on_user_id"
+  end
+
+  create_table "notifications", force: :cascade do |t|
+    t.string   "notification_source_type", null: false
+    t.integer  "notification_source_id",   null: false
+    t.integer  "status",                   null: false
+    t.string   "error_message"
+    t.string   "contact_identifier",       null: false
+    t.string   "synopsis"
+    t.integer  "medium_type",              null: false
+    t.integer  "user_id"
+    t.datetime "created_at",               null: false
+    t.datetime "updated_at",               null: false
+    t.index ["notification_source_type", "notification_source_id"], name: "index_notifications_on_notification_source_type_and_id"
+    t.index ["user_id"], name: "index_notifications_on_user_id"
   end
 
   create_table "period_type_specs", force: :cascade do |t|

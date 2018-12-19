@@ -21,6 +21,7 @@ class AnalysisProfile < ApplicationRecord
   # (many-to-many: AnalysisProfile <=> NotificationAddress:)
   has_many   :address_assignments, as: :address_user
   has_many   :notification_addresses, :through => :address_assignments
+  has_many   :notifications, as: :notification_source, dependent: :destroy
 
   public
 
