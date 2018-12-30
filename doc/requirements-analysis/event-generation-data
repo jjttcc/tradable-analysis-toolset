@@ -16,10 +16,16 @@ rails g model TradableProcessorSpecification EventGenerationProfile:references \
 
 (For notification specs, see doc/requirements/notification.)
 
-rails g model AnalysisRun user:references status:integer \
-  start_date:datetime end_date:datetime analysis_profile_name:string \
-  analysis_profile_client:string run_start_time:datetime
+[note changes on 2018/12/19]
+rails g model AnalysisRun status:integer analysis_profile_run:references \
+  start_date:datetime end_date:datetime
   # Need to add virtual attribute: completion_time (updated_at or created_at)
+
+[new on dec 19]
+rails g model AnalysisProfileRun user:references analysis_profile:references \
+  analysis_profile_name:string analysis_profile_client:string \
+  run_start_time:datetime
+  # (May need to add virtual attribute: status (calculated from analysis_runs))
 
 rails g model TradableProcessorRun analysis_run:references \
   processor_id:integer period_type:integer
@@ -138,15 +144,25 @@ tradable_processor_parameters:
   data_type: string
   tradable_processor_specification_id
 
+[note changes on 2018/12/19]
 analysis_runs[1]:
 
   - status                   (enum: :completed, :failed, [:running?, :stopped?])
   - start_date               (evgen_profile.start_date)
   - end_date                 (evgen_profile.end_date)
-  - analysis_profile_name:   string [2]
-  - analysis_profile_client: string (user.emailaddr or ana-sched.name)
-  - run_start_time:          date-time
+  - analysis_profile_run_id
+  - [rm: analysis_profile_name:   string [2]]
+  - [rm: analysis_profile_client: string (user.emailaddr or ana-sched.name)]
+  - [rm: run_start_time:          date-time]
   - ['updated_at' will function as 'completion_time' (virtual/query attrib)]
+
+(new as of dec 19)
+analysis_profile_runs
+
+  - analysis_profile_name:   string
+  - analysis_profile_client: string
+  - run_start_time:          datetime
+  - user_id
 
 tradable_processor_runs[3]:
 

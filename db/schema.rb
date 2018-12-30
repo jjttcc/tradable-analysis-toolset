@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20181218005352) do
+ActiveRecord::Schema.define(version: 20181219203028) do
 
   create_table "address_assignments", force: :cascade do |t|
     t.string   "address_user_type",       null: false
@@ -31,6 +31,19 @@ ActiveRecord::Schema.define(version: 20181218005352) do
     t.index ["tradable_event_set_id"], name: "index_analysis_events_on_tradable_event_set_id"
   end
 
+  create_table "analysis_profile_runs", force: :cascade do |t|
+    t.integer  "user_id",                 null: false
+    t.integer  "analysis_profile_id"
+    t.string   "analysis_profile_name",   null: false
+    t.string   "analysis_profile_client", null: false
+    t.datetime "run_start_time",          null: false
+    t.datetime "expiration_date",         null: false
+    t.datetime "created_at",              null: false
+    t.datetime "updated_at",              null: false
+    t.index ["analysis_profile_id"], name: "index_analysis_profile_runs_on_analysis_profile_id"
+    t.index ["user_id"], name: "index_analysis_profile_runs_on_user_id"
+  end
+
   create_table "analysis_profiles", force: :cascade do |t|
     t.string   "name",                                 null: false
     t.string   "analysis_client_type",                 null: false
@@ -43,16 +56,13 @@ ActiveRecord::Schema.define(version: 20181218005352) do
   end
 
   create_table "analysis_runs", force: :cascade do |t|
-    t.integer  "user_id",                 null: false
     t.integer  "status",                  null: false
     t.datetime "start_date",              null: false
     t.datetime "end_date",                null: false
-    t.string   "analysis_profile_name",   null: false
-    t.string   "analysis_profile_client", null: false
-    t.datetime "run_start_time",          null: false
     t.datetime "created_at",              null: false
     t.datetime "updated_at",              null: false
-    t.index ["user_id"], name: "index_analysis_runs_on_user_id"
+    t.integer  "analysis_profile_run_id", null: false
+    t.index ["analysis_profile_run_id"], name: "index_analysis_runs_on_analysis_profile_run_id"
   end
 
   create_table "analysis_schedules", force: :cascade do |t|

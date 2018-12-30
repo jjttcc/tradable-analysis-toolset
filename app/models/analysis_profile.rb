@@ -21,7 +21,12 @@ class AnalysisProfile < ApplicationRecord
   # (many-to-many: AnalysisProfile <=> NotificationAddress:)
   has_many   :address_assignments, as: :address_user
   has_many   :notification_addresses, :through => :address_assignments
+  #!!!!This might go away:
   has_many   :notifications, as: :notification_source, dependent: :destroy
+  has_many   :analysis_profile_runs
+
+  # The last AnalysisProfileRun resulting from analysis based on self's specs
+  attr_accessor :last_analysis_profile_run
 
   public
 

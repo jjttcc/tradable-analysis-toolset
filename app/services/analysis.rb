@@ -91,6 +91,10 @@ class Analysis
     implies(! error, prof.last_analysis_runs.all? { |r| r.completed? }) end
   post :runs_failed_on_error do |result, prof|
     implies(error, prof.last_analysis_runs.all? { |r| r.failed? }) end
+  post :last_profile_run do |result, prof|
+    prof.last_analysis_profile_run != nil end
+  post :profile_run_added do |result, prof|
+    prof.analysis_profile_runs.count > 0 end
   def analyze_profile(prof, symbols)
     @error = false
     @error_message = ""
@@ -122,30 +126,29 @@ class Analysis
 #!!!!Note: If one or more of the analyses attempted above failed, we might
 #!!!!need to abandon all of these runs (prof.last_analysis_runs) and then,
 #!!!!instead of marking all runs 'completed', mark them all 'failed'.
+#!!!!(It might be better to filter-out/grab the "good" analyses so that the
+#!!!!user receives the successful/valid signals, while reporting the failed
+#!!!!analyses in "error-notifications" so that he is made aware of the problem.)
       save_analysis_results(prof)
     end
   end
 
-  # Build all AnalysisRuns needed for AnalysisProfile 'prof'.
+  # Build an AnalysisProfileRun and all of its component AnalysisRuns
+  # for AnalysisProfile 'prof'.
   def build_analysis_runs_for_profile(prof, symbols)
+    expiration = DateTime.now +
+      Rails.configuration.x.default_expiration_duration
+    if ! prof.save_results then
+      expiration = DateTime.now
+    end
     prof.transaction do
-puts "<<<HERE!!!!!!!!>>>"
-puts "barufp - prof: #{prof.inspect}"
-puts "barufp - prof.notaddrs.count: #{prof.notification_addresses.count}"
-      # Build a Notification for each of prof's notification_addresses:
-      prof.notification_addresses.each do |addr|
-        notification = Notification.new(
-          contact_identifier: addr.contact_identifier, medium_type:
-          addr.medium_type, user: prof.user)
-        notification.notification_source = prof
-        notification.initial!   # i.e., set notification.status to initial
-puts "prof.notifications.count: #{prof.notifications.count}"
-      end
+      profile_run = AnalysisProfileRun.new(user: prof.user,
+        analysis_profile: prof, analysis_profile_name: prof.name,
+        analysis_profile_client: prof.client_name,
+        run_start_time: DateTime.now, expiration_date: expiration)
+      prof.last_analysis_profile_run = profile_run
       prof.event_generation_profiles.each do |eg_prof|
-        build_analysis_run(eg_prof, symbols)
-        prof.notifications.each do |n|
-          create_notification_for(n, eg_prof.last_analysis_run)
-        end
+        build_analysis_run(eg_prof, profile_run, symbols)
       end
     end
   rescue ActiveRecord::RecordInvalid => exception
@@ -156,27 +159,17 @@ puts "prof.notifications.count: #{prof.notifications.count}"
     end
   end
 
-# Create a notification for Notification 'n' (as child of 'n'), using
-# information from 'analysis_run'.
-#!!!!!!Move this down a bit after implementing...!!!
-def create_notification_for(n, analysis_run)
-end
-
   # Build an initial AnalysisRun, r, with 'status' of "running", for
   # evgen_profile and execute:
   #   evgen_profile.last_analysis_run = r
   pre :in_transaction do |egp| egp.class.connection.open_transactions > 0 end
   post :run_is_running do |result, egp| egp.last_analysis_run.running? end
-  def build_analysis_run(evgen_profile, symbols)
-    run_start = DateTime.now
+  def build_analysis_run(evgen_profile, analysis_profile_run, symbols)
     # Create an AnalysisRun associated with 'evgen_profile':
-    run = AnalysisRun.new(user: evgen_profile.user,
-      start_date: evgen_profile.start_date, end_date: evgen_profile.end_date,
-      analysis_profile_name: evgen_profile.analysis_profile.name,
-      analysis_profile_client: evgen_profile.client_name,
-      run_start_time: run_start)
+    run = AnalysisRun.new(analysis_profile_run: analysis_profile_run,
+                          start_date: evgen_profile.start_date,
+                          end_date: evgen_profile.end_date)
     run.running!  # (Set run.status to 'running'.)
-#!!!make-it-so: run.keep = evgen_profile.analysis_profile.save_results
     evgen_profile.tradable_processor_specifications.each do |s|
       tprun = TradableProcessorRun.new(processor_id: s.processor_id,
                                        period_type: s.period_type)
@@ -224,29 +217,6 @@ end
     end
     events.each do |e|
       set_for_id[e.event_id].analysis_events << e
-    end
-  end
-
-  # Create and save an initial AnalysisRun record, with 'status' of
-  # "running", for each of profile.event_generation_profiles.
-  def obsolete__donotuse___new_analysis_run(profile, symbols)
-    result = nil
-    run_start = DateTime.now
-    profile.event_generation_profiles.each do |egprof|
-#!!!!stubbed value - until status enum is set up:
-status = 1
-      run = AnalysisRun.new(user: profile.user, status: status,
-        start_date: egprof.start_date, end_date: egprof.end_date,
-        analysis_profile_name: egprof.analysis_profile.name,
-        analysis_profile_client: egprof.client_name, run_start_time: run_start)
-      egprof.tradable_processor_specifications.each do |s|
-        tprun = TradableProcessorRun.new(analysis_run: run,
-          processor_id: s.processor_id, period_type: s.period_type)
-        symbols.each do |s|
-          TradableEventSet.new(tradable_processor_run: tprun, symbol: s)
-        end
-      end
-      run.save!
     end
   end
 

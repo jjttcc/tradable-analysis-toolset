@@ -15,7 +15,7 @@ class AnalysisRun < ApplicationRecord
 
   public
 
-  belongs_to :user
+  belongs_to :analysis_profile_run
   has_many   :tradable_processor_runs, dependent: :destroy
 
   # The time at which the analysis run was completed

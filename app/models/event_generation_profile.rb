@@ -25,6 +25,7 @@ class EventGenerationProfile < ApplicationRecord
   public
 
   # The last AnalysisRun resulting from analysis based on self's specs
+  #!!!![might go away:]!!!!!
   attr_accessor :last_analysis_run
 
   public

@@ -40,4 +40,7 @@ TradableAnalysisToolset::Application.configure do
   # Do not eager load code on boot.
   config.eager_load = false
 
+  ### Configuration specific to the TAT application
+  config.x.default_expiration_duration = 3
+
 end

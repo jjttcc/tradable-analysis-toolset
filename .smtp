@@ -1,0 +1,5 @@
+export SMTP_SERVER='your-smtp-server-address.com'
+export SMTP_PORT='587'  # or 25, or ...
+export SMTP_LOGIN='mysmtp-login'
+export SMTP_PASSWORD='mysmtp-password'
+export SMTP_FROM_ADDRESS='my-from-address'

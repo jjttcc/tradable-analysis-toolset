@@ -22,11 +22,13 @@ class User < ApplicationRecord
   attr_accessor   :password
 
 #!!!!!NOTE: "period_type_specs" needs to go!!!!!:
-  has_many :period_type_specs,  dependent: :destroy
-  has_many :analysis_schedules, dependent: :destroy
+  has_many :period_type_specs,     dependent: :destroy
+  has_many :analysis_schedules,    dependent: :destroy
+  has_many :analysis_profile_runs, dependent: :destroy
   has_many :analysis_profiles, as: :analysis_client, dependent: :destroy
   # All notification_addresses owned by this user:
   has_many :notification_addresses, dependent: :destroy
+  has_many :notifications, dependent: :destroy
 =begin
 #!!!!!remove/clean-this-stuff-up:
   has_many :parameter_groups,  :dependent => :destroy

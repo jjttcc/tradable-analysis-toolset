@@ -1,6 +1,14 @@
 require "test_helper"
 require_relative 'model_helper'
 
+if defined? AUTO_RUN_OFF then
+  puts "AUTO_RUN_OFF is defined"
+  puts "AUTO_RUN_OFF: #{AUTO_RUN_OFF}"
+else
+  puts "AUTO_RUN_OFF is NOT defined"
+  AUTO_RUN_OFF = false
+  puts "AUTO_RUN_OFF: #{AUTO_RUN_OFF}"
+end
 TEST_USER_ADDR = 'address-lover@tests.org'
 ADDR_NAME1  = 'label 1'
 ADDR_NAME2  = 'label 2'
@@ -12,6 +20,7 @@ PROF_NAME3 = 'profile3'
 SCHED_NAME = 'schedule'
 
 class NotificationAddressTest < ActiveSupport::TestCase
+public
 
   def init_database_with_user
     ModelHelper::new_user_saved(TEST_USER_ADDR)
@@ -19,10 +28,15 @@ class NotificationAddressTest < ActiveSupport::TestCase
 
   def init_database_with_user_and_address
     user = ModelHelper::new_user_saved(TEST_USER_ADDR)
-    ModelHelper::new_notification_address_for_user(user, ADDR_NAME1)
+    ModelHelper::new_notification_address_for_user(user, ADDR_NAME1,
+                                                   'fake1@fake.org')
   end
 
   def test_new
+    if AUTO_RUN_OFF then
+      return
+    else
+    end
     address = NotificationAddress.new
     assert ! address.nil?, "It should NOT be nil."
     assert value(address).must_be :valid?, "It's valid."
@@ -35,20 +49,29 @@ class NotificationAddressTest < ActiveSupport::TestCase
   end
 
   def test_unowned_address_creation
+    if AUTO_RUN_OFF then
+      return
+    else
+    end
     label = ADDR_NAME1
     user = ModelHelper::new_user_saved(TEST_USER_ADDR)
-    address = ModelHelper::new_notification_address_for_user(user, label)
+    address = ModelHelper::new_notification_address_for_user(user, label,
+                                                            'fake2@fake.org')
     assert user.notification_addresses.include?(address),
       'user has the address'
     assert address.label == label, 'address - label set.'
   end
 
   def test_owned_address_creation
+    if AUTO_RUN_OFF then
+      return
+    else
+    end
     label = ADDR_NAME1
     user = ModelHelper::new_user_saved(TEST_USER_ADDR)
     profile = ModelHelper::new_profile_for_user(user, PROF_NAME)
     address = ModelHelper::new_notification_address_used_by([profile],
-                                                            user, label)
+        user, label, 'fake3@fake.org')
     assert user.notification_addresses.include?(address),
       'user has the address'
     assert address.label == label, 'address - label set.'
@@ -57,8 +80,11 @@ class NotificationAddressTest < ActiveSupport::TestCase
   end
 
   def test_3_used_addresses_by_3_addrusers_mix(schedule = nil,
-    profile1 = nil, profile2 = nil
-  )
+    profile1 = nil, profile2 = nil)
+    if schedule.nil? && AUTO_RUN_OFF then
+      return
+    else
+    end
     label1 = ADDR_NAME1
     label2 = ADDR_NAME2
     label3 = ADDR_NAME3
@@ -77,12 +103,13 @@ class NotificationAddressTest < ActiveSupport::TestCase
         profile2 = ModelHelper::new_profile_for_user(user, PROF_NAME2)
       end
       address1 = ModelHelper::new_notification_address_used_by(
-        [profile1, schedule], user, label1)
+        [profile1, schedule], user, label1, '3124418522')
       address2 = ModelHelper::new_notification_address_used_by(
-        [profile2, schedule], user, label2)
+        [profile2, schedule], user, label2, 'jimcochrane@gmail.com')
       address3 = ModelHelper::new_notification_address_used_by(
-        [profile2, schedule], user, label3)
-      address2.text!
+        [profile2, schedule], user, label3, 'jim.cochrane@gmail.com')
+      address2.email!
+      address3.email!
       profile1.save
       prof1id = profile1.id
       profile2.save

@@ -66,4 +66,7 @@ TradableAnalysisToolset::Application.configure do
 
   config.eager_load = true
 
+  ### Configuration specific to the TAT application
+  config.x.default_expiration_duration = 90
+
 end

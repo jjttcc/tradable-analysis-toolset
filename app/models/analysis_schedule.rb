@@ -19,8 +19,8 @@ class AnalysisSchedule < ApplicationRecord
   belongs_to :user
   has_many   :analysis_profiles, as: :analysis_client, dependent: :destroy
 
-#### (test/experiment!!!!!! [may not be permanent]): ####
   # (many-to-many: User <=> NotificationAddress:)
+#### (test/experiment!!!!!! [may not be permanent]): ####
   has_many   :address_assignments, as: :address_user
   has_many   :notification_addresses, :through => :address_assignments
 end
