@@ -30,7 +30,7 @@ class AnalysisResultsTest < MiniTest::Test
     ModelHelper::cleanup
   end
 
-  def test_notifications_1
+  def ignore_me_please___test_notifications_1
     @notif_addr_test = NotificationAddressTest.new(nil)
     assert ! @notif_addr_test.nil?
     param_analysis_setup
@@ -47,7 +47,43 @@ class AnalysisResultsTest < MiniTest::Test
     assert AnalysisRun.all.count > 0, 'runs'
     assert AnalysisProfileRun.all.count > 0, 'runs'
     processor = AnalysisResultsProcessor.new
-    processor.execute
+    processor.create_notifications
+    processor.perform_notifications
+    check_notification_results([p1, p2])
+    # Test redundant requests.
+    processor.create_notifications
+    # (No notifications should be sent here:)
+    processor.perform_notifications
+    # Results should not have changed.
+    check_notification_results([p1, p2])
+  end
+
+  # Attempt to test that database locking is correctly implemented.
+  def test_notifications_2__with_concurrency
+    @notif_addr_test = NotificationAddressTest.new(nil)
+    assert ! @notif_addr_test.nil?
+    param_analysis_setup
+    profs = AnalysisProfile.all
+    assert profs.count == 2, '2 profiles'
+    scheds = AnalysisSchedule.all
+    assert scheds.count == 1, '1 schedules'
+    s, p1, p2 = @notif_addr_test.test_3_used_addresses_by_3_addrusers_mix(
+      scheds[0], profs[0], profs[1])
+    assert s == scheds[0], 'schedule'
+    assert p1 == profs[0], 'profile 1'
+    assert p2 == profs[1], 'profile 2'
+    setup_and_run_analysis
+    assert AnalysisRun.all.count > 0, 'runs'
+    assert AnalysisProfileRun.all.count > 0, 'runs'
+    processor = AnalysisResultsProcessor.new
+    redundantly_create_notifications(processor, 5)
+    redundantly_perform_notifications(processor, 5)
+    check_notification_results([p1, p2])
+    # Test redundant requests.
+    processor.create_notifications
+    # (No notifications should be sent here:)
+    processor.perform_notifications
+    # Results should not have changed.
     check_notification_results([p1, p2])
   end
 
@@ -64,9 +100,9 @@ class AnalysisResultsTest < MiniTest::Test
             r.notifications.each do |n|
               assert ! n.new_record?,
                 "notification #{n.inspect} must be in database"
-              assert n.sent? || n.delivered? || n.failed?,
-                "notification was 'sent', 'delivered', or 'failed'." +
-                " (#{n.status})"
+              assert n.sent? || n.delivered? || n.failed? || n.again?,
+                "notification: 'sent', 'delivered', 'failed'," +
+                " or again (#{n.status})"
             end
           end
         end
@@ -119,4 +155,25 @@ class AnalysisResultsTest < MiniTest::Test
                                                false, true)
   end
 
+  # Run 'processor.create_notifications' 'n' times concurrently.
+  def redundantly_create_notifications(processor, n)
+    threads = []
+    n.times do |i|
+      threads << Thread.new do
+        processor.create_notifications
+      end
+    end
+    threads.map(&:join)
+  end
+
+  # Run 'processor.perform_notifications' 'n' times concurrently.
+  def redundantly_perform_notifications(processor, n)
+    threads = []
+    n.times do |i|
+      threads << Thread.new do
+        processor.perform_notifications
+      end
+    end
+    threads.map(&:join)
+  end
 end

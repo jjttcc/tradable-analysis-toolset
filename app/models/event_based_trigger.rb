@@ -1,6 +1,10 @@
+=begin
+triggered_event_type: integer
+activated: boolean DEFAULT 'f' NOT NULL
+=end
+
 # Triggers that are activated by an external event
 class EventBasedTrigger < ApplicationRecord
-#!!!  include Trigger, Contracts::DSL
   include Contracts::DSL
 
   has_many :analysis_schedules, as: :trigger

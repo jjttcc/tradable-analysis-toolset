@@ -146,6 +146,8 @@ class Analysis
         analysis_profile: prof, analysis_profile_name: prof.name,
         analysis_profile_client: prof.client_name,
         run_start_time: DateTime.now, expiration_date: expiration)
+      # (Set prof.notification_status to 'not_initialized':)
+      profile_run.not_initialized!
       prof.last_analysis_profile_run = profile_run
       prof.event_generation_profiles.each do |eg_prof|
         build_analysis_run(eg_prof, profile_run, symbols)

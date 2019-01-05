@@ -16,11 +16,13 @@ class Notifier
   pre  :notification_set do notifications != nil end
   pre  :reporter_set do report_extractor != nil end
   post :exec_status do execution_succeeded != nil end
-  post :send_attempted do
-    notifications.each { |n| n.sent? || n.delivered? || n.failed? } end
+  post :send_attempted do notifications.each { |n| n.sent? || n.delivered? ||
+                                               n.failed? || n.again? } end
   def execute(notification_source)
     prepare_for_execution(notification_source)
     perform_execution(notification_source)
+#!!!!!TO-DO: when a temporary failure is detected, set!!!!!
+#!!!!!'notification.again!' instead of 'notification.failed!'!!!
     postprocess_execution(notification_source)
   end
 
@@ -62,7 +64,7 @@ class Notifier
   ### Hook routine default implementations
 
   def prepare_for_execution(notification_source)
-    # default: do nothing
+    notifications.each do |n| n.sending! end
   end
 
   def postprocess_execution(notification_source)

@@ -13,14 +13,14 @@ class Notification < ApplicationRecord
 
   belongs_to :notification_source, polymorphic: true
   belongs_to :user
-#!!!  # (Note self-reference - i.e., composite pattern!!!![likely will go away]!!!!)
-#!!!  has_many   :notifications, as: :notification_source, dependent: :destroy
 
   enum status: {
-    initial:   1,   # i.e., "send" attempt not yet made
-    sent:      2,   # i.e., delivery not yet (or cannot be) confirmed
-    delivered: 4,
-    failed:    3,   # send attempted, but a failure result was detected
+    initial:   1,   # "send" attempt not yet made
+    sending:   2,   # in the process of being sent
+    sent:      3,   # sent, but delivery not yet (or cannot be) confirmed
+    delivered: 4,   # sent and delivered confirmed
+    failed:    5,   # "send" attempted, but a failure result was detected
+    again:     6,   # temporary failure of "send" - retry needed
   }
 
   # (Copied from NotificationAddress)

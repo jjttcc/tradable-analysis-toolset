@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20181219203028) do
+ActiveRecord::Schema.define(version: 20190103023541) do
 
   create_table "address_assignments", force: :cascade do |t|
     t.string   "address_user_type",       null: false
@@ -32,14 +32,16 @@ ActiveRecord::Schema.define(version: 20181219203028) do
   end
 
   create_table "analysis_profile_runs", force: :cascade do |t|
-    t.integer  "user_id",                 null: false
+    t.integer  "user_id",                             null: false
     t.integer  "analysis_profile_id"
-    t.string   "analysis_profile_name",   null: false
-    t.string   "analysis_profile_client", null: false
-    t.datetime "run_start_time",          null: false
-    t.datetime "expiration_date",         null: false
-    t.datetime "created_at",              null: false
-    t.datetime "updated_at",              null: false
+    t.string   "analysis_profile_name",               null: false
+    t.string   "analysis_profile_client",             null: false
+    t.datetime "run_start_time",                      null: false
+    t.datetime "expiration_date",                     null: false
+    t.datetime "created_at",                          null: false
+    t.datetime "updated_at",                          null: false
+    t.integer  "notification_status",     default: 1, null: false
+    t.integer  "lock_version",            default: 0, null: false
     t.index ["analysis_profile_id"], name: "index_analysis_profile_runs_on_analysis_profile_id"
     t.index ["user_id"], name: "index_analysis_profile_runs_on_user_id"
   end

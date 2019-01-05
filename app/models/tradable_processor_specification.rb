@@ -1,3 +1,8 @@
+=begin
+processor_id: integer NOT NULL
+period_type: integer NOT NULL
+=end
+
 # Specifications for an analysis run for a specific TradableAnalyzer
 # Note: 'period_type' is the number of seconds of the associated period type -
 # e.g., 86_400 for a daily period type.  (See PeriodTypeConstants.)

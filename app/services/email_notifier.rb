@@ -10,6 +10,8 @@ class EmailNotifier < Notifier
     send_email(report, notification_source)
 #!!!begin stub:!!!
     @execution_succeeded = true
+#!!!NOTE: Logic of setting n.sent!, n.failed!, ... should probably be!!!!!
+#!!!implemented in the parent (Notifier) to eliminate code duplication:!!!
     notifications.each do |n| n.sent! end
 #!!!end stub!!!
   end
