@@ -30,7 +30,7 @@ class AnalysisResultsTest < MiniTest::Test
     ModelHelper::cleanup
   end
 
-  def ignore_me_please___test_notifications_1
+  def test_notifications_1
     @notif_addr_test = NotificationAddressTest.new(nil)
     assert ! @notif_addr_test.nil?
     param_analysis_setup
@@ -160,7 +160,13 @@ class AnalysisResultsTest < MiniTest::Test
     threads = []
     n.times do |i|
       threads << Thread.new do
-        processor.create_notifications
+        begin
+          processor.create_notifications
+        rescue ActiveRecord::StaleObjectError => e
+          puts "[#{__method__}] caught stale object exception - #{e})"
+        rescue StandardError => e
+          puts "[#{__method__}] caught generic exception - #{e})"
+        end
       end
     end
     threads.map(&:join)
@@ -171,7 +177,13 @@ class AnalysisResultsTest < MiniTest::Test
     threads = []
     n.times do |i|
       threads << Thread.new do
-        processor.perform_notifications
+        begin
+          processor.perform_notifications
+        rescue ActiveRecord::StaleObjectError => e
+          puts "[#{__method__}] caught stale object exception - #{e})"
+        rescue StandardError => e
+          puts "[#{__method__}] caught generic exception - #{e})"
+        end
       end
     end
     threads.map(&:join)

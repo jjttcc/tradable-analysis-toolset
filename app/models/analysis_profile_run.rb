@@ -54,55 +54,102 @@ class AnalysisProfileRun < ApplicationRecord
     all_events.count > 0
   end
 
-#!!!!Note: This is obsolete - please delete:!!!!!
-  # Have all notifications needed by 'self' been created/saved?
-  def notifications_initialized?
-    ! has_events || (
-      ! notifications.empty? && notifications.all? { |n| ! n.new_record })
-  end
-
-#!!!!Note: This is obsolete - please delete:!!!!!
-  # Do 1 or more notifications need to be sent?
-  post :initialized do |result| implies(result, notifications_initialized?) end
-  post :needed_iff_events do |result| implies(result, has_events?) end
-  def notification_needed?
-    has_events? && notifications.any? do |n| n.initial? || n.again? end
-  end
-
   ###  Basic operations
 
-  # Create and initialize a Notification object for each of
-  # 'analysis_profile.notification_addresses'.
+  # Open a transaction and:  if optimistic locking does not cause abortion
+  # of the operation (i.e., another thread or process has it locked) and if
+  # 'has_events?' and notification_status is 'not_initialized':
+  #   - Create and initialize a Notification object for each of
+  #     'analysis_profile.notification_addresses'.
+  #   - Ensure each of the affected notifications has a status of 'initial'.
+  #   - Ensure that notification_status is 'initialized'.
+  #   - Save the resulting new state before ending the transaction.
+  # If the transaction fails (most likely due to 'self' already being
+  # locked), an appropriate exception is raised.
   pre  :profile_exists  do has_profile? end
-  pre  :notifications_being_initialized do initializing? end
+  def create_notifications
+    if has_events? then
+      transaction do
+        reload
+        if not_initialized? then
+          notification_status_will_change!
+          initializing!
+          save!
+          create_new_notifications
+        else
+          # The job has already been done (e.g., by another thread or process).
+        end
+      end
+    end
+  rescue ActiveRecord::StaleObjectError, ActiveRecord::StatementInvalid => e
+    $log.warn("[#{__method__}] transaction failed - likely due to DB lock " +
+              "(#{e})")
+    raise e
+  rescue StandardError => e
+    $log.warn("[#{__method__}] transaction failed: #{e}")
+    raise e
+  end
+
+  # Open a transaction and:  if optimistic locking does not cause abortion
+  # of the operation (i.e., another thread or process has it locked) and if
+  # notification_status is 'initialized' or 'partially_completed':
+  #   - Using 'initiator' to obtain the correct "notifier" (based on
+  #     medium_type), use the resulting notifier to perform all configured
+  #     notifications regarding all events (AnalysisEvent) contained by
+  #     'analysis_runs'.
+  #   - Ensure each of the affected notifications has a status of 'sent',
+  #     'delivered', 'failed', or 'again'.
+  #   - Ensure that notification_status is 'initialized',
+  #     'partially_completed', or 'fully_completed.
+  #   - Save the resulting new state before ending the transaction.
+  # If the transaction fails (most likely due to 'self' already being
+  # locked), an appropriate exception is raised.
+  pre  :profile_exists  do has_profile? end
+  def perform_notification(initiator)
+    transaction do
+      reload
+      if initialized? || partially_completed? then
+        notification_status_will_change!
+        in_progress!
+        save!
+        execute_pending_notifications(initiator)
+      else
+        # The job has already been done (e.g., by another thread or process).
+      end
+    end
+  rescue ActiveRecord::StaleObjectError, ActiveRecord::StatementInvalid => e
+    $log.warn("[#{__method__}] transaction failed - likely due to DB lock " +
+              "(#{e})")
+    raise e
+  rescue StandardError => e
+    $log.warn("[#{__method__}] transaction failed: #{e}")
+    raise
+  end
+
+  private  ###  Implementation
+
+  pre  :initializing do initializing? end
+  post :initialized do initialized? end
   post :notifications_prepared do
     analysis_profile.notification_addresses.all? { |a|
       notifications.any? {|n| n.contact_identifier == a.contact_identifier &&
         n.initial? && n.notification_source == self } } end
-  post :notifications_initialized do initialized? end
-  def create_notifications
-    if has_events? then
-      analysis_profile.notification_addresses.each do |addr|
-        n = Notification.new(notification_source: self,
-                             contact_identifier: addr.contact_identifier,
-                             medium_type: addr.medium_type,
-                             user: analysis_profile.user)
-        n.initial!  # I.e., set 'status' to "initial".
-      end
+  def create_new_notifications
+    analysis_profile.notification_addresses.each do |addr|
+      n = Notification.new(notification_source: self,
+                           contact_identifier: addr.contact_identifier,
+                           medium_type: addr.medium_type,
+                           user: analysis_profile.user)
+      n.initial!  # I.e., set 'status' to "initial".
     end
     initialized!
+    save!
   end
 
-  # Using 'initiator' to obtain the correct "notifier" (based on
-  # medium_type), use the resulting notifier to perform all configured
-  # notifications regarding all events (AnalysisEvent) contained by
-  # 'analysis_runs'.
-  pre  :profile_exists  do has_profile? end
-  pre  :notification_needed do
-    initialized? || partially_completed? || in_progress? end
+  pre  :reserved_by_me do in_progress? end
   post :finished_state do
     initialized? || partially_completed? || fully_completed? end
-  def perform_notification(initiator)
+  def execute_pending_notifications(initiator)
     notifiers = {}
     completed_count = 0
     selected_notifs = notifications.select do |n|
@@ -111,29 +158,28 @@ class AnalysisProfileRun < ApplicationRecord
     old_selected_statuses = selected_notifs.map do |n|
       n.status
     end
-    begin
-      selected_notifs.each do |n|
-        notifier = initiator.notifier_for(n)
-        if notifier.nil? then
-          raise "naughty, naughty [FIX THIS ERROR MSG/HANDLING, PLeASE!!!"#!!!
-        end
-        notifier.notifications << n
-        if ! notifiers[notifier] then
-          notifiers[notifier] = true
-        end
+    selected_notifs.each do |n|
+      notifier = initiator.notifier_for(n)
+      if notifier.nil? then
+        $log.debug("notifier for notification #{n} not found.")
+        raise "!!!!TO-DO: fix code bug or missing error logic!!!!!"
       end
-      notifiers.keys.each do |notifier|
-        notifier.execute(self)
-        notifier.clear_notifications
+      notifier.notifications << n
+      if ! notifiers[notifier] then
+        notifiers[notifier] = true
       end
-      set_new_notification_status(selected_notifs, old_selected_statuses)
-    rescue StandardError => e
-      set_new_notification_status(selected_notifs, old_selected_statuses)
-      raise
     end
+    notifiers.keys.each do |notifier|
+      notifier.execute(self)
+      notifier.notifications.each do |n|
+        # Save 'sent', 'delivered', 'failed', or 'again' state.
+        n.save
+      end
+      notifier.clear_notifications
+    end
+    set_new_notification_status(selected_notifs, old_selected_statuses)
+    save!
   end
-
-  private  ###  Implementation
 
   # The new 'notification_status' after 'perform_notification'
   post :finished_state do
@@ -146,10 +192,10 @@ class AnalysisProfileRun < ApplicationRecord
       # initialized or partially_completed.
       (0..selected_notifs.count-1).each do |i|
         if
-          selected_notifs[i].status != old_selected_statuses[i]
+          selected_notifs[i].status != original_statuses[i]
         then
-          new_status = selected_notifs[i].status
-          if [n.sent, n.delivered, n.failed].include?(new_status) then
+          cur_notif = selected_notifs[i]
+          if cur_notif.sent? || cur_notif.delivered? || cur_notif.failed? then
             # (We made at least a little progress re notifications, so:)
             partially_completed!
             break

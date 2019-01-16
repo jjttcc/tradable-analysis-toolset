@@ -28,12 +28,24 @@ module ModelHelper
 
   # Delete persistent users.
   def self.cleanup
-    PERSISTENT_USERS.each do |u|
-      u.destroy
-    end
-    PERSISTENT_TRIGGERS.each do |t|
-      t.destroy
-    end
+    AddressAssignment.delete_all
+    AnalysisEvent.delete_all
+    AnalysisProfileRun.delete_all
+    AnalysisProfile.delete_all
+    AnalysisRun.delete_all
+    AnalysisSchedule.delete_all
+    EventBasedTrigger.delete_all
+    EventGenerationProfile.delete_all
+    NotificationAddress.delete_all
+    Notification.delete_all
+    PeriodicTrigger.delete_all
+    TradableEventSet.delete_all
+    TradableProcessorParameterSetting.delete_all
+    TradableProcessorParameter.delete_all
+    TradableProcessorRun.delete_all
+    TradableProcessorSpecification.delete_all
+    User.delete_all
+    MasSession.delete_all
   end
 
   # A new EventBasedTrigger

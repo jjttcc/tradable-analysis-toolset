@@ -14,9 +14,9 @@ end
 class TradableProcessorParameterTest < ActiveSupport::TestCase
 
   def setup
-    @user = users(:jimtest1)
 =begin
 #!!!!rm-me:!!!!
+    @user = users(:jimtest1)
     @group1 = @user.parameter_groups.create!(name: 'paramgroup1')
     @parameter1 = @group1.tradable_processor_parameters.create!(
       name: 'parameter1', value: '8', data_type: 'integer')
