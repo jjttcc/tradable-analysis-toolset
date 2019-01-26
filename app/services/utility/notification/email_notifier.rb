@@ -8,7 +8,7 @@ class EmailNotifier < Notifier
     report = report_extractor.summary
     set_email_fields(report)
     send_email(report, notification_source)
-#!!!begin stub:!!!
+#!!!begin stub (need error handling...):!!!
     @execution_succeeded = true
 #!!!NOTE: Logic of setting n.sent!, n.failed!, ... should probably be!!!!!
 #!!!implemented in the parent (Notifier) to eliminate code duplication:!!!

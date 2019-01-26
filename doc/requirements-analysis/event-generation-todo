@@ -1,3 +1,42 @@
+{ Sat Jan  5 06:37:50 CST 2019:
+Consider creating two "library" models - user has-many [in his library]:
+  * AnalysisProfileLibrary (available analysis_profiles):
+    - analysis_profile_id
+    - user_id
+  * TriggerLibrary (available triggers)[1]:
+    - trigger_type (EventBasedTrigger or PeriodicTrigger)
+    - trigger_id
+    - user_id
+
+"daemons":
+  * Need an event-trigger-processing "daemon" and, perhaps, a periodic-trigger
+    "daemon".
+  * We might need a mas-server-manager daemon: It starts up the MAS processes
+    and continually monitors them.  When it finds that a MAS process is dead
+    or unhealthy it (after killing the process if it's unhealthy) starts up a
+    replacement process on the same port.  The ports to use can be stored in
+    the database (as well as the hostname/address, if not the local machine).
+    The "daemon" processes that communicate with the MAS server should
+    probably talk to a different set of server processes than the TAT
+    web-server - i.e., there should probably be two sets of MAS server
+    processes (and, of course, two corresponding sets of TCP ports): one
+    set to server the TAT web server and another set to serve the analysis
+    "daemons", as well as any other "daemons" (if there are others) that
+    need to talk to a MAS server.
+  * The "analysis daemon" will constantly check the database (the
+    EventBasedTrigger table) for 'activated' triggers and, using a thread
+    pool to split the work, read the triggered specs (AnalysisSchedule, ...)
+    and (with a thread allocated for each active trigger) invoke the Analysis
+    class to send the resulting requests to the MAS server and receive and
+    store the resulting events in the database.  Maybe this "daemon" will
+    also process the PeriodicTrigger activations, or those might be
+    processed by a separate, clock-driven process.
+  * UNIX cron can directly or indirectly ensure that these "daemon" processes
+    are (almost) always running.
+
+[1] On 2nd thought, TriggerLibrary is probably unnecessary/overkill.
+}
+
 { Tue Jul 31 15:08:50 CDT 2018:
 today's plan:
 create migration for TradableProcessorParameter.

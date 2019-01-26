@@ -30,10 +30,11 @@ class AnalysisResultsTest < MiniTest::Test
     ModelHelper::cleanup
   end
 
-  def test_notifications_1
+  def hide___test_notifications_1
     @notif_addr_test = NotificationAddressTest.new(nil)
+    symbols = ['ibm', 'jnj']
     assert ! @notif_addr_test.nil?
-    param_analysis_setup
+    param_analysis_setup(symbols)
     profs = AnalysisProfile.all
     assert profs.count == 2, '2 profiles'
     scheds = AnalysisSchedule.all
@@ -43,26 +44,30 @@ class AnalysisResultsTest < MiniTest::Test
     assert s == scheds[0], 'schedule'
     assert p1 == profs[0], 'profile 1'
     assert p2 == profs[1], 'profile 2'
-    setup_and_run_analysis
+    setup_and_run_analysis(symbols)
     assert AnalysisRun.all.count > 0, 'runs'
     assert AnalysisProfileRun.all.count > 0, 'runs'
     processor = AnalysisResultsProcessor.new
     processor.create_notifications
+#sleep 3
     processor.perform_notifications
+#sleep 0.75
     check_notification_results([p1, p2])
     # Test redundant requests.
     processor.create_notifications
     # (No notifications should be sent here:)
+#sleep 1
     processor.perform_notifications
     # Results should not have changed.
     check_notification_results([p1, p2])
   end
 
   # Attempt to test that database locking is correctly implemented.
-  def test_notifications_2__with_concurrency
+  def hideme___test_notifications_2__with_concurrency
     @notif_addr_test = NotificationAddressTest.new(nil)
+    symbols = ['ibm', 'jnj']
     assert ! @notif_addr_test.nil?
-    param_analysis_setup
+    param_analysis_setup(symbols)
     profs = AnalysisProfile.all
     assert profs.count == 2, '2 profiles'
     scheds = AnalysisSchedule.all
@@ -72,15 +77,17 @@ class AnalysisResultsTest < MiniTest::Test
     assert s == scheds[0], 'schedule'
     assert p1 == profs[0], 'profile 1'
     assert p2 == profs[1], 'profile 2'
-    setup_and_run_analysis
+    setup_and_run_analysis(symbols)
     assert AnalysisRun.all.count > 0, 'runs'
     assert AnalysisProfileRun.all.count > 0, 'runs'
     processor = AnalysisResultsProcessor.new
     redundantly_create_notifications(processor, 5)
+#sleep 3
     redundantly_perform_notifications(processor, 5)
     check_notification_results([p1, p2])
     # Test redundant requests.
     processor.create_notifications
+#sleep 1
     # (No notifications should be sent here:)
     processor.perform_notifications
     # Results should not have changed.
@@ -115,8 +122,8 @@ class AnalysisResultsTest < MiniTest::Test
     end
   end
 
-  def setup_and_run_analysis
-    sym1 = 'ibm'; sym2 = 'jnj'
+  def setup_and_run_analysis(symbols)
+    sym1 = symbols[0]; sym2 = symbols[1]
     analyzer = Analysis.new($analysis_client)
     checker = ParameterModCheck.new(counts: [
       {sym1 => [2], sym2 => [4]},
@@ -124,34 +131,36 @@ class AnalysisResultsTest < MiniTest::Test
       {sym1 => [3], sym2 => [5]},
       {sym1 => [6], sym2 => [12]}])
     analyzer.add_observer(checker)
-    symbols = [sym1, sym2]
     triggers = $analysis_spec.triggers
     triggers.each do |t|
       #assert ! t.new_record?, 'trigger must be in database'
       change_params(t, $analysis_client, false)
-      analyzer.run_triggered_analysis(t, symbols)
+      puts "trigger t - activated, status (#{__LINE__}):"
+      puts "#{t.activated}, #{t.status}"
+      puts "trigger t: #{t} (#{t.inspect})"
+      analyzer.run_triggered_analysis(t)
     end
   end
 
-  def analysis_setup
+  def analysis_setup(symbols)
     $analysis_user = User.find_by_email_addr(ANA_USER)
     if $analysis_user.nil? then
       $analysis_user = ModelHelper::new_user_saved(ANA_USER)
     end
     $analysis_client = MasClientTools::mas_client(user: $analysis_user,
                                              next_port: false)
-    $analysis_spec = AnalysisSpecification.new([$analysis_user],
+    $analysis_spec = AnalysisSpecification.new([$analysis_user], symbols,
                                                false, true)
   end
 
-  def param_analysis_setup
+  def param_analysis_setup(symbols)
     $analysis_user = User.find_by_email_addr(ANA_USER)
     if $analysis_user.nil? then
       $analysis_user = ModelHelper::new_user_saved(ANA_USER)
     end
     $analysis_client = MasClientTools::mas_client(user: $analysis_user,
                                              next_port: false)
-    $analysis_spec = AnalysisSpecification.new([$analysis_user],
+    $analysis_spec = AnalysisSpecification.new([$analysis_user], symbols,
                                                false, true)
   end
 

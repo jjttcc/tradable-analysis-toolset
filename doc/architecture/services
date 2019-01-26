@@ -1,0 +1,57 @@
+Triggering Service
+
+PURPOSE: Responsible for "pulling the trigger", based on external (or
+periodic/time-based?) events, which sets in action any configured
+processing of the data associated with the event.  "Pulling the trigger"
+consists of finding the appropriate "trigger" object(s) and "activating" it
+(them).  Service X will then be responsible for "seeing" (or "feeling")
+the trigger and, as a result, "firing the gun" (i.e., invoking the
+resulting analysis).  A very typical example is: "EOD_US_stocks" (end-of-day
+data for US stocks) becomes available[1].  The service then queries the
+database to obtain the EventBasedTrigger(s) whose 'triggered_event_type' ==
+EOD_US_stocks.  If the EventBasedTrigger(s) objects are in a state in which
+they can be 'activated' (probably: status == available [possibly: or: status ==
+closed] and not activated), "claim" them (status -> busy), set 'activated' to
+true, and save the objects (& close the transaction).  And then immediately
+"publish an announcement" that a "trigger has been pulled".  (If status is
+'busy', someone else is using it [might be "impossible"]; if status is
+'not_in_use', it has been disabled (e.g., by the "powers that be") and
+should not be touched.)
+STIMULUS: External events
+
+
+Trigger-response Service (Do we need a better name?)
+
+PURPOSE: Responsible for "firing the gun" - i.e., invoking the analysis
+implied by whatever event (with associated configuration) triggered the
+firing, as well as "collecting and disposing of the body" (i.e., obtaining
+the analysis results and storing them in the appropriate places in the
+database).  If the "bullet" "misses the target" (i.e., an error occurs that
+causes the analysis to fail), appropriate "contingency actions" are
+performed (e.g., log the error, ask another service to try to fix the
+problem [or just wait for it to be fixed], and, if it looks like it might
+"now" be fixed, try again).  When (if) the trigger response has been
+successfully completed ("the body has been collected and disposed of"),
+"publish an announcement" that an analysis process (a "shooting") has been
+completed successfully.
+STIMULUS: Reception of an announcement/message to which the service has
+subscribed - i.e., a message that a trigger the service is interested in
+has been "pulled".
+
+
+Post-analysis Service (Do we need a better name? [Notification Service?])
+
+PURPOSE: (To-do: Examine the test code to glean/obtain-ideas-about what
+actions to perform and what "STIMULUS:" will trigger the post-analysis
+service.)
+STIMULUS: Reception of an announcement/message to which the service has
+subscribed - i.e., a message that an analysis the service is interested in
+has been completed.
+
+
+
+[1] Implied here is that the triggering service is responsible for invoking
+some kind of magic (e.g., waiting for market closing time and then polling
+the data provider every <n> minutes until it finds that data for the
+current day is available) in which it figures out when the data is
+available and, only then, "pulling the trigger".

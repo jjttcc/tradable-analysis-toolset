@@ -68,17 +68,20 @@ class MasClientTest < MiniTest::Test
   # Test analysis runs "triggered" by *Trigger objects.
   # (To-do: Add/test "PeriodicTrigger"s)
   def test_triggered_analysis
-    analysis_setup
+    symbol = 'ibm'
+    analysis_setup([symbol])
     analyzer = Analysis.new($analysis_client)
     checker = TriggeredAnalysisCheck.new(nil)
     analyzer.add_observer(checker)
-    symbol = 'ibm'
     triggers = $analysis_spec.triggers
     begin
     triggers.each do |t|
       assert ! t.new_record?, 'trigger must be in database'
       change_params(t, $analysis_client, false)
-      analyzer.run_triggered_analysis(t, [symbol])
+      puts "trigger t - activated, status (#{__LINE__}):"
+      puts "#{t.activated}, #{t.status}"
+      puts "trigger t: #{t} (#{t.inspect})"
+      analyzer.run_triggered_analysis(t)
     end
     rescue StandardError => e
       assert false, "analysis failed [#{e}\n#{e.backtrace}]"
@@ -87,11 +90,11 @@ class MasClientTest < MiniTest::Test
 
   # Test analysis runs "triggered" "by the user" via AnalysisProfile objects.
   def test_profile_analysis
-    analysis_setup
+    symbol = 'ibm'
+    analysis_setup([symbol])
     analyzer = Analysis.new($analysis_client)
     checker = ProfileAnalysisCheck.new(nil)
     analyzer.add_observer(checker)
-    symbol = 'ibm'
     users = $analysis_spec.users
     users.each do |u|
       assert ! u.new_record?, 'user must be in database'
@@ -99,7 +102,7 @@ class MasClientTest < MiniTest::Test
       u.analysis_profiles.each do |p|
         assert ! p.new_record?, 'profile must be in database'
         change_params(p, $analysis_client, false)
-        analyzer.run_analysis_on_profile(p, [symbol])
+        analyzer.run_analysis_on_profile(p)
       end
     end
   end
@@ -107,21 +110,28 @@ class MasClientTest < MiniTest::Test
   # Test analysis runs "triggered" by *Trigger objects with two different
   # TP-parameters settings and check that the results differ.
   def test_triggered_analysis_with_param_mod
-    param_analysis_setup
+    symbol = 'ibm'
+    param_analysis_setup([symbol])
     analyzer = Analysis.new($analysis_client)
     checker = ParameterModCheck.new
     analyzer.add_observer(checker)
-    symbol = 'ibm'
     triggers = $analysis_spec.triggers
     triggers.each do |t|
       assert ! t.new_record?, 'trigger must be in database'
       change_params(t, $analysis_client, false)
-      analyzer.run_triggered_analysis(t, [symbol])
+      puts "trigger t - activated, status (#{__LINE__}):"
+      puts "#{t.activated}, #{t.status}"
+      puts "trigger t: #{t} (#{t.inspect})"
+      analyzer.run_triggered_analysis(t)
     end
     triggers.each do |t|
+      t.reset
       assert ! t.new_record?, 'trigger must be in database'
       change_params(t, $analysis_client, true)
-      analyzer.run_triggered_analysis(t, [symbol])
+      puts "trigger t - activated, status (#{__LINE__}):"
+      puts "#{t.activated}, #{t.status}"
+      puts "trigger t: #{t} (#{t.inspect})"
+      analyzer.run_triggered_analysis(t)
     end
   end
 
@@ -131,13 +141,14 @@ class MasClientTest < MiniTest::Test
   # analyzer and more than 1 symbol
 #!!!!remove setup:...????!!!!
   def test_triggered_multi_symbol_analyzer_with_param_mod(setup: true)
-    if setup then
-puts "setting up - param_analysis_setup"
-      param_analysis_setup
-else
-puts "NOT SETTING UP - param_analysis_setup"
-    end
     sym1 = 'ibm'; sym2 = 'jnj'
+    symbols = [sym1, sym2]
+    if setup then
+      puts "setting up - param_analysis_setup"
+      param_analysis_setup(symbols)
+    else
+      puts "NOT SETTING UP - param_analysis_setup"
+    end
     analyzer = Analysis.new($analysis_client)
     checker = ParameterModCheck.new(counts: [
       {sym1 => [2], sym2 => [4]},
@@ -145,47 +156,53 @@ puts "NOT SETTING UP - param_analysis_setup"
       {sym1 => [3], sym2 => [5]},
       {sym1 => [6], sym2 => [12]}])
     analyzer.add_observer(checker)
-    symbols = [sym1, sym2]
     triggers = $analysis_spec.triggers
-puts "PROCing triggers [test_triggered_multi_symbol_analyzer_with_param_mod]"
+    puts "PROCing triggers " +
+      "[test_triggered_multi_symbol_analyzer_with_param_mod]"
     triggers.each do |t|
       assert ! t.new_record?, 'trigger must be in database'
       change_params(t, $analysis_client, false)
-puts "a.RTA on #{t} [test_triggered_multi_symbol_analyzer_with_param_mod]"
-      analyzer.run_triggered_analysis(t, symbols)
+      puts "trigger t - activated, status (#{__LINE__}):"
+      puts "#{t.activated}, #{t.status}"
+      puts "trigger t: #{t} (#{t.inspect})"
+      analyzer.run_triggered_analysis(t)
     end
-puts "PROCing2 triggers [test_triggered_multi_symbol_analyzer_with_param_mod]"
+    puts "PROCing2 triggers " +
+      "[test_triggered_multi_symbol_analyzer_with_param_mod]"
     triggers.each do |t|
+      t.reset
       assert ! t.new_record?, 'trigger must be in database'
       change_params(t, $analysis_client, true)
-puts "a.RTA2 on #{t} [test_triggered_multi_symbol_analyzer_with_param_mod]"
-      analyzer.run_triggered_analysis(t, symbols)
+      puts "trigger t - activated, status (#{__LINE__}):"
+      puts "#{t.activated}, #{t.status}"
+      puts "trigger t: #{t} (#{t.inspect})"
+      analyzer.run_triggered_analysis(t)
     end
-puts "(fin PROCing2) [test_triggered_multi_symbol_analyzer_with_param_mod]"
   end
 
   protected
 
   ### Setup
 
-  def analysis_setup
+  def analysis_setup(symbols)
     $analysis_user = User.find_by_email_addr(ANA_USER)
     if $analysis_user.nil? then
       $analysis_user = ModelHelper::new_user_saved(ANA_USER)
     end
     $analysis_client = MasClientTools::mas_client(user: $analysis_user,
                                              next_port: false)
-    $analysis_spec = AnalysisSpecification.new([$analysis_user])
+    $analysis_spec = AnalysisSpecification.new([$analysis_user], symbols,
+                                               false, false)
   end
 
-  def param_analysis_setup
+  def param_analysis_setup(symbols)
     $analysis_user = User.find_by_email_addr(ANA_USER)
     if $analysis_user.nil? then
       $analysis_user = ModelHelper::new_user_saved(ANA_USER)
     end
     $analysis_client = MasClientTools::mas_client(user: $analysis_user,
                                              next_port: false)
-    $analysis_spec = AnalysisSpecification.new([$analysis_user],
+    $analysis_spec = AnalysisSpecification.new([$analysis_user], symbols,
                                                false, true)
   end
 

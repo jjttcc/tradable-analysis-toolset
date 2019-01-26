@@ -68,6 +68,10 @@ module TradableAnalysisToolset
     Dir.glob(Rails.root.join('app/mas_bridge/**/')) do |f|
       config.autoload_paths << f
     end
+    # Same for 'app/services'.
+    Dir.glob(Rails.root.join('app/services/**/')) do |f|
+      config.autoload_paths << f
+    end
 
     config.after_initialize do
       begin

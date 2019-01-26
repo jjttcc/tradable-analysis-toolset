@@ -67,9 +67,10 @@ class AnalysisProfileRun < ApplicationRecord
   # If the transaction fails (most likely due to 'self' already being
   # locked), an appropriate exception is raised.
   pre  :profile_exists  do has_profile? end
+  post :initialized do :initialized? end
   def create_notifications
     if has_events? then
-      transaction do
+      transaction(joinable: false, requires_new: true) do
         reload
         if not_initialized? then
           notification_status_will_change!
@@ -86,7 +87,8 @@ class AnalysisProfileRun < ApplicationRecord
               "(#{e})")
     raise e
   rescue StandardError => e
-    $log.warn("[#{__method__}] transaction failed: #{e}")
+    $log.error("[#{__method__}] transaction failed: #{e}" +
+               "(#{e.inspect})\n[need DB recovery plan]")
     raise e
   end
 
@@ -106,7 +108,7 @@ class AnalysisProfileRun < ApplicationRecord
   # locked), an appropriate exception is raised.
   pre  :profile_exists  do has_profile? end
   def perform_notification(initiator)
-    transaction do
+    transaction(joinable: false, requires_new: true) do
       reload
       if initialized? || partially_completed? then
         notification_status_will_change!
@@ -122,7 +124,8 @@ class AnalysisProfileRun < ApplicationRecord
               "(#{e})")
     raise e
   rescue StandardError => e
-    $log.warn("[#{__method__}] transaction failed: #{e}")
+    $log.error("[#{__method__}] transaction failed: #{e}" +
+               "(#{e.inspect})\n[need DB recovery plan]")
     raise
   end
 

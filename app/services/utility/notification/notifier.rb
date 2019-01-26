@@ -1,8 +1,5 @@
 # Objects that use the information in a specified 'Notification' to perform
-# the resulting configured notification.!!!!!MORE NEEDED!!!!!
-# !!!rm:Note: The 'dup' method initializes the attributes 'notification' and
-# !!!rm:'execution_succeeded' to nil.  This behavior will be maintained in
-# !!!rm:descendant classes, unless 'initialize_copy' has been redefined.
+# the resulting configured notification.
 class Notifier
   include Contracts::DSL
 
@@ -42,16 +39,6 @@ class Notifier
   def initialize(reporter = nil)
     self.report_extractor = reporter
     @notifications = []
-  end
-
-  ###  Copying - implementation
-
-  post :notifications_empty do notifications == [] end
-#!!!!!NOTE: This method is probably not needed and, if so, should be removed!!!
-  def initialize_copy(original)
-    super(original)
-    @notifications = []
-    @execution_succeeded = nil
   end
 
   ### Hook routines

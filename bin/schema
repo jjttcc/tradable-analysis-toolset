@@ -3,11 +3,11 @@
 # vim: expandtab
 
 alltables=false
-if [ "$TATDEV" ]; then
-  db=$(ls $TATDEV/db/dev*)
-else
-  db=$(ls db/dev*)
-fi
+istest=false
+db=tat_development
+user=tat
+tbcmd='\dt'
+desc='\d'
 if [ "$ALL" ]; then
     alltables=true
 fi
@@ -21,36 +21,34 @@ ruby_to_table() {
 }
 
 filter() {
-    if env "$alltables"; then
-        cat -
-    else
-        set $(cat -)
-        for t; do
-            echo $t|awk '
-                /ar_internal_metadata/ {next}
-                /schema_migrations/ {next}
-                {print}
-            '
-        done
-    fi
+    cat -|
+    awk '
+        /ar_internal_metadata/ {next}
+        /schema_migrations/ {next}
+        /^---*/ {ready=1}
+        (ready) {print $3}
+        '|egrep -v '^$'
 }
 
-if [ "$DB" ]; then
-    db=$(ls db/$DB*)
+case "$1" in
+    -t*) istest=true;shift
+        ;;
+esac
+
+if [ "$DB" ] || eval $istest; then
+    db=$DB
 fi
 if [ $# -eq 0 ]; then
-    echo ".tables"|sqlite3  $db|filter|awk '{print "[" NR "] " $0}'
+    echo "$tbcmd"|psql -U $user -d $db|filter|awk '{print "[" NR "] " $0}'
 fi
 
 args=$*
 for t in $args; do
-#set -x
     if expr $t : '^[0-9][0-9]*$' >/dev/null; then
-        table=$(echo .tables|sqlite3 $db|filter|sed -n "${t}p")
+        table=$(echo "$tbcmd"|psql -U $user -d $db|filter|sed -n "${t}p")
     else
         table=$(ruby_to_table $t)
     fi
-    echo ".schema $table"|sqlite3  $db |sed 's@, *@\
+    echo "$desc $table"|psql -U $user -d $db|sed 's@, *@\
 @g'
-set +x
 done

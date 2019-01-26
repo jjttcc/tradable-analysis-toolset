@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# display schema for the specified tables.
+# vim: expandtab
+
+alltables=false
+if [ "$TATDEV" ]; then
+  db=$(ls $TATDEV/db/dev*)
+else
+  db=$(ls db/dev*)
+fi
+if [ "$ALL" ]; then
+    alltables=true
+fi
+
+ruby_to_table() {
+  table=$1
+  if expr $1 : '.*\.rb$' >/dev/null; then
+    table=$(basename $table|sed 's@\.rb@s@')
+  fi
+  echo $table
+}
+
+filter() {
+    if env "$alltables"; then
+        cat -
+    else
+        set $(cat -)
+        for t; do
+            echo $t|awk '
+                /ar_internal_metadata/ {next}
+                /schema_migrations/ {next}
+                {print}
+            '
+        done
+    fi
+}
+
+if [ "$DB" ]; then
+    db=$(ls db/$DB*)
+fi
+if [ $# -eq 0 ]; then
+    echo ".tables"|sqlite3  $db|filter|awk '{print "[" NR "] " $0}'
+fi
+
+args=$*
+for t in $args; do
+#set -x
+    if expr $t : '^[0-9][0-9]*$' >/dev/null; then
+        table=$(echo .tables|sqlite3 $db|filter|sed -n "${t}p")
+    else
+        table=$(ruby_to_table $t)
+    fi
+    echo ".schema $table"|sqlite3  $db |sed 's@, *@\
+@g'
+set +x
+done

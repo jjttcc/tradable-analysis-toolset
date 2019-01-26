@@ -105,6 +105,27 @@ module ModelHelper
     result
   end
 
+  def self.set_symbol_list_for(owner, name, symbols)
+puts "set-symlist - symbols: #{symbols}"
+    symbol_ids = nil
+    if symbols != nil then
+      symbol_ids = []
+      symbols.each do |s|
+        sid = SymbolList.symbol_id_for(s)
+puts "set-symlist - id for #{s}: #{sid}"
+        if sid != nil then
+          symbol_ids << sid
+        end
+      end
+    end
+    list = SymbolList.new(name: name, symbols: symbol_ids)
+puts "What did I make? - symbol_ids: #{symbol_ids}\nlist: #{list.inspect}"
+    owner.symbol_list = list
+    owner.save!
+puts "owner: #{owner.inspect}"
+    owner
+  end
+
   # A new AnalysisSchedule for 'user' (and 'trigger', if not nil)
   def self.new_schedule_for(user, sched_name, trigger, active = false)
     result = AnalysisSchedule.new(name: sched_name, active: active)

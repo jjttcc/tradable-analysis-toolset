@@ -46,8 +46,9 @@ class AnalysisSpecification
     PARAM_PROF2    =>  DateTime.new(2014,  12,  31),
   }
 
-  def initialize(users, skip_params = false, param_test = false)
+  def initialize(users, symbols, skip_params = false, param_test = false)
     empty_db
+    lc_symbols = symbols.map { |s| s.downcase }
     @users = users
     @triggers = activated_triggers
     @triggers.concat(periodic_triggers)
@@ -59,24 +60,26 @@ class AnalysisSpecification
       schedule = ModelHelper::new_schedule_for(users[0], ANA_SCHEDULE,
                                                @triggers[0], true)
       if param_test then
-        profile1 = full_profile_params(PARAM_PROF1, schedule)
-        profile2 = full_profile_params(PARAM_PROF2, schedule)
+        profile1 = full_profile_params(PARAM_PROF1, schedule, lc_symbols)
+        profile2 = full_profile_params(PARAM_PROF2, schedule, lc_symbols)
       else
-        profile1 = full_profile(ANA_PROF1, schedule, skip_params)
-        profile2 = full_profile(ANA_PROF2, schedule, skip_params)
+        profile1 = full_profile(ANA_PROF1, schedule, lc_symbols, skip_params)
+        profile2 = full_profile(ANA_PROF2, schedule, lc_symbols, skip_params)
       end
     end
     if ! param_test && users[0].analysis_profiles.count < 9 then
-      uprofile1 = users_profile(USER_PROF1, users[0], skip_params)
-      uprofile2 = users_profile(USER_PROF2, users[0], skip_params)
+      uprofile1 = users_profile(USER_PROF1, users[0], lc_symbols, skip_params)
+      uprofile2 = users_profile(USER_PROF2, users[0], lc_symbols, skip_params)
     end
   end
 
   # An AnalysisProfile, owned by schedule, with the expected associations:
   # an EventGenerationProfile, which has a TradableProcessorSpecification,
   # which has a TradableProcessorParameter.
-  def full_profile(name, schedule, skip_param = false)
+  def full_profile(name, schedule, symbols, skip_param = false)
+puts "Hey, I was given symbols: #{symbols}"
     result = ModelHelper::new_profile_for_schedule(schedule, name)
+    ModelHelper::set_symbol_list_for(result, name, symbols)
     secs = SECS_FOR[name]; enddate = END_DATE_FOR[name]
     eg_profile = ModelHelper::evgen_profile_for(result, enddate, secs)
     tp_spec = ModelHelper::tradable_proc_spec_for(eg_profile, PROC_ID, DAILY_ID)
@@ -89,8 +92,10 @@ class AnalysisSpecification
   # schedule, with the expected associations:
   # an EventGenerationProfile, which has a TradableProcessorSpecification,
   # which has a TradableProcessorParameter.
-  def full_profile_params(name, schedule)
+  def full_profile_params(name, schedule, symbols)
+puts "Hey, I was given symbols: #{symbols}"
     result = ModelHelper::new_profile_for_schedule(schedule, name)
+    ModelHelper::set_symbol_list_for(result, name, symbols)
     secs = SECS_FOR[name]; enddate = END_DATE_FOR[name]
     eg_profile = ModelHelper::evgen_profile_for(result, enddate, secs)
     tp_spec = ModelHelper::tradable_proc_spec_for(eg_profile, PROC_ID, DAILY_ID)
@@ -102,8 +107,10 @@ class AnalysisSpecification
   # An AnalysisProfile, owned by user, with the expected associations:
   # an EventGenerationProfile, which has a TradableProcessorSpecification,
   # which has a TradableProcessorParameter.
-  def users_profile(name, user, skip_param = false)
+  def users_profile(name, user, symbols, skip_param = false)
+puts "Hey, I was given symbols: #{symbols}"
     result = ModelHelper::new_profile_for_user(user, name)
+    ModelHelper::set_symbol_list_for(result, name, symbols)
     secs = SECS_FOR[name]; enddate = END_DATE_FOR[name]
     eg_profile = ModelHelper::evgen_profile_for(result, enddate, secs)
     tp_spec = ModelHelper::tradable_proc_spec_for(eg_profile, PROC_ID, DAILY_ID)
@@ -160,12 +167,12 @@ assert true || all_events.count == expected_threshold, "unexpected number of " +
     runs = profile.last_analysis_runs
     assert runs.all? { |r| ! r.new_record? },
       "analysis runs have been saved to the database"
-    if ! analyzer.error then
+    if ! analyzer.analysis_error then
       assert runs.all? { |r|
         AnalysisRun.find(r.id).completed?
       }, "successful analysis runs are expected to be 'completed'"
     else
-      puts "(analysis failed: #{analyzer.error_message}}"
+      puts "(analysis failed: #{analyzer.analysis_error_message}}"
       assert runs.all? { |r|
         # (failed? OR running? because a failed DB transaction could mean
         # the DB did not get updated as expected)
@@ -204,12 +211,12 @@ assert true || events.count == expected_count, "unexpected number of " +
     assert runs.count > 0, 'at least 1 analysis run'
     assert runs.all? { |r| ! r.new_record? },
       "analysis runs have been saved to the database"
-    if ! analyzer.error then
+    if ! analyzer.analysis_error then
       assert runs.all? { |r|
         AnalysisRun.find(r.id).completed?
       }, "successful analysis runs are expected to be 'completed'"
     else
-      puts "(analysis failed: #{analyzer.error_message}}"
+      puts "(analysis failed: #{analyzer.analysis_error_message}}"
       assert runs.all? { |r|
         # (failed? OR running? because a failed DB transaction could mean
         # the DB did not get updated re the 'failed' status)
@@ -222,9 +229,13 @@ assert true || events.count == expected_count, "unexpected number of " +
       tprun = r.tradable_processor_runs[i]
       assert ! tprun.processor_name.nil?  && ! tprun.processor_name.empty?,
         "TradableProcessorRun[#{tprun.processor_id}] proc name should exist"
-      threshold_map.keys.each do |symbol|
+      threshold_map.keys.each do |s|
+        symbol = s.downcase
+puts "[#{__method__}] symbol: #{symbol}, tprun: #{tprun.inspect}"
         spec = threshold_map[symbol]
         events = tprun.events_for_symbol(symbol)
+puts "[#{__method__}] events: #{events.inspect}"
+        assert events != nil, 'events not nil'
 #!!!!! true(ueueu????)!!!!
 assert true || events.count == spec[i],
           "unexpected number of analysis events for '#{symbol}' " +

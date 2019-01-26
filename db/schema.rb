@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20190107022234) do
+ActiveRecord::Schema.define(version: 20190125033514) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -182,6 +182,25 @@ ActiveRecord::Schema.define(version: 20190107022234) do
     t.index ["updated_at"], name: "index_sessions_on_updated_at", using: :btree
   end
 
+  create_table "symbol_list_assignments", force: :cascade do |t|
+    t.string   "symbol_list_user_type", null: false
+    t.integer  "symbol_list_user_id",   null: false
+    t.integer  "symbol_list_id",        null: false
+    t.datetime "created_at",            null: false
+    t.datetime "updated_at",            null: false
+    t.index ["symbol_list_id"], name: "index_symbol_list_assignments_on_symbol_list_id", using: :btree
+    t.index ["symbol_list_user_type", "symbol_list_user_id"], name: "index_symbol_list_assignments_on_list_user_type_and_id", using: :btree
+  end
+
+  create_table "symbol_lists", force: :cascade do |t|
+    t.string   "name",        null: false
+    t.string   "description"
+    t.integer  "symbols",                  array: true
+    t.datetime "created_at",  null: false
+    t.datetime "updated_at",  null: false
+    t.index ["name"], name: "index_symbol_lists_on_name", using: :btree
+  end
+
   create_table "tradable_analyzers", force: :cascade do |t|
     t.text     "name",        null: false
     t.integer  "event_id",    null: false
@@ -244,6 +263,13 @@ ActiveRecord::Schema.define(version: 20190107022234) do
     t.index ["event_generation_profile_id"], name: "index_tradable_processor_specs_on_event_generation_profile_id", using: :btree
   end
 
+  create_table "tradable_symbols", force: :cascade do |t|
+    t.string   "symbol",     null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["symbol"], name: "index_tradable_symbols_on_symbol", unique: true, using: :btree
+  end
+
   create_table "tradables", force: :cascade do |t|
     t.text     "name",       null: false
     t.datetime "created_at", null: false
@@ -261,4 +287,6 @@ ActiveRecord::Schema.define(version: 20190107022234) do
     t.index ["email_addr"], name: "index_users_on_email_addr", unique: true, using: :btree
   end
 
+  add_foreign_key "symbol_list_assignments", "symbol_lists"
+  add_foreign_key "tradable_symbols", "tradable_entities", column: "symbol", primary_key: "symbol"
 end

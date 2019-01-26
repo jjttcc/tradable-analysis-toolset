@@ -37,8 +37,9 @@ end
 require 'csv'
 SYM = 'symbol'; NAME = 'name'
 
-def load_tradable_entities
+def load_tradable_entities_and_symbols
   entities = {}
+  symbols = []
   converter = lambda { |header| header.downcase }
   csv_text = File.read(Rails.root.join('db','allusstocks.csv'))
   csv = CSV.parse(csv_text, :headers => true, header_converters: converter)
@@ -48,8 +49,10 @@ def load_tradable_entities
     if entities.has_key?(row[SYM]) then
       $stderr.puts "duplicate key found on line #{i}"
     else
+      symbol = row[SYM].strip
       entities[row[SYM]] = TradableEntity.new(
-        symbol: row[SYM].strip, name: row[NAME].strip)
+        symbol: symbol, name: row[NAME].strip)
+      symbols << TradableSymbol.new(symbol: symbol)
     end
     i += 1
   end
@@ -57,10 +60,16 @@ def load_tradable_entities
     entities.each do |key, value|
       value.save!
     end
+    symbols.each { |s| s.save! }
   end
+end
+
+def initial_symbol_lists
+  SymbolList.create!(name: 'all', description: nil, symbols: nil)
 end
 
 if TradableEntity.find_by_symbol('IBM').nil? then
   puts "loading tradable_entities table"
-  load_tradable_entities
+  load_tradable_entities_and_symbols
+  initial_symbol_lists
 end

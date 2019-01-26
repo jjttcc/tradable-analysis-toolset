@@ -11,4 +11,15 @@ class PeriodicTrigger < ApplicationRecord
   include Contracts::DSL
 
   has_many :analysis_schedules, as: :trigger
+
+  private
+
+  enum status: {
+    available:   1,   # not activated or not yet invoked
+    busy:        2,   # invoked - resulting schedules are being processed
+    closed:      3,   # triggered-event was processed, ready for re-use
+    not_in_use:  4,   # i.e., it should be ignored
+    # etc...
+  }
+
 end

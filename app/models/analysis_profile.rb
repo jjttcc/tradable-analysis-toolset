@@ -20,7 +20,10 @@ class AnalysisProfile < ApplicationRecord
   has_many   :event_generation_profiles, dependent: :destroy
   # (many-to-many: AnalysisProfile <=> NotificationAddress:)
   has_many   :address_assignments, as: :address_user
-  has_many   :notification_addresses, :through => :address_assignments
+  has_many   :notification_addresses, through: :address_assignments
+  # (AnalysisProfile  has-one: SymbolList:)
+  has_one    :symbol_list_assignment, as: :symbol_list_user
+  has_one    :symbol_list, through: :symbol_list_assignment
   #!!!!This might go away:
   has_many   :notifications, as: :notification_source, dependent: :destroy
   has_many   :analysis_profile_runs

@@ -1,0 +1,2 @@
+class TradableSymbol < ApplicationRecord
+end
