@@ -8,7 +8,7 @@ schedule_type: integer
 # Triggers that are activated based on a definite period of time - for
 # example, hourly, or every minute
 class PeriodicTrigger < ApplicationRecord
-  include Contracts::DSL
+  include Contracts::DSL, TriggerStatus
 
   has_many :analysis_schedules, as: :trigger
 

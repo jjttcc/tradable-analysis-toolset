@@ -9,10 +9,10 @@ rails g model AnalysisSchedule name:string active:boolean \
   user:references
 rails g model AnalysisProfile name:string \
   analysis_client:references{polymorphic} # User or AnalysisSchedule
-rails g model EventGenerationProfile AnalysisProfile:references \
+rails g model EventGenerationProfile analysis_profile:references \
   end_date:datetime analysis_period_length_seconds:integer
-rails g model TradableProcessorSpecification EventGenerationProfile:references \
-  processor_id:integer period_type:integer
+rails g model TradableProcessorSpecification \
+  event_generation_profile:references processor_id:integer period_type:integer
 
 (For notification specs, see doc/requirements/notification.)
 

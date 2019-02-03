@@ -1,0 +1,20 @@
+                             TIMEZONE-RELATED SPECS
+
+Configuration:
+
+Rails will be configured to use the UTC timezone (rails default).  The
+date/times and timestamps will always be configured in the database
+(postgresql) as 'timestamp without timezone' (again, rails/migration default)
+and always assumed to be UTC.
+
+User-side timezone display and conversion:
+
+[TO-BE-SPECIFIED]
+
+Services-side conversion:
+
+The dates and times (in market_schedules and market_close_dates) that depend
+on a particular exchange (such as 'nasdaq'), which are stored as values
+(string, or - (y, m, d): integer), will be converted when needed
+when?: (TO-BE- SPECIFIED]) to a DateTime in the local timezone that is
+specified in exchanges.timezone.

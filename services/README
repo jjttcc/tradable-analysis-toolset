@@ -1,0 +1,13 @@
+Services[1] required by the TAT system:
+
+  - Send configured analysis requests to the MAS server and record the
+    results.
+  - Obtain the latest analysis results (i.e., any results that have not yet
+    been processed) and execute all configured post-processing actions on
+    the results.  A main component of this post-processing, obviously, is
+    sending out notifications.
+  - Cleanup required after post-processing, such as deleting expired data.
+
+[1] These services can be called "background" services, in the sense that
+each service is managed by a process that runs in the background.  They are
+not invoked directly by the TAT web application.

@@ -24,6 +24,19 @@ EventBasedTrigger:
 
 !!!![TBC]
 
+AnalysisRun:
+
+  - status: likely enum states/values: 'completed', 'stopped' (i.e.,
+    interrupted), 'failed', 'running'(?)
+  - start_date: EventGenerationProfile.start_date (derived)
+  - end_date: event_generation_profile.end_date
+  - completion_time: derived/virtual attribute (derived from 'updated_at')
+
+TradableProcessorRun [corresponds to TradableProcessorSpecification]:
+
+  - processor_id: tradable_processor_specification.processor_id
+  - period_type: tradable_processor_specification.period_type
+
 
 Summary of changes:
 

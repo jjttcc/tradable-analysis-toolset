@@ -1,5 +1,4 @@
 =begin
-analysis_run_id integer NOT NULL
 processor_id integer NOT NULL
 period_type integer NOT NULL
 =end

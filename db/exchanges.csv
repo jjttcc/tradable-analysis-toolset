@@ -1,0 +1,4 @@
+"name","type","timezone"
+"NYSE",1,"America/New_York"
+"NASDAQ",1,"America/New_York"
+"AMEX",1,"America/New_York"

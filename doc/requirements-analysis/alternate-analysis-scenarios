@@ -1,0 +1,9 @@
+                         LESS-COMMON ANALYSIS SCENARIOS
+
+[scenarios for analysis that differ with respect to the usual procedure/steps]
+
+One-time analysis configuration - best described via example:
+  The following analysis is configured for tradable with symbol 'x':
+    If 'x' goes above 150, send a notification.  After this event is
+    detected and the notification sent, delete or disable the configuration
+    so that it won't trigger any future notifications.

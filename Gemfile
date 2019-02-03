@@ -26,6 +26,7 @@ gem 'coffee-rails'
 gem 'uglifier'
 
 gem 'jquery-rails'
+gem 'whenever', require: false
 # For design-by-contract support:
 gem 'ruby_contracts'
 

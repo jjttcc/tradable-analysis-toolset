@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20190125033514) do
+ActiveRecord::Schema.define(version: 20190128133543) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -83,6 +83,16 @@ ActiveRecord::Schema.define(version: 20190125033514) do
     t.index ["user_id"], name: "index_analysis_schedules_on_user_id", using: :btree
   end
 
+  create_table "close_date_links", force: :cascade do |t|
+    t.string   "market_type",          null: false
+    t.integer  "market_id",            null: false
+    t.integer  "market_close_date_id", null: false
+    t.datetime "created_at",           null: false
+    t.datetime "updated_at",           null: false
+    t.index ["market_close_date_id"], name: "index_close_date_links_on_market_close_date_id", using: :btree
+    t.index ["market_type", "market_id"], name: "index_close_date_links_on_market_type_and_market_id", using: :btree
+  end
+
   create_table "event_based_triggers", force: :cascade do |t|
     t.integer  "triggered_event_type"
     t.boolean  "activated",            default: false, null: false
@@ -106,6 +116,41 @@ ActiveRecord::Schema.define(version: 20190125033514) do
     t.integer  "status",     default: 0, null: false
     t.datetime "created_at",             null: false
     t.datetime "updated_at",             null: false
+  end
+
+  create_table "exchanges", force: :cascade do |t|
+    t.string   "name",                   null: false
+    t.integer  "type",       default: 1, null: false
+    t.string   "timezone",               null: false
+    t.datetime "created_at",             null: false
+    t.datetime "updated_at",             null: false
+    t.index ["name"], name: "index_exchanges_on_name", unique: true, using: :btree
+  end
+
+  create_table "market_close_dates", force: :cascade do |t|
+    t.integer  "year",       null: false
+    t.integer  "month",      null: false
+    t.integer  "day",        null: false
+    t.string   "reason",     null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["year", "reason"], name: "index_market_close_dates_on_year_and_reason", unique: true, using: :btree
+  end
+
+  create_table "market_schedules", force: :cascade do |t|
+    t.string   "market_type"
+    t.integer  "market_id"
+    t.integer  "schedule_type",          default: 1, null: false
+    t.string   "date"
+    t.string   "pre_market_start_time"
+    t.string   "pre_market_end_time"
+    t.string   "post_market_start_time"
+    t.string   "post_market_end_time"
+    t.string   "core_start_time",                    null: false
+    t.string   "core_end_time",                      null: false
+    t.datetime "created_at",                         null: false
+    t.datetime "updated_at",                         null: false
+    t.index ["market_type", "market_id"], name: "index_market_schedules_on_market_type_and_market_id", using: :btree
   end
 
   create_table "mas_sessions", force: :cascade do |t|
@@ -287,6 +332,7 @@ ActiveRecord::Schema.define(version: 20190125033514) do
     t.index ["email_addr"], name: "index_users_on_email_addr", unique: true, using: :btree
   end
 
+  add_foreign_key "close_date_links", "market_close_dates"
   add_foreign_key "symbol_list_assignments", "symbol_lists"
   add_foreign_key "tradable_symbols", "tradable_entities", column: "symbol", primary_key: "symbol"
 end

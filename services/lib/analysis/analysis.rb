@@ -6,6 +6,7 @@ class Analysis
 
   public
 
+#!!!!!!!!REMINDER!!!!!!!!!: Ensure IS_TAT_SERVICE env. var. is defined!!!!!!
   attr_reader :mas_client, :analysis_error, :analysis_error_message
 
   # All resulting "AnalysisEvent"s

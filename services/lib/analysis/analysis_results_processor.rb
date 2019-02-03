@@ -29,6 +29,7 @@ class AnalysisResultsProcessor
   end
 
   public  ###  Basic operations
+#!!!!!!!!REMINDER!!!!!!!!!: Ensure IS_TAT_SERVICE env. var. is defined!!!!!!
 
   # Retrieve each AnalysisProfileRun whose notifications need initializing
   # and attempt to create and initialize its required Notification objects.

@@ -1,0 +1,21 @@
+                MARKET/EXCHANGE-SCHEDULE-RELATED DATABASE TABLES
+
+rails g model MarketSchedule market:references{polymorphic} \
+schedule_type:integer date:date \
+pre_market_start_time:time pre_market_end_time:time \
+post_market_start_time:time post_market_end_time:time \
+core_start_time:time core_end_time:time
+
+# (type: (enum) stock, commodity, currency, ...)
+rails g model ExchangeGroup label:string type:integer timezone:string
+
+# (e.g.: "nasdaq", stock, "America/Los_Angeles")
+rails g model Exchange name:string type:integer timezone:string \
+  ExchangeGroup:references
+
+# (e.g.: 2019-07-04, "Independence day")
+rails g model MarketCloseDate date:date reason:string
+
+# polymorphic (-> ExchangeGroup or Exchange) join table:
+rails g model CloseDateLink market:references{polymorphic} \
+  market_close_date:references

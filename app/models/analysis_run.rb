@@ -1,10 +1,7 @@
 =begin
-status: integer
-start_date: datetime
-end_date: datetime
-analysis_profile_name: varchar
-analysis_profile_client: varchar
-run_start_time: datetime
+ status                  | integer                     | not null
+ start_date              | timestamp without time zone | not null
+ end_date                | timestamp without time zone | not null
 =end
 
 # A permanent record of the results of a MAS analysis run using the

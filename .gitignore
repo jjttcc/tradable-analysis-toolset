@@ -32,6 +32,8 @@ artifacts/
 
 *.log
 *.orig
+*.old
+hide*/
 doc/app
 doc/resources
 .alias
@@ -44,3 +46,9 @@ mas-client.log*
 *.newwork
 obsolete
 .vim/
+/*SOON*
+*proposed
+*backup*
+*bck*
+tmp-*
+doc/books

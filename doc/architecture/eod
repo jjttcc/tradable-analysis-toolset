@@ -1,0 +1,31 @@
+                                END-OF-DAY DATA
+
+Required services:
+
+!!!!!!!!:
+NOTE: one or more of these processes will use 'fork' to ensure that the
+code that loads the rails environment and accesses the database will not
+"hog" memory for very long.!!!!
+
+  o A service will check every <n> minutes for a database change that
+    indicates that a new exchange-close-time has been added and, if it has,
+    will reset, in the redis server, the list of exchange-close-times to
+    include that new time(s) - reset instead of just adding the time(s) in
+    order to eliminate any possible deleted (i.e., no-longer-used)
+    exchange-close-times.
+  o A service charged with reading, from the redis server, a list of:
+    [exchange, exchange-close-time, timezone] (which was given to the redis
+    server by the above service).  In an infinite loop:
+      It will sleep until the earliest future time occurs (with, e.g.:
+        require "time"  # (with needed timezone logic added)
+        sleep(Time.parse(earliest_future_close_time) - Time.now)
+      )
+      When it wakes up, it will start a process/task (or, perhaps,
+      communicate via redis with a process that is already running) whose
+      job it is to, for each "used" exchange, ex, that closes at
+      earliest_future_close_time, query for the needed (based on list
+      of symbols) EOD data from ex. This "polling" will continue for ex
+      until all data needed from that exchange has been retrieved.
+  o A service will watch for newly arrived EOD data for today for "used"
+    tradables/symbols and trigger any configured analyses for those
+    symbols.
