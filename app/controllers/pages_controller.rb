@@ -32,10 +32,12 @@ class PagesController < ApplicationController
         end
       end
       if @ana_startdate.nil? then
-        @ana_startdate = DateTime.now; @ana_startdate -= 14
+        @ana_startdate = DateTime.current; @ana_startdate -= 14
+#!!!!        @ana_startdate = DateTime.now; @ana_startdate -= 14
       end
       if @ana_enddate.nil? then
-        @ana_enddate = DateTime.now; @ana_enddate += 1
+        @ana_enddate = DateTime.current; @ana_enddate += 1
+#!!!!        @ana_enddate = DateTime.now; @ana_enddate += 1
       end
     end
     @motd = MOTD.new

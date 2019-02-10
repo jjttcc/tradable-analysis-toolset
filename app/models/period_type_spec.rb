@@ -77,7 +77,8 @@ class PeriodTypeSpec < ApplicationRecord
   end
 
   def adjusted_datetime(dt)
-    today = datetime_at_midnight(DateTime.now.in_time_zone(updated_at.zone))
+    today = datetime_at_midnight(DateTime.current.in_time_zone(updated_at.zone))
+#!!!!    today = datetime_at_midnight(DateTime.now.in_time_zone(updated_at.zone))
     correction_interval = updated_at.to_datetime.to_date -
       dt.to_datetime.to_date
     result = (today.to_date - correction_interval).to_datetime

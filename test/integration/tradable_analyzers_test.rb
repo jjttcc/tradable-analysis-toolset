@@ -8,9 +8,12 @@ class TradableAnalyzersTest < ActionDispatch::IntegrationTest
 
   def setup
     @user = signed_in_user
-    @five_years_ago = DateTime.now - 1825
-    @three_years_ago = DateTime.now - 1095
-    @now = DateTime.now
+    @five_years_ago = DateTime.current - 1825
+#!!!!    @five_years_ago = DateTime.now - 1825
+    @three_years_ago = DateTime.current - 1095
+#!!!!    @three_years_ago = DateTime.now - 1095
+    @now = DateTime.current
+#!!!!    @now = DateTime.now
   end
 
   def test_run_with_no_selections

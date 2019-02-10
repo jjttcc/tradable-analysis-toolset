@@ -18,7 +18,7 @@ code that loads the rails environment and accesses the database will not
     server by the above service).  In an infinite loop:
       It will sleep until the earliest future time occurs (with, e.g.:
         require "time"  # (with needed timezone logic added)
-        sleep(Time.parse(earliest_future_close_time) - Time.now)
+        sleep(Time.parse(earliest_future_close_time) - Time.current)
       )
       When it wakes up, it will start a process/task (or, perhaps,
       communicate via redis with a process that is already running) whose

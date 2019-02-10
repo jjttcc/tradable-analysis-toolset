@@ -41,7 +41,8 @@ class EventGenerationProfile < ApplicationRecord
   def start_date
     ending_date = end_date
     if ending_date.nil? then
-      ending_date = DateTime.now
+      ending_date = DateTime.current
+#!!!!      ending_date = DateTime.now
     end
     days = analysis_period_length_seconds / DAILY_ID
     result = ending_date - days.days

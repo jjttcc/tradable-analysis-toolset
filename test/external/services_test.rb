@@ -16,7 +16,7 @@ class ServicesTest < MiniTest::Test
   def teardown
   end
 
-  def test_db_fork_task
+  def hide___test_db_fork_task
     require "rake"
     Rails.application.load_tasks
     Rake::Task['test_db_fork'].invoke
@@ -25,7 +25,7 @@ class ServicesTest < MiniTest::Test
     assert false, "exception caught - db-fork test  failed: #{e}"
   end
 
-  def test_eod_retrieval
+  def hide___test_eod_retrieval
     apple = 'AAPL'; ford = 'F'
     symbols = [apple, ford]
     f_last_open = '8.7'
@@ -51,7 +51,7 @@ class ServicesTest < MiniTest::Test
     assert f_penultimate_low == ford_penult_low, 'Ford penultimate low check'
   end
 
-  def test_eod_updates
+  def hide___test_eod_updates
     symbols = ['IBM', 'RHT', 'PG']
     storage_manager = data_storage_manager
     storage_manager.remove_tail_records(symbols, 1)
@@ -59,12 +59,32 @@ class ServicesTest < MiniTest::Test
     symbols.each do |s|
       assert ! storage_manager.last_update_empty_for(s),
         "#{s}: expected > 0 records updated"
+      assert storage_manager.last_update_count_for(s) >= 1,
+        "#{s}: expected >= 1 records updated"
     end
   end
 
-  def test_metadata_retrieval
-    data_config = Rails.configuration.data_setup.call
-    retriever = data_config.data_retriever
+  def test_eod_task
+    require "rake"
+    symbols = ['I', 'K', 'L']
+symbols = ['x']
+    config = data_config
+    storage_manager = config.data_storage_manager
+    channel = config.eod_check_channel
+    # Cheat: Use the TradableStorage.remove_tail_records to make sure there
+    # is an EOD record to retrieve:
+    storage_manager.remove_tail_records(symbols, 1)
+    Rails.application.load_tasks
+#    Rake::Task['start_eod_service'].invoke(symbols)
+    Rake::Task['test_eod'].invoke(channel, symbols)
+    assert true, 'no exception thrown'
+  rescue Exception => e
+    assert false, "exception caught - test_eod failed: #{e}"
+  end
+
+  def hide___test_metadata_retrieval
+    config = data_config
+    retriever = config.data_retriever
     apple = 'AAPL'; ford = 'F'
     retriever.retrieve_metadata_for(apple)
     meta = retriever.metadata_for[apple]
@@ -81,15 +101,20 @@ class ServicesTest < MiniTest::Test
   private  ### Implementation - utilities
 
   def eod_data(symbols, startd, endd)
-    data_config = Rails.configuration.data_setup.call
-    retriever = data_config.data_retriever
+    config = data_config
+    retriever = config.data_retriever
     retriever.retrieve_ohlc_data(symbols, startd, endd)
     retriever.data_sets
   end
 
   def data_storage_manager
-    data_config = Rails.configuration.data_setup.call
-    data_config.data_storage_manager
+    config = data_config
+    result = config.data_storage_manager
+    result
+  end
+
+  def data_config
+    Rails.configuration.data_setup.call
   end
 
 end

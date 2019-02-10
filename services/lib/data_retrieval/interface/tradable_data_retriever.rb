@@ -1,3 +1,5 @@
+require 'ruby_contracts'
+
 # Tradable (stocks, commodities, etc.) data retrieval services interface
 class TradableDataRetriever
   include Contracts::DSL

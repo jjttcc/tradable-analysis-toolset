@@ -198,15 +198,19 @@ puts "analysis_profile - #{__LINE__} - lc_symbol: #{lc_symbol}"
   # Build an AnalysisProfileRun and all of its component AnalysisRuns
   # for AnalysisProfile 'prof'.
   def build_analysis_runs_for_profile(prof, symbols)
-    expiration = DateTime.now +
+#!!!!    expiration = DateTime.now +
+    expiration = DateTime.current +
       Rails.configuration.x.default_expiration_duration
     if ! prof.save_results then
-      expiration = DateTime.now
+      expiration = DateTime.current
+#!!!!      expiration = DateTime.now
     end
     profile_run = AnalysisProfileRun.new(user: prof.user,
       analysis_profile: prof, analysis_profile_name: prof.name,
-      analysis_profile_client: prof.client_name, run_start_time: DateTime.now,
-      expiration_date: expiration)
+      analysis_profile_client: prof.client_name,
+      run_start_time: DateTime.current, expiration_date: expiration)
+#!!!!      analysis_profile_client: prof.client_name, run_start_time: DateTime.now,
+#!!!!      expiration_date: expiration)
     # (Set prof.notification_status to 'not_initialized':)
     profile_run.not_initialized!
     prof.last_analysis_profile_run = profile_run

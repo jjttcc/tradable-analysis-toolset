@@ -1,5 +1,6 @@
 require 'net/http'
 require 'json'
+require 'tradable_data_retriever'
 
 =begin
 example query:
@@ -26,7 +27,7 @@ class TiingoDataRetriever < TradableDataRetriever
   BASE_URL = 'https://api.tiingo.com/tiingo/daily'
   NEUTRAL_SPLIT_FACTOR = '1.0'
 
-  def initialize(token)
+  def initialize(token, log)
     super(token)
     @token = token
     # (Override @field_order, @post_process_lines:)
@@ -34,6 +35,7 @@ class TiingoDataRetriever < TradableDataRetriever
     @post_process_lines = true
     @skip_lines = 1
     @exchange_key = 'exchangeCode'
+    @log = log
   end
 
   private  ### Hook method implementations
@@ -63,7 +65,7 @@ class TiingoDataRetriever < TradableDataRetriever
     if split_factor != NEUTRAL_SPLIT_FACTOR then
       date = current_record[0]
       @split_factors_for[symbol] << [date, split_factor]
-      $log.debug("split_factor (#{symbol}): #{[date, split_factor].inspect}")
+      @log.debug("split_factor (#{symbol}): #{[date, split_factor].inspect}")
     end
   end
 

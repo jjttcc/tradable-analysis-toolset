@@ -94,7 +94,8 @@ class ChartsController < ApplicationController
   def updated_period_type_spec(period_type)
     result = period_type_spec_for(period_type)
     if result.nil?  # No spec for 'period_type' - make one.
-      now = DateTime.now
+      now = DateTime.current
+#!!!!      now = DateTime.now
       result = current_user.period_type_specs.create!(
         period_type_id: PeriodTypeConstants.id_for(period_type),
         start_date: DateTime.new((now.year) - 1, now.month, now.day),

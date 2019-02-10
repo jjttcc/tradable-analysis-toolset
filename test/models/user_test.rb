@@ -206,8 +206,10 @@ class UserTest < ActiveSupport::TestCase
       PeriodTypeConstants.ids.each do |id|
         cat = (cat_toggle ? @short_term: @long_term)
         user.period_type_specs.create(period_type_id: id,
-          start_date: DateTime.yesterday, end_date: DateTime.now,
+          start_date: DateTime.yesterday, end_date: DateTime.current,
           category: cat)
+#!!!!          start_date: DateTime.yesterday, end_date: DateTime.now,
+#!!!!          category: cat)
         cat_toggle = ! cat_toggle
       end
       user

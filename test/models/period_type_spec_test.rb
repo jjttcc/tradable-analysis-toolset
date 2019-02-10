@@ -26,64 +26,81 @@ class PeriodTypeSpecTest < ActiveSupport::TestCase
 
   def test_invariant
     period_type_spec = PeriodTypeSpec.new(period_type_id: ONE_MINUTE_ID,
-      start_date: DateTime.now, end_date: DateTime.now,
+      start_date: DateTime.current, end_date: DateTime.current,
       :category => @short_term)
+#!!!!      start_date: DateTime.now, end_date: DateTime.now,
+#!!!!      :category => @short_term)
     assert period_type_spec.invariant, 'PeriodTypeSpec invariant'
     period_type_spec = PeriodTypeSpec.new(period_type_id: ONE_MINUTE_ID,
-      start_date: DateTime.now, end_date: DateTime.now,
+      start_date: DateTime.current, end_date: DateTime.current,
       :category => @long_term)
+#!!!!      start_date: DateTime.now, end_date: DateTime.now,
+#!!!!      :category => @long_term)
     assert period_type_spec.invariant, 'PeriodTypeSpec invariant'
   end
 
   def test_broken_invariant
     period_type_spec = PeriodTypeSpec.new(period_type_id: ONE_MINUTE_ID,
-      start_date: DateTime.now, end_date: DateTime.now,
+      start_date: DateTime.current, end_date: DateTime.current,
       :category => 'gibberish')
+#!!!!      start_date: DateTime.now, end_date: DateTime.now,
+#!!!!      :category => 'gibberish')
     assert ! period_type_spec.invariant, 'PeriodTypeSpec violated invariant'
   end
 
   def test_valid_pts
     period_type_spec = PeriodTypeSpec.new(period_type_id: ONE_MINUTE_ID,
-      start_date: DateTime.now, end_date: DateTime.now,
+      start_date: DateTime.current, end_date: DateTime.current,
       :category => @short_term)
+#!!!!      start_date: DateTime.now, end_date: DateTime.now,
+#!!!!      :category => @short_term)
     assert period_type_spec.valid?, 'valid PeriodTypeSpec'
   end
 
   def test_null_enddate_ok
     period_type_spec = PeriodTypeSpec.new(period_type_id: HOURLY_ID,
-      start_date: DateTime.now, end_date: nil,
+      start_date: DateTime.current, end_date: nil,
       :category => @long_term)
+#!!!!      start_date: DateTime.now, end_date: nil,
+#!!!!      :category => @long_term)
     assert period_type_spec.valid?, 'null end-date is OK'
   end
 
   def test_no_sdate
     period_type_spec = PeriodTypeSpec.new(period_type_id: DAILY_ID,
-      start_date: nil, end_date: DateTime.now,
+      start_date: nil, end_date: DateTime.current,
       :category => @short_term)
+#!!!!      start_date: nil, end_date: DateTime.now,
+#!!!!      :category => @short_term)
     assert ! period_type_spec.valid?, 'null start-date should be invalid'
   end
 
   def test_invalid_sdate
     period_type_spec = PeriodTypeSpec.new(period_type_id: WEEKLY_ID,
-      start_date: "not a good date", end_date: DateTime.now,
+      start_date: "not a good date", end_date: DateTime.current,
       :category => @long_term)
+#!!!!      start_date: "not a good date", end_date: DateTime.now,
+#!!!!      :category => @long_term)
     assert ! period_type_spec.valid?, 'bad start-date should be invalid'
   end
 
   def test_invalid_period_type_id
     period_type_spec = PeriodTypeSpec.new(period_type_id: 67,
-      start_date: DateTime.now,
-      :category => @long_term)
+      start_date: DateTime.current, :category => @long_term)
+#!!!!      start_date: DateTime.now, :category => @long_term)
     assert ! period_type_spec.valid?, 'period_type_id should be invalid'
   end
 
   def test_invalid_category
     period_type_spec = PeriodTypeSpec.new(period_type_id: ONE_MINUTE_ID,
-      start_date: DateTime.now, end_date: DateTime.now,
+      start_date: DateTime.current, end_date: DateTime.current,
       :category => 'irrelevant')
+#!!!!      start_date: DateTime.now, end_date: DateTime.now,
+#!!!!      :category => 'irrelevant')
     assert ! period_type_spec.valid?, 'invalid category string'
     period_type_spec = PeriodTypeSpec.new(period_type_id: ONE_MINUTE_ID,
-      start_date: DateTime.now, end_date: DateTime.now)
+      start_date: DateTime.current, end_date: DateTime.current)
+#!!!!      start_date: DateTime.now, end_date: DateTime.now)
     assert ! period_type_spec.valid?, 'nil category'
   end
 
@@ -91,7 +108,8 @@ class PeriodTypeSpecTest < ActiveSupport::TestCase
     ids = PeriodTypeConstants.ids
     ids.each do |id|
       period_type_spec = PeriodTypeSpec.new(period_type_id: id,
-        start_date: DateTime.now, :category => @long_term)
+        start_date: DateTime.current, :category => @long_term)
+#!!!!        start_date: DateTime.now, :category => @long_term)
       assert period_type_spec.period_type_name ==
         PeriodTypeConstants.name_for[id], "correct name for #{id}"
     end
@@ -100,7 +118,8 @@ class PeriodTypeSpecTest < ActiveSupport::TestCase
   def test_period_types_with_mas_client
     user = ModelHelper::new_user('mas-pt-test@tests.org')
     user2 = ModelHelper::new_user('mas-pt-test2@tests.org')
-    now = DateTime.now
+    now = DateTime.current
+#!!!!    now = DateTime.now
     pts1 = create(:period_type_spec, user: user, end_date: nil)
     pts2 = create(:period_type_spec, user: user, period_type_id: WEEKLY_ID,
                    end_date: nil, start_date: now.dup.advance(years: -3))

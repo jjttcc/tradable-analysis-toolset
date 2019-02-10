@@ -1,29 +1,37 @@
+require 'date'
+require 'tradable_storage'
+require 'file_tail'
+
 # File-based management of tradable source data
 class FileTradableStorage < TradableStorage
   include Contracts::DSL
 
   public  ###  Status report
 
-  # Did the last call to 'update_data_stores' produce an empty result for
-  # 'symbol'?  (false if the last call to 'update_data_stores' did not
-  # include 'symbol')
   def last_update_empty_for(symbol)
     ! @last_update_rec_count.has_key?(symbol) ||
       @last_update_rec_count[symbol] == 0
   end
 
+  def last_update_count_for(symbol)
+    @last_update_rec_count.has_key?(symbol)? @last_update_rec_count[symbol]: 0
+  end
+
   public  ###  Basic operations
 
   def update_data_stores(symbols, startdate = nil, enddate = nil)
+    @last_update_rec_count = {}
     if startdate.nil? then
       # Use the latest start-date from the existing data for each symbol.
       symbols.each do |s|
         start = startdate_for(s)
         if start.nil? then
-          $log.error("Could not find startdate for #{s}")
+          @log.error("Could not find startdate for #{s}")
+          @last_update_rec_count[s] = 0
         else
           retriever.retrieve_ohlc_data([s], start)
           update_data_for(s, retriever.data_sets[s])
+          @last_update_rec_count[s] = retriever.data_sets[s].count
         end
       end
     else
@@ -31,6 +39,7 @@ class FileTradableStorage < TradableStorage
       retriever.retrieve_ohlc_data(symbols, startdate, enddate)
       symbols.each do |s|
         update_data_for(s, retriever.data_sets[s])
+        @last_update_rec_count[s] = retriever.data_sets[s].count
       end
     end
   end
@@ -67,9 +76,10 @@ class FileTradableStorage < TradableStorage
 
   pre :path_exists do |dp| dp != nil end
   pre :retriever_exists do |dp, retriever| retriever != nil end
-  def initialize(data_path, retriever)
+  def initialize(data_path, retriever, log)
     @data_path = data_path
     @retriever = retriever
+    @log = log
     @last_update_rec_count = {}
   end
 
@@ -92,12 +102,11 @@ class FileTradableStorage < TradableStorage
     end
     result
   rescue StandardError => e
-    $log.error(e)
+    @log.error(e)
     return nil
   end
 
   def update_data_for(symbol, data_set)
-    @last_update_rec_count[symbol] = data_set.count
     path = path_for symbol
     File.open(path, 'a') do |f|
       data_set.each do |fields|
@@ -108,7 +117,7 @@ class FileTradableStorage < TradableStorage
       end
     end
   rescue StandardError => e
-    $log.error("Write to file #{path} failed: #{e}")
+    @log.error("Write to file #{path} failed: #{e}")
   end
 
   def path_for(symbol)

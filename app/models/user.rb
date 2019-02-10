@@ -130,7 +130,8 @@ class User < ApplicationRecord
   end
 
   def new_salt
-    secure_hash("#{Time.now.utc}--#{password}")
+    secure_hash("#{Time.current.utc}--#{password}")
+#!!!!    secure_hash("#{Time.now.utc}--#{password}")
   end
 
   def invariant

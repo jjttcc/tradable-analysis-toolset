@@ -184,6 +184,7 @@ GEM
     rb-fsevent (0.10.3)
     rb-inotify (0.9.10)
       ffi (>= 0.5.0, < 2)
+    redis (4.1.0)
     request_store (1.4.1)
       rack (>= 1.4)
     ruby-prof (0.15.9)
@@ -254,6 +255,7 @@ DEPENDENCIES
   rails-controller-testing
   rails-i18n
   rails-perftest
+  redis
   ruby-prof (= 0.15.9)
   ruby_contracts
   sass-rails

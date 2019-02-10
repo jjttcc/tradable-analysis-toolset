@@ -43,6 +43,7 @@ group :development, :test do
   gem 'minitest-reporters'
   gem 'byebug'
   gem 'pry'
+  gem 'redis'
 end
 
 group :development do
