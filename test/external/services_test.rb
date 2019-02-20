@@ -4,7 +4,7 @@ require_relative '../models/notification_address_test.rb'
 require_relative '../helpers/analysis_specification'
 
 class ServicesTest < MiniTest::Test
-  include Contracts::DSL
+  include Contracts::DSL, TatServicesFacilities
 
   TESTPORT = 5441
   TARGET_SYMBOL   = 'ibm'
@@ -28,55 +28,63 @@ class ServicesTest < MiniTest::Test
   def hide___test_eod_retrieval
     apple = 'AAPL'; ford = 'F'
     symbols = [apple, ford]
-    f_last_open = '8.7'
-    f_penultimate_open = '8.77'
-    f_penultimate_low = '8.62'
-    startd, endd = '2019-01-30', '2019-02-04'
-    data = eod_data(symbols, startd, endd)
-    data.keys.each do |k|
-      puts "data for #{k}:"
-      data[k].each do |record|
-        puts record.inspect
+    ModelHelper::track_tradables(symbols) do
+      f_last_open = '8.7'
+      f_penultimate_open = '8.77'
+      f_penultimate_low = '8.62'
+      startd, endd = '2019-01-30', '2019-02-04'
+      data = eod_data(symbols, startd, endd)
+      data.keys.each do |k|
+        puts "data for #{k}:"
+        data[k].each do |record|
+          puts record.inspect
+        end
       end
+      assert data.has_key?(apple), "data for #{symbols[0]}"
+      assert data.has_key?(ford), "data for #{symbols[1]}"
+      assert data[apple].count == 4, "4 records for #{symbols[0]}"
+      assert data[ford].count == 4, "4 records for #{symbols[1]}"
+      ford_last_open = data[ford].last[1].to_f.to_s
+      assert f_last_open == ford_last_open, 'Ford last open check'
+      ford_penult_open = data[ford][-2][1].to_f.to_s
+      ford_penult_low = data[ford][-2][3].to_f.to_s
+      assert f_penultimate_open == ford_penult_open,
+        'Ford penultimate open check'
+      assert f_penultimate_low == ford_penult_low,
+        'Ford penultimate low check'
     end
-    assert data.has_key?(apple), "data for #{symbols[0]}"
-    assert data.has_key?(ford), "data for #{symbols[1]}"
-    assert data[apple].count == 4, "4 records for #{symbols[0]}"
-    assert data[ford].count == 4, "4 records for #{symbols[1]}"
-    ford_last_open = data[ford].last[1].to_f.to_s
-    assert f_last_open == ford_last_open, 'Ford last open check'
-    ford_penult_open = data[ford][-2][1].to_f.to_s
-    ford_penult_low = data[ford][-2][3].to_f.to_s
-    assert f_penultimate_open == ford_penult_open, 'Ford penultimate open check'
-    assert f_penultimate_low == ford_penult_low, 'Ford penultimate low check'
   end
 
   def hide___test_eod_updates
     symbols = ['IBM', 'RHT', 'PG']
-    storage_manager = data_storage_manager
-    storage_manager.remove_tail_records(symbols, 1)
-    storage_manager.update_data_stores(symbols)
-    symbols.each do |s|
-      assert ! storage_manager.last_update_empty_for(s),
-        "#{s}: expected > 0 records updated"
-      assert storage_manager.last_update_count_for(s) >= 1,
-        "#{s}: expected >= 1 records updated"
+    ModelHelper::track_tradables(symbols) do
+      storage_manager = data_storage_manager
+      storage_manager.remove_tail_records(symbols, 1)
+      storage_manager.update_data_stores(symbols)
+      symbols.each do |s|
+        assert ! storage_manager.last_update_empty_for(s),
+          "#{s}: expected > 0 records updated"
+        assert storage_manager.last_update_count_for(s) >= 1,
+          "#{s}: expected >= 1 records updated"
+      end
     end
   end
 
-  def test_eod_task
+  def hide___test_eod_task
     require "rake"
     symbols = ['I', 'K', 'L']
-symbols = ['x']
-    config = data_config
-    storage_manager = config.data_storage_manager
-    channel = config.eod_check_channel
-    # Cheat: Use the TradableStorage.remove_tail_records to make sure there
-    # is an EOD record to retrieve:
-    storage_manager.remove_tail_records(symbols, 1)
-    Rails.application.load_tasks
-#    Rake::Task['start_eod_service'].invoke(symbols)
-    Rake::Task['test_eod'].invoke(channel, symbols)
+#!!!symbols = ['x']
+    ModelHelper::track_tradables(symbols) do
+      config = data_config
+      storage_manager = config.data_storage_manager
+      channel = EOD_CHECK_CHANNEL
+      # Cheat: Use the TradableStorage.remove_tail_records to make sure there
+      # is an EOD record to retrieve:
+      storage_manager.remove_tail_records(symbols, 1)
+      Rails.application.load_tasks
+#     Rake::Task['start_eod_service'].invoke(symbols)
+      Rake::Task['test_eod'].invoke(channel, symbols)
+    end
     assert true, 'no exception thrown'
   rescue Exception => e
     assert false, "exception caught - test_eod failed: #{e}"
@@ -85,17 +93,25 @@ symbols = ['x']
   def hide___test_metadata_retrieval
     config = data_config
     retriever = config.data_retriever
-    apple = 'AAPL'; ford = 'F'
-    retriever.retrieve_metadata_for(apple)
-    meta = retriever.metadata_for[apple]
-    name = retriever.name_for(apple)
-    exchange = retriever.exchange_for(apple)
-    description = retriever.description_for(apple)
-    puts "name: #{name}\nexchange: #{exchange}\ndescription: #{description}"
-    assert meta != nil, 'metadata exists'
-    assert name != nil && name =~ /apple/i, 'correct name'
-    assert exchange != nil && exchange == 'NASDAQ', 'correct exchange'
-    assert description != nil, 'description exists'
+    apple, ford, ping_an_bank, suning = 'AAPL', 'F', '000001', '002024'
+    symbols = [apple, ford, ping_an_bank, suning]
+    names = ['Apple', 'Ford', 'Ping.An.Bank', 'Suning.Commerce.Group']
+    exchanges = ['NASDAQ', 'NYSE', 'SHE', 'SHE']
+    (0..symbols.count-1).each do |i|
+      retriever.retrieve_metadata_for(symbols[i])
+    end
+    (0..symbols.count-1).each do |i|
+      meta = retriever.metadata_for[symbols[i]]
+      name = retriever.name_for(symbols[i])
+      exchange = retriever.exchange_for(symbols[i])
+      description = retriever.description_for(symbols[i])
+      print "\nsymbol: #{symbols[i]}: "
+      puts "name: #{name}\nexchange: #{exchange}\ndescription: #{description}"
+      assert meta != nil, 'metadata exists'
+      assert name != nil && name =~ /#{names[i]}/i, 'correct name'
+      assert exchange != nil && exchange == exchanges[i], 'correct exchange'
+      assert description != nil, 'description exists'
+    end
   end
 
   private  ### Implementation - utilities

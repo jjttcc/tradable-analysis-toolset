@@ -31,7 +31,7 @@ class AnalysisProfile < ApplicationRecord
   # The last AnalysisProfileRun resulting from analysis based on self's specs
   attr_accessor :last_analysis_profile_run
 
-  public
+  public  ###  Access
 
   # The user/owner of this AnalysisProfile
   post :exists do |result| result != nil end
@@ -66,6 +66,13 @@ class AnalysisProfile < ApplicationRecord
         result.concat(p.events_for_symbol(s))
       end
     end
+  end
+
+  public  ###  Status report
+
+  # Is this AnalysisProfile currently in use?
+  def in_use?
+    analysis_client.active?
   end
 
 end

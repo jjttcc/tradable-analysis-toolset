@@ -1,2 +1,8 @@
 Use this README file to introduce your application and point to useful places in the API for learning more.
 Run "rake doc:app" to generate API documentation for your models, controllers, helpers, and libraries.
+
+NOTE: To avoid this error: [
+NameError: uninitialized constant DBForkTest::ForkedDatabaseExecution
+/home3/development/jtc/applications/rails_projects/tradable-analysis-toolset/lib/tasks/test/services_facilities_test.rake:2:in `<class:DBForkTest>'
+...], rename the rake file - e.g.:
+mv lib/tasks/test/services_facilities_test.rake lib/tasks/test/services_facilities_test.rake.hideme

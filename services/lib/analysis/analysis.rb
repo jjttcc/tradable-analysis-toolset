@@ -1,6 +1,7 @@
 require 'observer'
 require 'ruby_contracts'
 
+#!!!!!TO-DO: class description!!!!!
 class Analysis
   include Observable, Contracts::DSL
 

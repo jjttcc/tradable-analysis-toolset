@@ -44,9 +44,7 @@ class User < ApplicationRecord
                        :length => { :within => 8..64 }
   before_save :encrypt_password
 
-  public
-
-  ###  Access
+  public  ###  Access
 
   # Effective name of the user
   alias_attribute :name, :email_addr
@@ -77,6 +75,13 @@ class User < ApplicationRecord
     result = period_type_specs.select do |spec|
       ! spec.for_analysis?
     end
+  end
+
+  public  ###  Status report
+
+  # Is this user currently in use - i.e., active?
+  def active?
+    true
   end
 
   ###  Validation

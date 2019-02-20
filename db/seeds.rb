@@ -34,11 +34,13 @@ if ENV['RAILS_ENV'] == "test"
 end
 
 ############################ REFERENCE DATA ###################################
+#!!!!!VERBOSE = false
+VERBOSE = true
 require 'csv'
 SYM = 'symbol'; NAME = 'name'; TYPE = 'type'; TZ = 'timezone'
-DATE = 'date'
+DATE = 'date'; FNAME = 'full_name'
 
-def load_tradable_entities_and_symbols
+def load_tradable_entities_and_symbols(input_file_name, discarded = nil)
   if ! TradableEntity.find_by_symbol('IBM').nil? then
     return
   end
@@ -46,7 +48,7 @@ def load_tradable_entities_and_symbols
   entities = {}
   symbols = []
   converter = lambda { |header| header.downcase }
-  csv_text = File.read(Rails.root.join('db','allusstocks.csv'))
+  csv_text = File.read(Rails.root.join('db',input_file_name))
   csv = CSV.parse(csv_text, :headers => true, header_converters: converter)
   i=1
   csv.each do |row|
@@ -69,6 +71,63 @@ def load_tradable_entities_and_symbols
   end
 end
 
+def load_tradables_with_exchange(input_file_name, exchanges)
+  if exchanges.nil? then
+    raise "#{__method__}: exchanges arg must not be nil."
+  end
+  if ! TradableEntity.find_by_symbol('IBM').nil? then
+    return
+  end
+  puts "loading tradable_entities & tradable_symbols tables"
+  entities = {}
+  symbols = []
+  converter = lambda { |header| header.downcase }
+  csv_text = File.read(Rails.root.join('db',input_file_name))
+  csv = CSV.parse(csv_text, headers: true, header_converters: converter,
+                 col_sep: '|')
+  i=2
+  csv.each do |row|
+    symbol, tradable_name, exchange = row[0..2].map {|f| f.strip}
+if i < 15 then
+  puts "line #{i}: sym: #{symbol}, name: #{tradable_name}, exch: #{exchange}"
+end
+    if symbol != symbol.upcase then
+      raise "unexpected: symbol not in all caps: #{symbol} (line #{i})"
+    end
+    if entities.has_key?(symbol) then
+      $stderr.puts "duplicate key found on line #{i}"
+    else
+      exchobj = exchanges[exchange]
+      if exchobj != nil then
+        entities[symbol] = TradableEntity.new(symbol: symbol,
+                                              name: tradable_name)
+        new_symbol = TradableSymbol.new(symbol: symbol, exchange: exchobj)
+        symbols << new_symbol
+      elsif VERBOSE then
+if ! ['U', 'BATS', 'IEX'].include?(exchange) then
+        puts "#{symbol} not in a logged exchange (#{exchange}) - skipping..."
+puts "exchs: #{exchanges.inspect}"
+raise "#{symbol} not in a logged exchange (#{exchange}) - skipping..."
+end
+      end
+    end
+    i += 1
+  end
+  TradableEntity.transaction do
+    entities.each do |key, value|
+      value.save!
+    end
+    symbols.each { |s| s.save! }
+  end
+end
+
+old_stocks_file_method = 'allusstocks.csv'
+new_stocks_file_method = 'stocks_with_exchange.csv'
+tradable_load_methods = {
+  old_stocks_file_method => self.method(:load_tradable_entities_and_symbols),
+  new_stocks_file_method => self.method(:load_tradables_with_exchange)
+}
+
 def initialize_symbol_lists
   if ! SymbolList.find_by_name('all').nil? then
     return
@@ -77,7 +136,7 @@ def initialize_symbol_lists
 end
 
 def loaded_exchanges
-  if ! Exchange.find_by_name('NASDAQ').nil? then
+  if ! Exchange.find_by_name('FSX').nil? then
     exchanges = Exchange.all.map { |e| [e.name, e] }.to_h
   else
     exchanges = {}
@@ -93,7 +152,7 @@ def loaded_exchanges
           $stderr.puts "duplicate key found on line #{i}"
         else
           exch = Exchange.new(name: name, type: row[TYPE].to_i,
-                              timezone: row[TZ].strip)
+            timezone: row[TZ].strip, full_name: row[FNAME].strip)
           exchanges[name] = exch
           exch.save
         end
@@ -257,19 +316,32 @@ def link_to_exch(closes, exchanges)
   end
 end
 
+$exchanges = {}
 def load_market_exchange_info
-  exchanges = loaded_exchanges
-  load_market_schedules(exchanges)
+  $exchanges = loaded_exchanges
+puts "exchgs: #{$exchanges}"
+  load_market_schedules($exchanges)
   closes = loaded_market_closes
-  link_to_exch(closes, exchanges)
+  link_to_exch(closes, $exchanges)
 end
 
-load_tradable_entities_and_symbols
-initialize_symbol_lists
+stock_input_file = old_stocks_file_method
+# (As you can see, comment this out if the old load method is needed:)
+stock_input_file = new_stocks_file_method
+stock_load_method = tradable_load_methods[stock_input_file]
+# Exchanges are needed before stocks/symbols:
 load_market_exchange_info
-Exchange.all.each do |e|
-  e.market_close_dates.each do |l|
-  end
-  e.market_schedules.each do |s|
+puts "exchgs: #{$exchanges}"
+stock_load_method.call(stock_input_file, $exchanges)
+#!!!rm me:load_tradable_entities_and_symbols
+initialize_symbol_lists
+if VERBOSE then
+  Exchange.all.each do |e|
+    e.market_close_dates.each do |l|
+      puts l.inspect
+    end
+    e.market_schedules.each do |s|
+      puts s.inspect
+    end
   end
 end

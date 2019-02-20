@@ -40,7 +40,6 @@ class TradableDataRetriever
 
   public  ###  Basic operations
 
-  # open,high,low,close historical data for the tradables identified
   # Retrieve historical data for the tradables identified by 'symbols', with
   # the specified start_date and end_date - If end_date is nil, an end-date
   # of "now" is used.  The expected date format is: yyyy-mm-dd.

@@ -69,7 +69,7 @@ module TradableAnalysisToolset
       config.autoload_paths << f
     end
     if ENV['RAILS_ENV'] == 'test' || ENV.has_key?('IS_TAT_SERVICE') then
-      # Same for 'app/services'.
+      # Same for 'services'.
       Dir.glob(Rails.root.join('services/**/')) do |f|
         config.autoload_paths << f
       end

@@ -117,17 +117,17 @@ A daemon process assigned to, each trading day, wait for and report when
 end-of-day data is available discovers that, a few minutes after market
 closing time for US stocks, EOD data for US stocks is available.  The
 process then updates the record in "event_based_triggers" table where
-'triggered_event_type' = EOD_US_stocks: It sets 'active' ('activated'?) to
+'triggered_event_type' = EOD_US_stocks: It sets 'activated' to
 true.  (Note: In other words, this event invokes the trigger (by setting
-'active' ['activated'] to true).)
+'activated' to true).)
 [part 2:]
 (Note: action/process is triggered by the above event - i.e., it starts
 analysis as a result of the event.)
 Another daemon process (whose job is to periodically check for new
 trigger events [e.g., in the event_based_triggers or periodic_triggers table])
 discovers (via a query such as "select id from event_based_triggers where
-active = true") that the record in event_based_triggers for EOD_US_stocks
-with the 'active' attribute set to true.  It then:
+activated = true") that the record in event_based_triggers for EOD_US_stocks
+with the 'activated' attribute set to true.  It then:
 
   - Updates 'status' to "running" (from "completed") in the analysis_runs
     [proposed] table.  (Other possible states might include: "stopped" and
@@ -284,6 +284,8 @@ analysis-schedule.trigger will find that it has been triggered (i.e., the
 awaited event has occurred and has not yet been processed) and will as a
 result invoke an analysis run using the analysis-profile for the
 analysis-schedule record being checked.
+Note/update: The table/model names have been decided: PeriodicTrigger and
+EventBasedTrigger.
 
 =============================================================================
 

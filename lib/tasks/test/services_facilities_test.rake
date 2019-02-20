@@ -1,3 +1,6 @@
+SRVC_AR_PATH = '../../../services/lib/architectural/active_record'
+require_relative "#{SRVC_AR_PATH}/forked_database_execution"
+
 class DBForkTest
   include Contracts::DSL, ForkedDatabaseExecution
 

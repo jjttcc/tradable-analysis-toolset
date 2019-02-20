@@ -39,6 +39,8 @@ module ModelHelper
     NotificationAddress.delete_all
     Notification.delete_all
     PeriodicTrigger.delete_all
+    SymbolListAssignment.delete_all
+    SymbolList.delete_all
     TradableEventSet.delete_all
     TradableProcessorParameterSetting.delete_all
     TradableProcessorParameter.delete_all
@@ -163,6 +165,44 @@ puts "owner: #{owner.inspect}"
                data_type: datatype, sequence_number: seqno)
     result.tradable_processor_specification = tp_spec
     result.save
+    result
+  end
+
+  # If a block is passed in, the tradables for 'symbols' will first be
+  # tracked (and saved to DB), the block will be executed, and then the
+  # same tradables will untracked - the result of the block will be
+  # returned.  If not block is passed in, the tradables for 'symbols' are
+  # set to tracked (i.e., tradable_symbol.track!).
+  def self.track_tradables(symbols)
+    result = nil
+    TradableSymbol.transaction do
+      symbols.each do |s|
+        ts = TradableSymbol.find_by_symbol(s)
+        if ts.nil? then
+          puts "Error: row not found for '#{s}' [#{self.class}::#{__method__}]"
+        else
+          ts.track!
+#          ts.save
+        end
+      end
+    end
+    if block_given? then
+      result = yield
+      # If a block was passed in, assume the caller wants to un-track the
+      # specified tradables after the block is executed.
+      TradableSymbol.transaction do
+        symbols.each do |s|
+          ts = TradableSymbol.find_by_symbol(s)
+          if ts.nil? then
+            puts "Error: row not found for '#{s}' " +
+              "[#{self.class}::#{__method__}]"
+          else
+            ts.untrack!
+#            ts.save
+          end
+        end
+      end
+    end
     result
   end
 

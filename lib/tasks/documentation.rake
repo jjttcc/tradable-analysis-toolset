@@ -16,6 +16,7 @@ namespace :doc do
     rdoc.rdoc_files.include('README.md')
     rdoc.rdoc_files.include('app/**/*.rb')
     rdoc.rdoc_files.include('lib/**/*.rb')
+    rdoc.rdoc_files.include('services/**/*.rb')
     rdoc.rdoc_files.include('library/mas_client/**/*.rb')
     rdoc.rdoc_files.include('library/utility/**/*.rb')
   }

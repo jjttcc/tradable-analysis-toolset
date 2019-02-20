@@ -1,13 +1,13 @@
 require 'redis'
 
 class TestEOD
+  include TatServicesFacilities
 
   private
 
   def initialize(symbols, channel)
     @eod_test_channel = channel
-    data_config = DataConfig.new($log)
-    @sym_key = data_config.new_eod_check_key
+    @sym_key = new_eod_check_key
     puts "Thanks for all the lovely symbols: #{symbols.inspect}"
     puts "My key is: #{@sym_key}"
     run_the_test(symbols)

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20190128133543) do
+ActiveRecord::Schema.define(version: 20190213121745) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -124,6 +124,7 @@ ActiveRecord::Schema.define(version: 20190128133543) do
     t.string   "timezone",               null: false
     t.datetime "created_at",             null: false
     t.datetime "updated_at",             null: false
+    t.string   "full_name"
     t.index ["name"], name: "index_exchanges_on_name", unique: true, using: :btree
   end
 
@@ -309,10 +310,14 @@ ActiveRecord::Schema.define(version: 20190128133543) do
   end
 
   create_table "tradable_symbols", force: :cascade do |t|
-    t.string   "symbol",     null: false
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.string   "symbol",                     null: false
+    t.datetime "created_at",                 null: false
+    t.datetime "updated_at",                 null: false
+    t.integer  "exchange_id"
+    t.integer  "tracking_count", default: 0, null: false
+    t.index ["exchange_id"], name: "index_tradable_symbols_on_exchange_id", using: :btree
     t.index ["symbol"], name: "index_tradable_symbols_on_symbol", unique: true, using: :btree
+    t.index ["tracking_count"], name: "index_tradable_symbols_on_tracking_count", using: :btree
   end
 
   create_table "tradables", force: :cascade do |t|
@@ -334,5 +339,6 @@ ActiveRecord::Schema.define(version: 20190128133543) do
 
   add_foreign_key "close_date_links", "market_close_dates"
   add_foreign_key "symbol_list_assignments", "symbol_lists"
+  add_foreign_key "tradable_symbols", "exchanges"
   add_foreign_key "tradable_symbols", "tradable_entities", column: "symbol", primary_key: "symbol"
 end

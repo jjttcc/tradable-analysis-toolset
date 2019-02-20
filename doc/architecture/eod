@@ -2,6 +2,8 @@
 
 Required services:
 
+(!!!!!TO-DO: Fit exchange-schedule monitoring into this doc.[1]!!!!!)
+
 !!!!!!!!:
 NOTE: one or more of these processes will use 'fork' to ensure that the
 code that loads the rails environment and accesses the database will not
@@ -9,7 +11,7 @@ code that loads the rails environment and accesses the database will not
 
   o A service will check every <n> minutes for a database change that
     indicates that a new exchange-close-time has been added and, if it has,
-    will reset, in the redis server, the list of exchange-close-times to
+    will reset, in the redis server?, the list of exchange-close-times to
     include that new time(s) - reset instead of just adding the time(s) in
     order to eliminate any possible deleted (i.e., no-longer-used)
     exchange-close-times.
@@ -29,3 +31,22 @@ code that loads the rails environment and accesses the database will not
   o A service will watch for newly arrived EOD data for today for "used"
     tradables/symbols and trigger any configured analyses for those
     symbols.
+
+
+[1] Each period <hour?>, check, for each exchange, x, that is in the
+timezone in which it is a new day (midnight [and/or 1?]), whether or not x
+is closed.  (Probably: Each period, when you check the above, also query
+redis [for, perhaps, something like 'exchange-related-update'] to see if the
+exchange-schedule information has been updated.  If it has, re-read the
+appropriate tables into memory and then delete the key/value.  Another
+process (probably the rails app), of course, will be responsible for
+'set'ting that key/value when a change has actually taken place.)  If x is
+open, get its open- close/... times and store that info in memory.  Get the
+timezone from Exchange, close-dates from MarketCloseDate and CloseDateLink,
+the schedule for the current date from MarketSchedule.  Must convert to UTC,
+of course.
+
+Keep a running list of exchange close-times for the current day, sorted by
+time/increasing (so that, e.g., when it's currently 1am UTC, it is 3pm in
+Hong Kong and [perhaps] the Hong Kong stock exchange is closing - it should
+currently be at/near the top of the list).

@@ -1,5 +1,6 @@
 =begin
 name: varchar (NOT NULL)
+# Is this schedule currently used? (i.e., false implies: self is unused/ignored)
 active: boolean (NOT NULL)
 trigger_type: varchar
 trigger_id: integer
@@ -23,4 +24,12 @@ class AnalysisSchedule < ApplicationRecord
 #### (test/experiment!!!!!! [may not be permanent]): ####
   has_many   :address_assignments, as: :address_user
   has_many   :notification_addresses, :through => :address_assignments
+
+  public  ###  Status report
+
+  # Is this schedule currently in use - i.e., active?
+  def active?
+    self.active
+  end
+
 end

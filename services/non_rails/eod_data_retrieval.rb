@@ -5,16 +5,15 @@ SVCDIR = 'services'
 if TATDIR.nil? then
   raise "Environment variable TATDIR is not set."
 end
-puts TATDIR
 
 %w{. lib/util/ lib/config lib/data_retrieval/implementation
 lib/data_retrieval/implementation lib/data_retrieval/interface
-lib/data_retrieval/interface lib/managers}.each do |path|
+lib/data_retrieval/interface lib/managers lib/architectural/active_record
+lib/architectural/redis}.each do |path|
   $LOAD_PATH << "#{TATDIR}/#{SVCDIR}/#{path}"
 end
 
 require 'eod_retrieval_manager'
 
 r = EODRetrievalManager.new
-puts "r: #{r}"
 r.execute

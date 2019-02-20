@@ -2,27 +2,82 @@
 "New Years Day",NYSE
 "New Years Day",NASDAQ
 "New Years Day",AMEX
+"New Years Day",ARCA
+"New Years Day",SHE
+"New Years Day",SHG
+"New Years Day",FSX
 "Martin Luther King, Jr. Day",NYSE
 "Martin Luther King, Jr. Day",NASDAQ
 "Martin Luther King, Jr. Day",AMEX
+"Martin Luther King, Jr. Day",ARCA
 "Washington's Birthday",NYSE
 "Washington's Birthday",NASDAQ
 "Washington's Birthday",AMEX
+"Washington's Birthday",ARCA
 "Good Friday",NYSE
 "Good Friday",NASDAQ
 "Good Friday",AMEX
+"Good Friday",ARCA
+"Good Friday",FSX
 "Memorial Day",NYSE
 "Memorial Day",NASDAQ
 "Memorial Day",AMEX
+"Memorial Day",ARCA
 "US Independence Day",NYSE
 "US Independence Day",NASDAQ
 "US Independence Day",AMEX
+"US Independence Day",ARCA
 "US Labor Day",NYSE
 "US Labor Day",NASDAQ
 "US Labor Day",AMEX
+"US Labor Day",ARCA
 "Thanksgiving Day",NYSE
 "Thanksgiving Day",NASDAQ
 "Thanksgiving Day",AMEX
+"Thanksgiving Day",ARCA
 "Christmas",NYSE
 "Christmas",NASDAQ
 "Christmas",AMEX
+"Christmas",ARCA
+"Christmas",FSX
+"Chinese New Year, day 1",SHE
+"Chinese New Year, day 2",SHE
+"Chinese New Year, day 3",SHE
+"Chinese New Year, day 4",SHE
+"Chinese New Year, day 5",SHE
+"Chinese New Year, day 6",SHE
+"Chinese New Year, day 7",SHE
+"Chinese New Year, day 1",SHG
+"Chinese New Year, day 2",SHG
+"Chinese New Year, day 3",SHG
+"Chinese New Year, day 4",SHG
+"Chinese New Year, day 5",SHG
+"Chinese New Year, day 6",SHG
+"Chinese New Year, day 7",SHG
+"Qingming Festival",SHE
+"Qingming Festival",SHG
+"Chinese Labour Day",SHE
+"Chinese Labour Day",SHG
+"Dragon Boat Festival",SHE
+"Dragon Boat Festival",SHG
+"Mid-Autumn Festival",SHE
+"Mid-Autumn Festival",SHG
+"PRC National Day, day 1",SHE
+"PRC National Day, day 2",SHE
+"PRC National Day, day 3",SHE
+"PRC National Day, day 4",SHE
+"PRC National Day, day 5",SHE
+"PRC National Day, day 6",SHE
+"PRC National Day, day 7",SHE
+"PRC National Day, day 1",SHG
+"PRC National Day, day 2",SHG
+"PRC National Day, day 3",SHG
+"PRC National Day, day 4",SHG
+"PRC National Day, day 5",SHG
+"PRC National Day, day 6",SHG
+"PRC National Day, day 7",SHG
+"Easter Monday",FSX
+"International Workers' Day",FSX
+"Whit Monday",FSX
+"Day of German Unity",FSX
+"Boxing Day",FSX

@@ -30,13 +30,16 @@ filter() {
         '|egrep -v '^$'
 }
 
-case "$1" in
+case $1 in
     -t*) istest=true;shift
         ;;
 esac
 
-if [ "$DB" ] || eval $istest; then
+if [ "$DB" ]; then
     db=$DB
+fi
+if eval $istest; then
+    db=tat_test
 fi
 if [ $# -eq 0 ]; then
     echo "$tbcmd"|psql -U $user -d $db|filter|awk '{print "[" NR "] " $0}'
