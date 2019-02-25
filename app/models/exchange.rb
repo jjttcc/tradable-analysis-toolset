@@ -5,7 +5,6 @@
  full_name         | character varying
 =end
 
-
 class Exchange < ApplicationRecord
   include Contracts::DSL, TatUtil
 
@@ -101,10 +100,7 @@ class Exchange < ApplicationRecord
       result << self
     end
     market_schedules.each do |s|
-#!!!new_s = MarketSchedule.find(s.id)
-#!!!      if new_s.updated_at > datetime then
       if s.updated_at > datetime then
-puts "up_since[2] result #{result} [new updatedat: #{s.updated_at}]"
         result << s
       end
     end
@@ -112,40 +108,6 @@ puts "up_since[2] result #{result} [new updatedat: #{s.updated_at}]"
       if mcd.updated_at > datetime then
         result << mcd
       end
-    end
-puts "up_since[3] result #{result}" if result.count > 0
-    result
-  end
-
-  # Was this object updated - where its settings, in the database, changed
-  # after 'datetime'?
-  def updated_since?(datetime)
-#!!!!Call the parent 'reload' method: [needed? probably not]
-#!!!!ApplicationRecord.instance_method(:reload).bind(self).call
-puts "up_since[0] (since dt: #{datetime})"
-    result = updated_at > datetime
-puts "up_since[1] result #{result} [updatedat: #{updated_at}"
-    if ! result then
-      market_schedules.each do |s|
-new_s = MarketSchedule.find(s.id)
-#!!!!s.reload
-puts "up_since[2] result #{result} [new updatedat: #{new_s.updated_at}]"
-        if new_s.updated_at > datetime then
-          result = true
-          break
-        end
-      end
-puts "up_since[3] result #{result}"
-      if ! result then
-        market_close_dates.each do |mcd|
-#!!!!mcd.reload
-          if mcd.updated_at > datetime then
-            result = true
-            break
-          end
-        end
-      end
-puts "up_since[3] result #{result}"
     end
     result
   end
@@ -182,7 +144,6 @@ puts "up_since[3] result #{result}"
         result = schedule.in_core_hours?(@current_local_time)
       end
     end
-puts "Am I #{name} open? - #{result}"
     result
   end
 

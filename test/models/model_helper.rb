@@ -123,8 +123,11 @@ puts "set-symlist - id for #{s}: #{sid}"
     list = SymbolList.new(name: name, symbols: symbol_ids)
 puts "What did I make? - symbol_ids: #{symbol_ids}\nlist: #{list.inspect}"
     owner.symbol_list = list
+puts "before CALLING save"
     owner.save!
+puts "after CALLING save"
 puts "owner: #{owner.inspect}"
+puts "owner.symbol_list: #{owner.symbol_list.inspect}"
     owner
   end
 

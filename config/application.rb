@@ -58,26 +58,22 @@ module TradableAnalysisToolset
     # Number of seconds to wait for socket operations before giving up
     config.timeout_seconds = 6
 
-    # Add all directories, recursively, under the 'library' directory to
-    # the autoload paths to allow any class file in any of those
-    # directories to be loaded (without needing a namespace qualification).
+    # Note: eager loading for all environments - no auto-loading
+    config.eager_load = true
     Dir.glob(Rails.root.join('library/**/')) do |f|
-      config.autoload_paths << f
+      config.eager_load_paths << f
     end
-    # Same for 'app/mas_bridge'.
     Dir.glob(Rails.root.join('app/mas_bridge/**/')) do |f|
-      config.autoload_paths << f
+      config.eager_load_paths << f
     end
-    if ENV['RAILS_ENV'] == 'test' || ENV.has_key?('IS_TAT_SERVICE') then
-      # Same for 'services'.
-      Dir.glob(Rails.root.join('services/**/')) do |f|
-        config.autoload_paths << f
-      end
+    Dir.glob(Rails.root.join('services/**/')) do |f|
+      config.eager_load_paths << f
     end
 
     config.after_initialize do
       begin
         # Create global object used to retrieve company names.
+        #!!!Note: This stuff might be obsolete/no-longer-used:
         $external_tradable_info = TradableTools.new
         $log.debug("[#{__FILE__}] external_tradable_info: " +
                    "#{$external_tradable_info}")

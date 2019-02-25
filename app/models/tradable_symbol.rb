@@ -18,6 +18,7 @@ class TradableSymbol < ApplicationRecord
 
   public ###  Status report
 
+  # Is this tradable being tracked - i.e., used - by someone?
   def tracked?
     ts = self
     if tracking_count.nil? then

@@ -45,6 +45,16 @@ class AnalysisProfile < ApplicationRecord
     analysis_client.name
   end
 
+  # Array of TradableSymbol objects used by self
+  post :empty_if_unused do |result| implies(! in_use?, result.empty?) end
+  def tracked_tradables
+    result = []
+    if in_use? then
+      result = TradableSymbol.find(symbol_list.symbols)
+    end
+    result
+  end
+
   # Array of AnalysisRun, from the event_generation_profiles, of the last
   # analysis run (empty if no analysis was performed)
   def last_analysis_runs
