@@ -9,7 +9,7 @@ require 'tat_services_facilities'
 # actions - E.g., publishing an EOD-check-data message associated with
 # tradables for exchange 'X', where 'X' has just closed
 class ExchangeScheduleMonitor < Publisher
-  include Contracts::DSL, RedisFacilities, TatServicesFacilities, TatUtil
+  include Contracts::DSL, TatServicesFacilities, TatUtil
 
   public  ###  Access
 
@@ -41,12 +41,25 @@ STDOUT.flush    # Allow any debugging output to be seen.
 puts "calling symbols_for, send_check_notification " +
 "with next-close-time: #{@next_close_time}"
 STDOUT.flush    # Allow any debugging output to be seen.
-          send_check_notification(exchange_clock.symbols_for(@next_close_time))
+          if run_state != SERVICE_RUNNING then
+            if run_state == SERVICE_SUSPENDED then
+              wait_for_resume_command
+            end
+          end
+          if run_state == SERVICE_TERMINATED then
+            @continue_monitoring = false
+          else
+            send_check_notification(
+              exchange_clock.symbols_for(@next_close_time))
+          end
         end
       end
+=begin
       # Force the next exchange_clock.next_close_time call to use
       # up-to-date data:
+#!!!!This statement should probably be removed - check:
       exchange_clock.refresh_exchanges
+=end
     end
   end
 
@@ -58,11 +71,12 @@ STDOUT.flush    # Allow any debugging output to be seen.
   # 'handle_exchange_updates' to check for relevant database changes.
   # Returning false implies that a relevant database change was detected,
   # and that 'exchange_clock.exchanges' was reloaded - i.e., is up to date.
-  post :time_reached do |res, time| implies(res, time <= Time.current) end
+  post :time_reached_unless_dead do |result, time|
+    implies(result, time <= Time.current || terminated?) end
   def deadline_reached(utc_time)
     cancel_wait = false
     pause_counter = 0
-    while ! cancel_wait && Time.current < utc_time
+    while ! terminated? && ! cancel_wait && Time.current < utc_time
 puts "[dr] It's #{Time.current} and I'm waiting for a deadline of #{utc_time}."
       pause
       if pause_counter > CHECK_FOR_UPDATES_THRESHOLD then
@@ -82,8 +96,11 @@ puts "On #{Time.current} the database was changed, so I'm ending my loop."
     ! cancel_wait
   end
 
+  # If run_state == SERVICE_RUNNING, ask 'exchange_clock' whether the
+  # exchanges need updating and, if so, call:
+  #   exchange_clock.refresh_exchanges
   def handle_exchange_updates
-    if exchange_clock.exchanges_updated?  then
+    if run_state == SERVICE_RUNNING && exchange_clock.exchanges_updated?  then
 puts "[heu] - ex_updated was true"
       @exchange_was_updated = true
       exchange_clock.refresh_exchanges
@@ -94,80 +111,57 @@ puts "[heu] - ex_updated was true"
 
     LONG_TERM_STATUS_ITERATIONS = 10
 
-  # Send status info to any interested parties.
+  # If run_state == SERVICE_RUNNING: send status info to any interested
+  # parties.  Otherwise, null op.
   def send_status_info
-    send_alive_status
-    close_time = nil
-    if @next_close_time != nil then
-      close_time = @next_close_time.utc.to_s
-    end
-    send_next_close_time(close_time, EXCH_THRESHOLD_INTERVAL)
-    if
-      @long_term_i_count < 0 ||
-      @long_term_i_count > LONG_TERM_STATUS_ITERATIONS
-    then
-      @long_term_i_count = 0
-      open_markets = @exchange_clock.open_exchanges.map do |m|
-        m.name
+    send_exch_mon_run_state
+    if run_state == SERVICE_RUNNING then
+      close_time = nil
+      if @next_close_time != nil then
+        close_time = @next_close_time.utc.to_s
       end
-      send_open_market_info(open_markets)
-    end
-    @long_term_i_count += 1
-    @long_term_i_count += 1
-  end
-
-  # Send status info to any interested parties.
-#!!!!Perhaps, also report which, if any, exchanges are currently open -
-#!!!!possibly less often - i.e., in a separate method.
-  def old___send_status_info
-    alive_args = eval_settings(EXCH_MONITOR_ALIVE_SETTINGS)
-puts "'send_status_info' sending: #{alive_args.inspect}"
-    redis.set *alive_args
-    close_time_replacement = nil
-    if @next_close_time != nil then
-      close_time_replacement = @next_close_time.utc.to_s
-    end
-    close_time_args = eval_settings(EXCH_MONITOR_NEXT_CLOSE_SETTINGS,
-        close_time_replacement, EXCH_THRESHOLD_INTERVAL)
-puts "'send_status_info' sending: #{close_time_args.inspect}"
-    redis.set *close_time_args
-    if
-      @long_term_i_count < 0 ||
-      @long_term_i_count > LONG_TERM_STATUS_ITERATIONS
-    then
-      @long_term_i_count = 0
-      open_markets = @exchange_clock.open_exchanges.map do |m|
-        m.name
+      send_next_close_time(close_time)
+      if
+        @long_term_i_count < 0 ||
+          @long_term_i_count > LONG_TERM_STATUS_ITERATIONS
+      then
+        @long_term_i_count = 0
+        open_markets = @exchange_clock.open_exchanges.map do |m|
+          m.name
+        end
+        send_open_market_info(open_markets)
       end
-      open_market_args = eval_settings(EXCH_MONITOR_OPEN_MARKET_SETTINGS,
-                                      open_markets)
-      redis.del open_market_args.first  # Remove the old list, if any.
-      if ! open_markets.empty? then
-puts "'send_status_info' sending: #{open_market_args.inspect}"
-        redis.sadd *open_market_args
-      end
+      @long_term_i_count += 1
+      @long_term_i_count += 1
     end
-    @long_term_i_count += 1
-    @long_term_i_count += 1
   end
 
   end
 
-  # Send an "I am still alive" signal to any interested parties.
-  def old__remove____send_status_info
-#!!!fix:!!!
-    settings = EXCH_MONITOR_ALIVE_SETTINGS
-    alive_args = [settings[ALIVE_KEY], settings[ALIVE_VALUE],
-      settings[ALIVE_EXPIRE]]
-    alive_args = eval_settings(EXCH_MONITOR_ALIVE_SETTINGS)
-#!!![end]fix:!!!
-=begin
-consider:
-  alive_args[1] = @next_close_time.utc
-i.e., send next-close-time instead of current time.
-=end
-puts "I am alive args: #{alive_args.inspect}"
-    redis.set *alive_args
+  # Retrieve any pending external commands and enforce a response by
+  # changing internal state - @run_state.
+  post :termination_side_effect do
+    implies(run_state == SERVICE_TERMINATED, ! continue_monitoring) end
+  def process_external_command
+    new_state = current_ordered_exch_mon_state
+    if new_state != nil && new_state != run_state then
+      @run_state = new_state
+      if run_state == SERVICE_TERMINATED then
+        @continue_monitoring = false
+        # Make sure the order doesn't "linger" after termination.
+        delete_exch_mon_order
+      end
+      send_exch_mon_run_state
+    end
+  end
+
+  # Wait for an external order to end the suspended run-state.
+  pre  :suspended do run_state == SERVICE_SUSPENDED end
+  post :not_susp  do run_state != SERVICE_SUSPENDED end
+  def wait_for_resume_command
+    while run_state == SERVICE_SUSPENDED do
+      pause
+    end
   end
 
   # Obtain the symbols/tradables affected by the closing of the exchanges
@@ -180,7 +174,6 @@ puts "I am alive args: #{alive_args.inspect}"
 puts "send_check_notification - sadding: #{eod_check_key}, #{symbols} " +
 "(#{symbols.map {|s| s.symbol}}) on #{DateTime.current}"
     if symbols.count > 0 then
-#!!!!!      count = redis.sadd(eod_check_key, symbols.map {|s| s.symbol})
       count = add_set(eod_check_key, symbols.map {|s| s.symbol})
       if count != symbols.count then
         msg = "send_check_notification: add_set returned different count " +
@@ -193,22 +186,23 @@ puts "send_check_notification - publishing '#{eod_check_key}'"
     end
   end
 
-  # Sleep for PAUSE_SECONDS.
+  # Sleep for EXMON_PAUSE_SECONDS.
   def pause
-    sleeptime = PAUSE_SECONDS
+    sleeptime = EXMON_PAUSE_SECONDS
 puts "sleeping #{sleeptime} seconds..."
     STDOUT.flush    # Allow any debugging output to be seen.
     sleep  sleeptime
     send_status_info
+    process_external_command
 print "woke up at: "
 system('date')
   end
 
-  # Sleep for LONG_PAUSE_ITERATIONS periods of PAUSE_SECONDS.
+  # Sleep for EXMONLONG_PAUSE_ITERATIONS periods of EXMON_PAUSE_SECONDS.
   def long_pause
-    sleeptime = PAUSE_SECONDS
+    sleeptime = EXMON_PAUSE_SECONDS
     pause_counter = 0
-    LONG_PAUSE_ITERATIONS.times do |i|
+    EXMONLONG_PAUSE_ITERATIONS.times do |i|
 puts "#{i}th pause for #{sleeptime} seconds..."
       STDOUT.flush    # Allow any debugging output to be seen.
       sleep sleeptime
@@ -219,15 +213,18 @@ puts "#{i}th pause for #{sleeptime} seconds..."
         pause_counter += 1
       end
       send_status_info
+      process_external_command
+      if terminated? then
+        break
+      end
     end
   end
 
   private
 
   attr_reader :eod_check_key, :log, :continue_monitoring, :exchange_clock,
-    :refresh_requested
+    :refresh_requested, :run_state
 
-  PAUSE_SECONDS, LONG_PAUSE_ITERATIONS = 15, 7
   # While this value is > the number of seconds until the next upcoming
   # market-close time, any new market/exchange updates will be ignored.
   EXCH_THRESHOLD_INTERVAL = 600
@@ -241,6 +238,7 @@ puts "#{i}th pause for #{sleeptime} seconds..."
     @refresh_requested = false
     @eod_check_key = new_eod_check_key
     @exchange_clock = ExchangeClock.new
+    @run_state = SERVICE_RUNNING
     @long_term_i_count = -1
     super(EOD_CHECK_CHANNEL)
   end

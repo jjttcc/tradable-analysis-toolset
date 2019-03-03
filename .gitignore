@@ -37,7 +37,7 @@ hide*/
 doc/app
 doc/resources
 .alias
-tools/
+/tools/
 *_LIST*
 .byebug*
 cur[df]*

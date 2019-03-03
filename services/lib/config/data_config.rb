@@ -2,6 +2,12 @@
 class DataConfig
   include Contracts::DSL
 
+  public  ###  Constants
+
+  # Number of seconds until the next "tradable-tracking cleanup" needs to
+  # be performed:
+  TRACKING_CLEANUP_INTERVAL = 61200
+
   public
 
   # EOD data-retrieval object

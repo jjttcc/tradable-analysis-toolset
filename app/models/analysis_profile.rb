@@ -47,10 +47,24 @@ class AnalysisProfile < ApplicationRecord
 
   # Array of TradableSymbol objects used by self
   post :empty_if_unused do |result| implies(! in_use?, result.empty?) end
+  post :matches_symbol_list_if_used do |result|
+    implies(in_use?, result.count == symbol_list.symbols.count) end
   def tracked_tradables
     result = []
     if in_use? then
       result = TradableSymbol.find(symbol_list.symbols)
+    end
+    result
+  end
+
+  # Array of id of: TradableSymbol-objects used by self
+  post :empty_if_unused do |result| implies(! in_use?, result.empty?) end
+  post :matches_symbol_list_if_used do |result|
+    implies(in_use?, result == symbol_list.symbols) end
+  def tracked_tradable_ids
+    result = []
+    if in_use? then
+      result = symbol_list.symbols
     end
     result
   end

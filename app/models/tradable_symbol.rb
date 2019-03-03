@@ -1,10 +1,7 @@
 =begin
- symbol         | character varying           | not null
- created_at     | timestamp without time zone | not null
- updated_at     | timestamp without time zone | not null
- exchange_id    | integer
- # number of entities/clients tracking the associated tradable:
- tracking_count | integer                     | not null default 0
+ symbol      | character varying           | not null
+ exchange_id | integer
+ tracked     | boolean                     | not null default false
 =end
 
 class TradableSymbol < ApplicationRecord
@@ -14,39 +11,42 @@ class TradableSymbol < ApplicationRecord
 
   belongs_to :exchange
 
-  scope :tracked, -> { where('tracking_count > 0') }
+  scope :tracked_tradables, -> { where('tracked = ?', true) }
 
   public ###  Status report
 
   # Is this tradable being tracked - i.e., used - by someone?
+  # (Alias for 'tracked' - i.e., with '?' added)
   def tracked?
-    ts = self
-    if tracking_count.nil? then
-      ts = load
+    tr = self
+    if tracked.nil? then
+      tr = load
     end
-    ts.tracking_count > 0
+    tr.tracked
   end
 
   public  ###  Basic operations
 
-  # Increment the 'tracking_count' and save the record (self).
+  # Set as 'tracked'.
   post :tracked do tracked? end
   def track!
     ts = self
-    if tracking_count.nil? then
+    if tracked.nil? then
       ts = load
     end
-    self.update_attribute(:tracking_count, ts.tracking_count + 1)
+    if ! ts.tracked then
+      self.update_attribute(:tracked, true)
+    end
   end
 
-  # If 'tracking_count' > 0, decrement it and save the record (self).
+  # Set as not 'tracked'.
   def untrack!
     ts = self
-    if tracking_count.nil? then
+    if tracked.nil? then
       ts = load
     end
-    if ts.tracking_count > 0 then
-      self.update_attribute(:tracking_count, ts.tracking_count - 1)
+    if ts.tracked then
+      self.update_attribute(:tracked, false)
     end
   end
 

@@ -5,11 +5,14 @@
 =end
 
 # Lists of symbols - to be used for, e.g., analysis requests
-#!!!!TO-DO: Need a cached hash table: symbol_for (key: id, value: symbol)!!!
+#!!!!TO-DO: Need a cached hash table: symbol_for (key: id, value: symbol)??!!
 class SymbolList < ApplicationRecord
   public
 
   has_many :symbol_list_assignments
+
+  # Instances that were updated on or after 'time'
+  scope :updated_since, ->(time) {where('updated_at >= ?', time) }
 
   public
 

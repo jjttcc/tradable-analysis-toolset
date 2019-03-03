@@ -5,4 +5,8 @@ class SymbolListAssignment < ApplicationRecord
 
   belongs_to :symbol_list_user, polymorphic: true
   belongs_to :symbol_list
+
+  # Instances that were updated on or after 'time'
+  scope :updated_since, ->(time) {where('updated_at >= ?', time) }
+
 end

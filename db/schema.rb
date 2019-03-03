@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20190213121745) do
+ActiveRecord::Schema.define(version: 20190227044711) do
 
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
@@ -310,14 +310,14 @@ ActiveRecord::Schema.define(version: 20190213121745) do
   end
 
   create_table "tradable_symbols", force: :cascade do |t|
-    t.string   "symbol",                     null: false
-    t.datetime "created_at",                 null: false
-    t.datetime "updated_at",                 null: false
+    t.string   "symbol",                      null: false
+    t.datetime "created_at",                  null: false
+    t.datetime "updated_at",                  null: false
     t.integer  "exchange_id"
-    t.integer  "tracking_count", default: 0, null: false
+    t.boolean  "tracked",     default: false, null: false
     t.index ["exchange_id"], name: "index_tradable_symbols_on_exchange_id", using: :btree
     t.index ["symbol"], name: "index_tradable_symbols_on_symbol", unique: true, using: :btree
-    t.index ["tracking_count"], name: "index_tradable_symbols_on_tracking_count", using: :btree
+    t.index ["tracked"], name: "index_tradable_symbols_on_tracked", using: :btree
   end
 
   create_table "tradables", force: :cascade do |t|

@@ -1,4 +1,6 @@
-#!!!!TO-DO: Add description.!!!!
+# Abstraction for time-based monitoring of exchanges (such as: When is the
+# earliest upcoming market-closing time and which exchanges will close at
+# that time?)
 class ExchangeClock
   include Contracts::DSL, TatUtil
 
@@ -20,28 +22,21 @@ class ExchangeClock
   # The active (used) symbols associated with the exchanges associated with
   # 'close_time' (datetime returned by 'next_close_time') - i.e., the
   # symbols associated with 'exchanges_for(close_time)'
-  # Note: This method is somewhat expensive CPU-wise, so it probably should
-  # not be called too often.
   pre  :valid_time do |ctime| ctime != nil && ctime.respond_to?(:strftime) end
   post :exists do |result| ! result.nil? end
   def symbols_for(close_time)
-#!!!!NOTE: If this version of 'symbols_for' is used, 'tracking_count'
-#!!!!should probably be removed from the tradable_symbols table.
 STDOUT.flush    # Allow any debugging output to be seen.
     exchanges = exchanges_for(close_time)
     ex_id_map = Hash[exchanges.collect { |x| [x.id, true] } ]
-    tracked = []
-    AnalysisProfile.all.each do |p|
-      tracked.concat(p.tracked_tradables)
-    end
+    tracked = TradableSymbol.tracked_tradables
 puts "tracked symbols count: #{tracked.count}"
     result = tracked.select do |s|
-print "looking for exchange for #{s.symbol} (xid: #{s.exchange_id}):\n"
-puts ex_id_map[s.exchange_id]
+print "looking for exchange for #{s.symbol} (xid: #{s.exchange_id}):\n" +
+ex_id_map[s.exchange_id].inspect
       ex_id_map[s.exchange_id]
     end
 if result.empty? then
-  ['IBM', 'RHT'].each do |s|   #!!!!STUB!!!!
+  ['IBM', 'RHT'].each do |s|   #!!!!testing STUB!!!!
     ts = TradableSymbol.find_by_symbol(s)
     if ! ts.nil? then
       result << ts
@@ -59,21 +54,30 @@ end
   # not be called too often.
   pre  :valid_time do |ctime| ctime != nil && ctime.respond_to?(:strftime) end
   post :exists do |result| ! result.nil? end
-  def version1__symbols_for(close_time)
+#!!!!
+  def old___symbols_for(close_time)
 STDOUT.flush    # Allow any debugging output to be seen.
     exchanges = exchanges_for(close_time)
     ex_id_map = Hash[exchanges.collect { |x| [x.id, true] } ]
-    tracked = TradableSymbol.tracked
+    tracked = []
+    AnalysisProfile.all.each do |p|
+      tracked.concat(p.tracked_tradables)
+    end
+#!!!!!Reminder!!!!!: Eliminate duplicates.
 puts "tracked symbols count: #{tracked.count}"
     result = tracked.select do |s|
-print "looking for exchange for #{s.symbol} (xid: #{s.exchange_id}):\n"
-puts ex_id_map[s.exchange_id]
+print "looking for exchange for #{s.symbol} (xid: #{s.exchange_id}):\n" +
+ex_id_map[s.exchange_id].inspect
       ex_id_map[s.exchange_id]
     end
-
 if result.empty? then
-result = ['IBM', 'RHT']   #!!!!STUB!!!!
-  puts "[symbols_for] cheated - added a couple symbols"
+  ['IBM', 'RHT'].each do |s|   #!!!!testing STUB!!!!
+    ts = TradableSymbol.find_by_symbol(s)
+    if ! ts.nil? then
+      result << ts
+      puts "[symbols_for] cheated - added #{ts.symbol}"
+    end
+  end
 end
     result
   end
@@ -141,7 +145,6 @@ end
           end
         else
           $log.debug("close_time for #{e.name} is past (#{close_time})")
-puts "close_time for #{e.name} is past (#{close_time})"
         end
       end
     else
@@ -159,11 +162,8 @@ puts "close_time for #{e.name} is past (#{close_time})"
     # Make sure each exchange's "current local time" is actually current:
     refresh_exchanges
     result = exchanges.select do |e|
-puts "[open_exchanges] e: #{e.inspect}"
-puts "[open_exchanges] e.is_open?: #{e.is_open?}"
       e.is_open?
     end
-puts "[open_exchanges] result: #{result.inspect}"
     result
   end
 

@@ -11,15 +11,6 @@ module ForkedDatabaseExecution
   # child process id - available in the parent process
   attr_reader :child_pid
 
-  public  ###  Access
-
-  def db_config
-    if @db_config.nil? then
-#      initialize
-    end
-    @db_config
-  end
-
   public  ###  Basic operations
 
   # Fork a child process and execute the specified block in the child
@@ -28,6 +19,9 @@ module ForkedDatabaseExecution
   # parent's connection.  If 'sig_handlers' is not nil, it is used to specify
   # a Hash of: signal => code, so that, for each signal, s, in
   # sig_handlers, signal handler sig_handlers[s] is installed.
+  # Note: The database connection is re-established in the parent (i.e.,
+  # ActiveRecord::Base.establish_connection(...)) unless
+  # @do_not_re_establish_connection is defined and evaluates to true.
   def execute_with_wait(sig_handlers = nil, &block)
     perform_execution(true, sig_handlers, block)
   end
@@ -38,22 +32,11 @@ module ForkedDatabaseExecution
   # parent's connection.  If 'sig_handlers' is not nil, it is used to specify
   # a Hash of: signal => code, so that, for each signal, s, in
   # sig_handlers, signal handler sig_handlers[s] is installed.
+  # Note: The database connection is re-established in the parent (i.e.,
+  # ActiveRecord::Base.establish_connection(...)) unless
+  # @do_not_re_establish_connection is defined and evaluates to true.
   def execute_without_wait(sig_handlers = nil, &block)
     perform_execution(false, sig_handlers, block)
-  end
-
-  # Close the database connection, if it is open.
-  def close_connection
-    if ActiveRecord::Base.connected? then
-      ActiveRecord::Base.remove_connection
-    end
-  end
-
-  # Open the database connection, if it is closed.
-  def open_connection
-    if ! ActiveRecord::Base.connected? then
-      ActiveRecord::Base.establish_connection(db_config)
-    end
   end
 
   protected
@@ -70,23 +53,20 @@ module ForkedDatabaseExecution
 
   private
 
-  def initialize
-    @db_config = ActiveRecord::Base.connection_config
-  end
-
   def perform_execution(wait, sig_handlers = nil, block)
-#!!!dbconfig = ActiveRecord::Base.remove_connection
-    ActiveRecord::Base.remove_connection
+    @db_config = ActiveRecord::Base.remove_connection
     @child_pid = fork do
       if sig_handlers != nil then
         trap_signals(sig_handlers)
       end
       # Establish new db connection in forked child
-      ActiveRecord::Base.establish_connection(db_config)
+      ActiveRecord::Base.establish_connection(@db_config)
       block.call
     end
-    # Re-establish db connection in parent.
-    ActiveRecord::Base.establish_connection(db_config)
+    if ! @do_not_re_establish_connection then
+      # Re-establish db connection in parent.
+      ActiveRecord::Base.establish_connection(@db_config)
+    end
     if wait then
       Process.wait(@child_pid)
     else

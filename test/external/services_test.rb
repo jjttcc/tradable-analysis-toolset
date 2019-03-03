@@ -70,7 +70,7 @@ class ServicesTest < MiniTest::Test
     end
   end
 
-  def hide___test_eod_task
+  def test_eod_task
     require "rake"
     symbols = ['I', 'K', 'L']
 #!!!symbols = ['x']

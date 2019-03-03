@@ -1,0 +1,381 @@
+# Responsible for identification and marking, and subsequent cleanup, of
+# which tradables are currently being tracked - Issues orders to
+# ExchangeScheduleMonitor to allow synchronization/coordination between the
+# two tasks of keeping tracked of "tracked" tradable-symbols in the
+# database (i.e., this class/process) and querying for all "tracked"
+# symbols at market-close time (i.e., ExchangeScheduleMonitor) to provide
+# correct and up-to-date notification of which tradables need to be
+# retrieved with respect to end-of-day data.
+class TradableTrackingManager
+  include Contracts::DSL, TatServicesFacilities, TatUtil
+  # Use this module to allow RAM-hungry database operations to be
+  # performed in a child process and thus released (RAM) when completed:
+  include ForkedDatabaseExecution
+
+  public     ###  Basic operations
+
+  # Execute an infinite loop in which the needed actions are periodically
+  # performed.
+  def execute
+log("Is there a 'log' method?")
+    while continue_processing
+      if cleanup_needed then
+        execute_complete_cycle
+puts "finished CLEANING up #{DateTime.current}."
+STDOUT.flush
+      else
+report_on_cleanup_schedule
+        process_tracking_changes
+      end
+      check_and_respond_to_sick_exchmon
+puts "sleeping #{MODERATE_PAUSE_SECONDS} seconds...#{DateTime.current}"
+STDOUT.flush
+      sleep MODERATE_PAUSE_SECONDS
+    end
+  end
+
+  protected  ###  Top-level implementation
+
+  # Clean up the database with respect to tradables marked as tracked that
+  # are no longer tracked:
+  #   - First, mark all tracked TradableSymbol records as NOT tracked.
+  #   - Find the tradables that are currently tracked and mark the
+  #     corresponding TradableSymbol records as tracked.
+  post :update_time_set do last_update_time != nil end
+  post :cleanup_time_set do last_cleanup_time != nil end
+  def execute_complete_cycle
+puts "CLEANING UP - #{__method__} #{DateTime.current}."
+STDOUT.flush
+    wait_until_exch_monitor_ready
+    suspend_exch_monitor
+    execute_with_wait do
+      ActiveRecord::Base.transaction do
+puts "untracking all symbols...#{DateTime.current}"
+STDOUT.flush
+        untrack_all_symbols
+puts "tracking symbols...#{DateTime.current}"
+STDOUT.flush
+        track_used_symbols
+puts "FINISHED tracking symbols...#{DateTime.current}"
+STDOUT.flush
+      end
+    end
+    @last_update_time = DateTime.current
+    @last_cleanup_time = @last_update_time
+    wake_exch_monitor
+  end
+
+  # Query for any tracking-related changes that have occurred since
+  # 'last_update_time'.  If any are found, update the affected
+  # TradableSymbols and set 'last_update_time' to the current date/time.
+  pre  :update_time_set do last_update_time != nil end
+  post :update_time_set do last_update_time != nil end
+  def process_tracking_changes
+    execute_with_wait do
+      ActiveRecord::Base.transaction do
+        updated_symbol_ids = ids_of_updated_tradables
+        if ! updated_symbol_ids.empty? then
+          wait_until_exch_monitor_ready
+          suspend_exch_monitor
+          track(updated_symbol_ids)
+          set_message(TTM_LAST_TIME_KEY, DateTime.current.to_s)
+          wake_exch_monitor
+        end
+      end
+    end
+    begin
+      lut = retrieved_message(TTM_LAST_TIME_KEY)
+      if ! lut.nil? then
+        new_lut = DateTime.parse(lut)
+        if new_lut != @last_update_time then
+          @last_update_time = DateTime.parse(lut)
+puts "last_update_time set to: #{last_update_time}"
+        end
+      end
+    rescue StandardError => e
+      raise "Fatal error - parse of time (#{lut.inspect}) failed: #{e}"
+    end
+  end
+
+  # Does 'execute_complete_cycle' need to be called?
+  def cleanup_needed
+    last_cleanup_time.nil? || (cleanup_is_due && markets_are_closed)
+  end
+
+  # If exch_monitor_is_ill, respond by logging a report on the issue and
+  # waiting for a while in the hope that an over-seer process will restart
+  # the exchange monitor.
+  def check_and_respond_to_sick_exchmon
+    if exch_monitor_is_ill then
+      pause_time = MODERATE_PAUSE_SECONDS * 3
+      log("#{EXCH_MON_NAME} is not responding - pausing for #{pause_time} " +
+          "seconds to wait for the process to be re-started.")
+      sleep pause_time
+    end
+  end
+
+  # Has enough time passed since the last cleanup that a new cleanup is
+  # needed?
+  pre  :last_cleanup_exists do last_cleanup_time != nil end
+  def cleanup_is_due
+    # I.e.: (secs-since-epoch - secs-since-epoch-of:last-cleanup-time) <
+    #          allocated-tracking-cleanup-interval[in-seconds]
+    result = DateTime.current.to_i - last_cleanup_time.to_i >
+      DataConfig::TRACKING_CLEANUP_INTERVAL
+if result then
+puts "A cleanup is due! (#{DateTime.current})"
+end
+    result
+  end
+
+  protected  ### Exchange-monitor-related querying and control
+
+  # Are all monitored exchanges currently closed?
+  def markets_are_closed
+    open_market_info.empty?
+  end
+
+  # If the current time is within PRE_CLOSE_TIME_MARGIN seconds from the
+  # next closing time, sleep until a little while after the closing time
+  # has passed.
+  def wait_until_exch_monitor_ready
+    now = DateTime.current
+    previous_close_time = last_recorded_close_time
+    @last_recorded_close_time = next_exch_close_datetime
+puts "Waiting for ex mon to become ready (#{DateTime.current})"
+puts "prevct, last_rct: #{previous_close_time}, #{last_recorded_close_time}"
+STDOUT.flush
+    if last_recorded_close_time != nil then
+#!!!!![Check this section for correctness:
+      seconds_until_close = last_recorded_close_time.to_i - now.to_i
+      # Check # of seconds after last close in case it's, e.g., 5 seconds
+      # after an exchange just close (i.e., too soon):
+      seconds_after_last_close = (
+        (previous_close_time != nil) &&
+        (previous_close_time != last_recorded_close_time)
+      )?  now.to_i - previous_close_time.to_i: POST_CLOSE_TIME_MARGIN
+puts "secs until ct: #{seconds_until_close}"
+puts "secs after lct: #{seconds_after_last_close}"
+      if
+        seconds_until_close < PRE_CLOSE_TIME_MARGIN ||
+          seconds_after_last_close < POST_CLOSE_TIME_MARGIN
+      then
+puts "I'm waiting for #{seconds_until_close + POST_CLOSE_TIME_MARGIN}....." +
+"(#{DateTime.current})"
+STDOUT.flush
+        sleep seconds_until_close + POST_CLOSE_TIME_MARGIN
+      else
+puts "I'm NOT waiting!!!(#{DateTime.current})"
+STDOUT.flush
+      end
+#!!!!!end (Check...)]
+    else
+      check(last_recorded_close_time.nil?)
+      # last_recorded_close_time == nil implies that no wait is needed.
+    end
+puts "finished waiting (or NOT waiting)(#{DateTime.current})"
+STDOUT.flush
+  end
+
+  # Suspend the exchange monitor - Wait and verify that it enters the
+  # suspended state before returning.
+  post :suspended do exch_mon_suspended end
+  def suspend_exch_monitor
+    if ! exch_mon_suspended then
+      order_exch_mon_suspension
+      sleep SHORT_PAUSE_SECONDS
+puts "waiting for exch. mon. to suspend itself..."
+STDOUT.flush
+      pause_count = 0
+      while ! exch_mon_suspended
+        if pause_count > 0 && pause_count % 5 == 0 then
+          if exch_mon_unresponsive || exch_mon_terminated then
+            log("#{EXCH_MON_NAME} has terminated or is diseased")
+            @exch_monitor_is_ill = true
+            break
+          end
+        end
+        # Loop until the reported state actually is "suspended".
+        sleep SHORT_PAUSE_SECONDS
+        pause_count += 1
+      end
+    end
+  end
+
+  # Tell the exchange monitor to start running again.
+  def wake_exch_monitor
+    order_exch_mon_resumption
+  end
+
+  protected  ### Database queries and updates
+
+  # Mark all tradable-symbols as 'untracked'.
+  def untrack_all_symbols
+    TradableSymbol.where(tracked: true).update_all(tracked: false)
+  end
+
+  # Find all tradable-symbols that are currently used and mark each one as
+  # 'tracked'.
+  def track_used_symbols
+    tracked = {}
+    AnalysisProfile.all.each do |p|
+      p.tracked_tradable_ids.each do |symbol_id|
+        tracked[symbol_id] = true
+      end
+    end
+puts "#{__method__} tracking ids: #{tracked.keys.inspect}"
+    TradableSymbol.where(id: tracked.keys).update_all(tracked: true)
+  end
+
+#!!!!!!Remove this old, inefficient version:
+  # Find all tradable-symbols that are currently used and mark each one as
+  # 'tracked'.
+  def inefficient__track_used_symbols
+    tracked = {}
+    AnalysisProfile.all.each do |p|
+      p.tracked_tradables.each do |t|
+        tracked[t.id] = true
+      end
+    end
+    TradableSymbol.where(id: tracked.keys).update_all(tracked: true)
+  end
+
+  # Array: id of each TradableSymbol that has been updated since
+  # 'last_update_time'
+  def ids_of_updated_tradables
+    updated_owners = updated_symbol_list_owners
+    ids_of_untracked_tradables_for(updated_owners)
+  end
+
+  # All owners of an updated (new or changed) SymbolList
+  def updated_symbol_list_owners
+    result_hash = {}
+    # (I.e., hash table of updated "SymbolListAssignment"s:)
+    updated_symlist_assignments = Hash[
+      SymbolListAssignment.updated_since(last_update_time).map do |sla|
+        [sla.id, sla]
+      end
+    ]
+    # The goal here is to find "SymbolList"s whose 'symbols' attribute has
+    # been updated - added-to, removed-from, etc.:
+    updated_symlists = SymbolList.updated_since(last_update_time)
+    # Add any non-duplicate SymbolListAssignment objects referenced by
+    # updated_symlists to updated_symlist_assignments.
+    updated_symlists.each do |sl|
+      sl.symbol_list_assignments.each do |sla|
+        updated_symlist_assignments[sla.id] = sla
+      end
+    end
+    # Insert all 'in_use?' owners of updated_symlist_assignments.values
+    # (SymbolListAssignment objects) into result_hash.
+    updated_symlist_assignments.values.each do |sla|
+puts "sla: #{sla.inspect}"
+      owner = sla.symbol_list_user
+      if owner != nil then
+        if owner.in_use? then
+          result_hash[owner] = true
+        end
+      else
+puts "owner with id: #{sla.symbol_list_user_id} appears to NOT exist."
+      end
+    end
+if ! result_hash.empty? then
+puts "#{__method__} returning:#{result_hash.keys.inspect} (#{DateTime.current})"
+end
+    result_hash.keys
+  end
+
+  # Array: id of each TradableSymbol owned by one (or more) element of
+  # 'ts_owners' for which tracked == false
+  def ids_of_untracked_tradables_for(ts_owners)
+    tracked = {}
+    # Use a hash table to eliminate duplicate ids.
+    ts_owners.each do |o|
+      o.tracked_tradable_ids.each do |symbol_id|
+        tracked[symbol_id] = true
+      end
+    end
+    # (Only include ids for which tracked == false (untracked).)
+    result = TradableSymbol.where({id: tracked.keys, tracked: false})
+    result
+  end
+
+  def orig___updated_symbol_list_owners
+    result_hash = {}
+    # (I.e., hash table of updated "SymbolListAssignment"s:)
+    updated_symlist_assignments = Hash[
+      SymbolListAssignment.updated_since(last_update_time).map do |sla|
+        [sla.id, sla]
+      end
+    ]
+    updated_symlists = SymbolList.updated_since(last_update_time)
+    # Add any non-duplicate SymbolListAssignment objects referenced by
+    # updated_symlists to updated_symlist_assignments.
+    updated_symlists.each do |sl|
+      sl.symbol_list_assignments.each do |sla|
+        updated_symlist_assignments[sla.id] = sla
+      end
+    end
+    updated_symlist_assignments.values.each do |sla|
+      owner = sla.symbol_list_user
+      if owner != nil then
+        if owner.in_use? then
+          result_hash[owner] = true
+        end
+      else
+      end
+    end
+    result_hash.keys
+  end
+
+  pre :one_or_more do |sym_ids| sym_ids != nil && sym_ids.count > 0 end
+  def track(affected_symbol_ids)
+puts "#{__method__} affected_symbol_ids: #{affected_symbol_ids.inspect}"
+    TradableSymbol.where(id: affected_symbol_ids).update_all(tracked: true)
+  end
+
+  def orig___track(symlist_owners)
+    tracked = {}
+    symlist_owners.each do |o|
+      o.tracked_tradable_ids.each do |symbol_id|
+        tracked[symbol_id] = true
+      end
+    end
+    TradableSymbol.where(id: tracked.keys).update_all(tracked: true)
+  end
+
+  private
+
+  attr_reader :continue_processing, :redis, :last_update_time,
+    :last_cleanup_time, :exch_monitor_is_ill
+  # The last recorded 'next_exch_close_datetime'
+  attr_reader :last_recorded_close_time
+
+  SHORT_PAUSE_SECONDS, MODERATE_PAUSE_SECONDS = 2, 30
+  TTM_LAST_TIME_KEY = 'ttm-last-update-time'
+
+  private    ###  Initialization
+
+  post :redis_set do redis != nil end
+  def initialize
+    @redis = Redis.new
+    @last_update_time = nil
+    @last_cleanup_time = nil
+    @last_recorded_close_time = next_exch_close_datetime
+    @continue_processing = true
+    @exch_monitor_is_ill = false
+    @do_not_re_establish_connection = true
+    # Explicitly close the database connection so that the parent process
+    # does not hold onto the database. (See ForkedDatabaseExecution .)
+    ActiveRecord::Base.remove_connection
+  end
+
+  def report_on_cleanup_schedule
+    secs_since_last_cl = DateTime.current.to_i - last_cleanup_time.to_i
+    if secs_since_last_cl % 3600 < DataConfig::TRACKING_CLEANUP_INTERVAL then
+      puts "#{secs_since_last_cl / 60} minutes since last CLEANUP"
+      STDOUT.flush
+    end
+  end
+
+end

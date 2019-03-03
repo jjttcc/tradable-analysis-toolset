@@ -5,6 +5,7 @@ require 'error_log'
 require 'tiingo_data_retriever'
 require 'file_tradable_storage'
 require 'publisher_subscriber'
+require 'redis_facilities'
 require 'tat_services_facilities'
 
 
@@ -17,7 +18,7 @@ require 'tat_services_facilities'
 # Publishes the list of symbols for which data has been retrieved and
 # stored to the "eod-data-ready" channel.
 class EODRetrievalManager < PublisherSubscriber
-  include Contracts::DSL, TatServicesFacilities
+  include Contracts::DSL, RedisFacilities, TatServicesFacilities
 
   public  ###  Access
 
@@ -39,7 +40,7 @@ class EODRetrievalManager < PublisherSubscriber
   #!!!!!TO-DO: Figure out how to detect/handle an invalid symbol!!!!!
   post :attrs_set do ! (target_symbols.nil? || update_symbol_count.nil?) end
   post :published do update_error || (update_completed &&
-      implies(target_symbols.count > 0, redis.scard(data_ready_key) ==
+      implies(target_symbols.count > 0, cardinality(data_ready_key) ==
               target_symbols.count))
   end
   def execute
@@ -98,10 +99,8 @@ class EODRetrievalManager < PublisherSubscriber
       else
         # Update for s was successful, so remove s from the "check-for-eod"
         # list and add it to the "eod-data-ready" list.
-puts "(redis.srem(#{eod_check_key}, #{s}))"   #!!!!!!!!!!
-        redis.srem(eod_check_key, s)
-puts "(redis.sadd(#{data_ready_key}, #{s}))"  #!!!!!!!!!!
-        redis.sadd(data_ready_key, s)
+        remove_from_set(eod_check_key, s)
+        add_set(data_ready_key, s)
         @update_symbol_count += 1
         log.info("last update count: " +
                  "#{storage_manager.last_update_count_for(s)}")
@@ -118,7 +117,7 @@ puts "(redis.sadd(#{data_ready_key}, #{s}))"  #!!!!!!!!!!
 
   # Finish up for 'wait_for_eod_request'.
   def post_process_subscription(channel)
-    @target_symbols = redis.smembers eod_check_key
+    @target_symbols = retrieved_set(eod_check_key)
   end
 
   private
