@@ -40,6 +40,7 @@ require 'csv'
 SYM = 'symbol'; NAME = 'name'; TYPE = 'type'; TZ = 'timezone'
 DATE = 'date'; FNAME = 'full_name'
 
+#!!!!obsolete!!!!
 def load_tradable_entities_and_symbols(input_file_name, discarded = nil)
   if ! TradableEntity.find_by_symbol('IBM').nil? then
     return
@@ -71,11 +72,12 @@ def load_tradable_entities_and_symbols(input_file_name, discarded = nil)
   end
 end
 
-def load_tradables_with_exchange(input_file_name, exchanges)
+def load_tradables_with_exchange(input_file_name, exchanges, test_symbol)
   if exchanges.nil? then
     raise "#{__method__}: exchanges arg must not be nil."
   end
-  if ! TradableEntity.find_by_symbol('IBM').nil? then
+  if TradableEntity.find_by_symbol(test_symbol) != nil then
+    # Symbol was found - assume data is already in database.
     return
   end
   puts "loading tradable_entities & tradable_symbols tables"
@@ -121,11 +123,10 @@ end
   end
 end
 
-old_stocks_file_method = 'allusstocks.csv'
-new_stocks_file_method = 'stocks_with_exchange.csv'
-tradable_load_methods = {
-  old_stocks_file_method => self.method(:load_tradable_entities_and_symbols),
-  new_stocks_file_method => self.method(:load_tradables_with_exchange)
+old_stocks_file = 'allusstocks.csv'   #!!!!obsolete!!!!
+stock_csv_files_with_test_symbol = {
+  'stocks_with_exchange.csv' => 'IBM',
+  'shanghai_and_shenzhen_stocks.csv' => '000001',
 }
 
 def initialize_symbol_lists
@@ -325,15 +326,14 @@ puts "exchgs: #{$exchanges}"
   link_to_exch(closes, $exchanges)
 end
 
-stock_input_file = old_stocks_file_method
-# (As you can see, comment this out if the old load method is needed:)
-stock_input_file = new_stocks_file_method
-stock_load_method = tradable_load_methods[stock_input_file]
 # Exchanges are needed before stocks/symbols:
 load_market_exchange_info
 puts "exchgs: #{$exchanges}"
-stock_load_method.call(stock_input_file, $exchanges)
-#!!!rm me:load_tradable_entities_and_symbols
+stock_csv_files_with_test_symbol.keys.each do |csv_file|
+  load_tradables_with_exchange(csv_file, $exchanges,
+    stock_csv_files_with_test_symbol[csv_file])
+end
+#stock_load_method.call(stock_input_file, $exchanges)
 initialize_symbol_lists
 if VERBOSE then
   Exchange.all.each do |e|

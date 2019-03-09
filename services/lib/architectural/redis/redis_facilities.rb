@@ -28,7 +28,6 @@ module RedisFacilities
 
   # Set (insert) a keyed message
   def set_message(key, msg, options = {})
-puts "set_message calling: redis.set #{key}, #{msg}, #{options}"
     redis.set key, msg, options
   end
 
@@ -37,7 +36,6 @@ puts "set_message calling: redis.set #{key}, #{msg}, #{options}"
   # that aren't already in the set.
   # Return the resulting count value (of items actually added) from Redis.
   def add_set(key, args)
-puts "add_set calling: redis.sadd #{key}, #{args}"
     redis.sadd key, args
   end
 
@@ -46,9 +44,7 @@ puts "add_set calling: redis.sadd #{key}, #{args}"
   # the new one.
   # Return the resulting count value (of items actually added) from Redis.
   def replace_set(key, args)
-puts "replace_set calling: redis.del #{key}"
     redis.del key
-puts "replace_set calling: redis.sadd #{key}, #{args}"
     redis.sadd key, args
   end
 
@@ -60,7 +56,6 @@ puts "replace_set calling: redis.sadd #{key}, #{args}"
   # Delete the object (message inserted via 'set_message', set added via
   # 'add_set', or etc.) with the specified key.
   def delete_object(key)
-puts "sendmessage calling: redis.del #{key}"
     redis.del key
   end
 

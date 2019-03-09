@@ -38,30 +38,24 @@ class MarketSchedule < ApplicationRecord
   # MarketCloseDate model also needs to be consulted.)
   def is_trading_day?(localtime)
     day_of_week = localtime.wday  # 0: sunday, 1: monday, ... 6: saturday
-puts "MS.itd - day_of_week: #{day_of_week}"
     result = false
     # Check 'schedule_type' with respect to day_of_week:
     if mon_fri? then
       result = day_of_week.between?(1, 5) # between monday - friday
-puts "MS.itd - We are M - F!"
     elsif sun_thu? then
       result = day_of_week.between?(0, 4) # between sunday - thursday
-puts "MS.itd - We are Su - Thu!"
     elsif sat_wed? then
       result = day_of_week == 6 ||
         day_of_week.between?(0, 3) # between sunday - thursday
-puts "MS.itd - We are Sa - W!"
     elsif seven_day? || holiday? then
         # (seven_day means "It's always a trading day".)
         # (holiday means a "near-holiday" trading day [such as Friday after
         # Thanksgiving in US].)
         result = true
-puts "MS.itd - We are 'holiday' or Su - Sa"
     else
       raise "Data corruption: invalid 'schedule_type' for #{self}: " +
         schedule_type
     end
-puts "MS.is_trading_day? - #{result}"
     result
   end
 
@@ -89,8 +83,6 @@ puts "MS.is_trading_day? - #{result}"
     if is_trading_day?(localtime) then
       start_time, end_time = core_hours(localtime)
       result = localtime >= start_time && localtime <= end_time
-puts "(#{market.name}) localtime, start_time, end_time: #{localtime}, #{start_time}, #{end_time}"
-puts "MS.ich - result: #{result}"
     end
     result
   end

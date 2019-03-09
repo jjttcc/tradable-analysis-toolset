@@ -1,11 +1,10 @@
-# Responsible for identification and marking, and subsequent cleanup, of
-# which tradables are currently being tracked - Issues orders to
-# ExchangeScheduleMonitor to allow synchronization/coordination between the
-# two tasks of keeping tracked of "tracked" tradable-symbols in the
-# database (i.e., this class/process) and querying for all "tracked"
-# symbols at market-close time (i.e., ExchangeScheduleMonitor) to provide
-# correct and up-to-date notification of which tradables need to be
-# retrieved with respect to end-of-day data.
+# Manager responsible for identifying tradables that are being used and
+# marking them as such in the tradable_symbols table, allowing the
+# ExchangeScheduleMonitor to find the tracked tradables with a quick and
+# simple query (select symbol from tradable_symbols where tracked = true).
+# Note: when updating the database, the TradableTrackingManager suspends
+# the ExchangeScheduleMonitor to avoid conflicts and, when finished, tells
+# it to resume its operation/monitoring.
 class TradableTrackingManager
   include Contracts::DSL, TatServicesFacilities, TatUtil
   # Use this module to allow RAM-hungry database operations to be
@@ -17,19 +16,20 @@ class TradableTrackingManager
   # Execute an infinite loop in which the needed actions are periodically
   # performed.
   def execute
-log("Is there a 'log' method?")
+puts "TradableTrackingManager:A"
     while continue_processing
+#!!!TO-DO: send run state - finish!!!!
+      send_manage_tradable_tracking_run_state
+puts "TradableTrackingManager:B"
+STDOUT.flush
       if cleanup_needed then
         execute_complete_cycle
 puts "finished CLEANING up #{DateTime.current}."
 STDOUT.flush
       else
-report_on_cleanup_schedule
         process_tracking_changes
       end
       check_and_respond_to_sick_exchmon
-puts "sleeping #{MODERATE_PAUSE_SECONDS} seconds...#{DateTime.current}"
-STDOUT.flush
       sleep MODERATE_PAUSE_SECONDS
     end
   end
@@ -85,11 +85,17 @@ STDOUT.flush
     end
     begin
       lut = retrieved_message(TTM_LAST_TIME_KEY)
-      if ! lut.nil? then
+      if ! lut.nil? && ! lut.empty? then
+puts "lut: '#{lut}'"
+STDOUT.flush
         new_lut = DateTime.parse(lut)
-        if new_lut != @last_update_time then
+puts "comparing '#{new_lut}' with '#{last_update_time}'"
+puts "(comparing '#{new_lut.inspect}' with '#{last_update_time.inspect}'}"
+STDOUT.flush
+        if new_lut > last_update_time then
           @last_update_time = DateTime.parse(lut)
 puts "last_update_time set to: #{last_update_time}"
+STDOUT.flush
         end
       end
     rescue StandardError => e
@@ -108,9 +114,16 @@ puts "last_update_time set to: #{last_update_time}"
   def check_and_respond_to_sick_exchmon
     if exch_monitor_is_ill then
       pause_time = MODERATE_PAUSE_SECONDS * 3
-      log("#{EXCH_MON_NAME} is not responding - pausing for #{pause_time} " +
+      warn("#{EXCH_MON_NAME} is not responding - pausing for #{pause_time} " +
           "seconds to wait for the process to be re-started.")
       sleep pause_time
+      if
+        ! (eod_exchange_monitoring_unresponsive? ||
+           eod_exchange_monitoring_terminated?)
+      then
+        # exchange monitor has recovered.
+        @exch_monitor_is_ill = false
+      end
     end
   end
 
@@ -165,7 +178,7 @@ puts "I'm waiting for #{seconds_until_close + POST_CLOSE_TIME_MARGIN}....." +
 STDOUT.flush
         sleep seconds_until_close + POST_CLOSE_TIME_MARGIN
       else
-puts "I'm NOT waiting!!!(#{DateTime.current})"
+puts "I'm NOT waiting (#{DateTime.current})"
 STDOUT.flush
       end
 #!!!!!end (Check...)]
@@ -179,18 +192,22 @@ STDOUT.flush
 
   # Suspend the exchange monitor - Wait and verify that it enters the
   # suspended state before returning.
-  post :suspended do exch_mon_suspended end
+  post :suspended do
+    implies(! exch_monitor_is_ill, eod_exchange_monitoring_suspended?) end
   def suspend_exch_monitor
-    if ! exch_mon_suspended then
-      order_exch_mon_suspension
+    if ! eod_exchange_monitoring_suspended? then
+      order_eod_exchange_monitoring_suspension
       sleep SHORT_PAUSE_SECONDS
 puts "waiting for exch. mon. to suspend itself..."
 STDOUT.flush
       pause_count = 0
-      while ! exch_mon_suspended
+      while ! eod_exchange_monitoring_suspended?
         if pause_count > 0 && pause_count % 5 == 0 then
-          if exch_mon_unresponsive || exch_mon_terminated then
-            log("#{EXCH_MON_NAME} has terminated or is diseased")
+          if
+            eod_exchange_monitoring_unresponsive? ||
+              eod_exchange_monitoring_terminated?
+          then
+            warn("#{EXCH_MON_NAME} has terminated or is diseased")
             @exch_monitor_is_ill = true
             break
           end
@@ -204,7 +221,7 @@ STDOUT.flush
 
   # Tell the exchange monitor to start running again.
   def wake_exch_monitor
-    order_exch_mon_resumption
+    order_eod_exchange_monitoring_resumption
   end
 
   protected  ### Database queries and updates
@@ -224,19 +241,6 @@ STDOUT.flush
       end
     end
 puts "#{__method__} tracking ids: #{tracked.keys.inspect}"
-    TradableSymbol.where(id: tracked.keys).update_all(tracked: true)
-  end
-
-#!!!!!!Remove this old, inefficient version:
-  # Find all tradable-symbols that are currently used and mark each one as
-  # 'tracked'.
-  def inefficient__track_used_symbols
-    tracked = {}
-    AnalysisProfile.all.each do |p|
-      p.tracked_tradables.each do |t|
-        tracked[t.id] = true
-      end
-    end
     TradableSymbol.where(id: tracked.keys).update_all(tracked: true)
   end
 
@@ -300,48 +304,10 @@ end
     result
   end
 
-  def orig___updated_symbol_list_owners
-    result_hash = {}
-    # (I.e., hash table of updated "SymbolListAssignment"s:)
-    updated_symlist_assignments = Hash[
-      SymbolListAssignment.updated_since(last_update_time).map do |sla|
-        [sla.id, sla]
-      end
-    ]
-    updated_symlists = SymbolList.updated_since(last_update_time)
-    # Add any non-duplicate SymbolListAssignment objects referenced by
-    # updated_symlists to updated_symlist_assignments.
-    updated_symlists.each do |sl|
-      sl.symbol_list_assignments.each do |sla|
-        updated_symlist_assignments[sla.id] = sla
-      end
-    end
-    updated_symlist_assignments.values.each do |sla|
-      owner = sla.symbol_list_user
-      if owner != nil then
-        if owner.in_use? then
-          result_hash[owner] = true
-        end
-      else
-      end
-    end
-    result_hash.keys
-  end
-
   pre :one_or_more do |sym_ids| sym_ids != nil && sym_ids.count > 0 end
   def track(affected_symbol_ids)
 puts "#{__method__} affected_symbol_ids: #{affected_symbol_ids.inspect}"
     TradableSymbol.where(id: affected_symbol_ids).update_all(tracked: true)
-  end
-
-  def orig___track(symlist_owners)
-    tracked = {}
-    symlist_owners.each do |o|
-      o.tracked_tradable_ids.each do |symbol_id|
-        tracked[symbol_id] = true
-      end
-    end
-    TradableSymbol.where(id: tracked.keys).update_all(tracked: true)
   end
 
   private
@@ -360,6 +326,7 @@ puts "#{__method__} affected_symbol_ids: #{affected_symbol_ids.inspect}"
   def initialize
     @redis = Redis.new
     @last_update_time = nil
+    set_message(TTM_LAST_TIME_KEY, nil)
     @last_cleanup_time = nil
     @last_recorded_close_time = next_exch_close_datetime
     @continue_processing = true
@@ -368,14 +335,6 @@ puts "#{__method__} affected_symbol_ids: #{affected_symbol_ids.inspect}"
     # Explicitly close the database connection so that the parent process
     # does not hold onto the database. (See ForkedDatabaseExecution .)
     ActiveRecord::Base.remove_connection
-  end
-
-  def report_on_cleanup_schedule
-    secs_since_last_cl = DateTime.current.to_i - last_cleanup_time.to_i
-    if secs_since_last_cl % 3600 < DataConfig::TRACKING_CLEANUP_INTERVAL then
-      puts "#{secs_since_last_cl / 60} minutes since last CLEANUP"
-      STDOUT.flush
-    end
   end
 
 end

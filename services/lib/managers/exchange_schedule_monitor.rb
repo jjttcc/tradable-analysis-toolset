@@ -1,6 +1,8 @@
 require 'ruby_contracts'
 require 'error_log'
 require 'publisher'
+#!!!I think this is not needed:
+require 'service_tokens'
 require 'tat_services_facilities'
 
 
@@ -21,6 +23,7 @@ class ExchangeScheduleMonitor < Publisher
 
   def execute_eod_monitoring
     @continue_monitoring = true
+    send_status_info
     while continue_monitoring
       @exchange_was_updated = false
       @next_close_time = exchange_clock.next_close_time
@@ -37,7 +40,6 @@ STDOUT.flush    # Allow any debugging output to be seen.
 puts "eom - time_to_send: #{time_to_send}"
 STDOUT.flush    # Allow any debugging output to be seen.
         if time_to_send then
-          # Send a check-for-EOD-data notification to any subscribers.
 puts "calling symbols_for, send_check_notification " +
 "with next-close-time: #{@next_close_time}"
 STDOUT.flush    # Allow any debugging output to be seen.
@@ -49,17 +51,12 @@ STDOUT.flush    # Allow any debugging output to be seen.
           if run_state == SERVICE_TERMINATED then
             @continue_monitoring = false
           else
+            # Send a check-for-EOD-data notification to any subscribers.
             send_check_notification(
               exchange_clock.symbols_for(@next_close_time))
           end
         end
       end
-=begin
-      # Force the next exchange_clock.next_close_time call to use
-      # up-to-date data:
-#!!!!This statement should probably be removed - check:
-      exchange_clock.refresh_exchanges
-=end
     end
   end
 
@@ -114,7 +111,8 @@ puts "[heu] - ex_updated was true"
   # If run_state == SERVICE_RUNNING: send status info to any interested
   # parties.  Otherwise, null op.
   def send_status_info
-    send_exch_mon_run_state
+puts "#{self.class} sending my run-state: #{run_state}"
+    send_eod_exchange_monitoring_run_state
     if run_state == SERVICE_RUNNING then
       close_time = nil
       if @next_close_time != nil then
@@ -143,7 +141,7 @@ puts "[heu] - ex_updated was true"
   post :termination_side_effect do
     implies(run_state == SERVICE_TERMINATED, ! continue_monitoring) end
   def process_external_command
-    new_state = current_ordered_exch_mon_state
+    new_state = ordered_eod_exchange_monitoring_run_state
     if new_state != nil && new_state != run_state then
       @run_state = new_state
       if run_state == SERVICE_TERMINATED then
@@ -151,7 +149,7 @@ puts "[heu] - ex_updated was true"
         # Make sure the order doesn't "linger" after termination.
         delete_exch_mon_order
       end
-      send_exch_mon_run_state
+      send_eod_exchange_monitoring_run_state
     end
   end
 
@@ -164,22 +162,17 @@ puts "[heu] - ex_updated was true"
     end
   end
 
-  # Obtain the symbols/tradables affected by the closing of the exchanges
-  # in 'exch_symbol_map' (i.e., EOD-data will soon be available) and
-  # give that list to the redis server with the 'eod_check_key'.  Then
-  # publish (to the redis server) 'eod_check_key' on the
-  # 'eod_check_channel'.
-  pre :symbols_exist do |symbols| ! symbols.nil? end
+  # Send 'symbols', with key 'eod_check_key' to the messaging system.  Then
+  # publish  'eod_check_key' on the 'eod_check_channel'.
+  pre :symbols_array do |symbols| ! symbols.nil? && symbols.class == Array end
   def send_check_notification(symbols)
-puts "send_check_notification - sadding: #{eod_check_key}, #{symbols} " +
-"(#{symbols.map {|s| s.symbol}}) on #{DateTime.current}"
     if symbols.count > 0 then
       count = add_set(eod_check_key, symbols.map {|s| s.symbol})
       if count != symbols.count then
         msg = "send_check_notification: add_set returned different count " +
           "(#{count}) than the expected #{symbols.count} - symbols.first: " +
           symbols.first.symbol
-        $log.warn(msg)
+        warn(msg)
       end
 puts "send_check_notification - publishing '#{eod_check_key}'"
       publish eod_check_key
@@ -198,11 +191,11 @@ print "woke up at: "
 system('date')
   end
 
-  # Sleep for EXMONLONG_PAUSE_ITERATIONS periods of EXMON_PAUSE_SECONDS.
+  # Sleep for EXMON_LONG_PAUSE_ITERATIONS periods of EXMON_PAUSE_SECONDS.
   def long_pause
     sleeptime = EXMON_PAUSE_SECONDS
     pause_counter = 0
-    EXMONLONG_PAUSE_ITERATIONS.times do |i|
+    EXMON_LONG_PAUSE_ITERATIONS.times do |i|
 puts "#{i}th pause for #{sleeptime} seconds..."
       STDOUT.flush    # Allow any debugging output to be seen.
       sleep sleeptime
@@ -222,7 +215,7 @@ puts "#{i}th pause for #{sleeptime} seconds..."
 
   private
 
-  attr_reader :eod_check_key, :log, :continue_monitoring, :exchange_clock,
+  attr_reader :eod_check_key, :continue_monitoring, :exchange_clock,
     :refresh_requested, :run_state
 
   # While this value is > the number of seconds until the next upcoming
@@ -230,11 +223,9 @@ puts "#{i}th pause for #{sleeptime} seconds..."
   EXCH_THRESHOLD_INTERVAL = 600
   # Number of pauses to occur before it's time to check for a database
   # update related to an Exchange:
-  CHECK_FOR_UPDATES_THRESHOLD = 5
+  CHECK_FOR_UPDATES_THRESHOLD = 15
 
-  post :attrs_set do ! log.nil? end
   def initialize
-    @log = ErrorLog.new
     @refresh_requested = false
     @eod_check_key = new_eod_check_key
     @exchange_clock = ExchangeClock.new

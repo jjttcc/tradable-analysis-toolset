@@ -13,7 +13,8 @@ lib/architectural/redis lib/support}.each do |path|
   $LOAD_PATH << "#{TATDIR}/#{SVCDIR}/#{path}"
 end
 
-require 'eod_retrieval_manager'
+require 'ruby_contracts'
+require 'services_supervisor'
 
-r = EODRetrievalManager.new
-r.execute
+r = ServicesSupervisor.new
+

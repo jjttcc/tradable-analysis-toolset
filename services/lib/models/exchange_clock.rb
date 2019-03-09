@@ -47,41 +47,6 @@ end
     result
   end
 
-  # The active (used) symbols associated with the exchanges associated with
-  # 'close_time' (datetime returned by 'next_close_time') - i.e., the
-  # symbols associated with 'exchanges_for(close_time)'
-  # Note: This method is somewhat expensive CPU-wise, so it probably should
-  # not be called too often.
-  pre  :valid_time do |ctime| ctime != nil && ctime.respond_to?(:strftime) end
-  post :exists do |result| ! result.nil? end
-#!!!!
-  def old___symbols_for(close_time)
-STDOUT.flush    # Allow any debugging output to be seen.
-    exchanges = exchanges_for(close_time)
-    ex_id_map = Hash[exchanges.collect { |x| [x.id, true] } ]
-    tracked = []
-    AnalysisProfile.all.each do |p|
-      tracked.concat(p.tracked_tradables)
-    end
-#!!!!!Reminder!!!!!: Eliminate duplicates.
-puts "tracked symbols count: #{tracked.count}"
-    result = tracked.select do |s|
-print "looking for exchange for #{s.symbol} (xid: #{s.exchange_id}):\n" +
-ex_id_map[s.exchange_id].inspect
-      ex_id_map[s.exchange_id]
-    end
-if result.empty? then
-  ['IBM', 'RHT'].each do |s|   #!!!!testing STUB!!!!
-    ts = TradableSymbol.find_by_symbol(s)
-    if ! ts.nil? then
-      result << ts
-      puts "[symbols_for] cheated - added #{ts.symbol}"
-    end
-  end
-end
-    result
-  end
-
   # Have any exchanges been updated, or new ones added, based on to the
   # last time 'exchanges' were initialized or the last time this method was
   # called - whichever happened last.

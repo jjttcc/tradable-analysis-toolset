@@ -1,3 +1,5 @@
+require 'tiingo_data_retriever'
+require 'file_tradable_storage'
 
 class DataConfig
   include Contracts::DSL
@@ -6,7 +8,8 @@ class DataConfig
 
   # Number of seconds until the next "tradable-tracking cleanup" needs to
   # be performed:
-  TRACKING_CLEANUP_INTERVAL = 61200
+  #TRACKING_CLEANUP_INTERVAL = 61200
+  TRACKING_CLEANUP_INTERVAL = 17200 #!!!!test!!!!
 
   public
 

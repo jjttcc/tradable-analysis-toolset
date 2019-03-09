@@ -1,11 +1,8 @@
-require 'redis'
 require 'ruby_contracts'
 require 'data_config'
-require 'error_log'
-require 'tiingo_data_retriever'
-require 'file_tradable_storage'
 require 'publisher_subscriber'
 require 'redis_facilities'
+require 'service_tokens'
 require 'tat_services_facilities'
 
 
@@ -29,6 +26,16 @@ class EODRetrievalManager < PublisherSubscriber
 
   public  ###  Basic operations
 
+  def execute
+#!!!!!TO-DO!!!: send_<service>_run_state periodically!!!!
+    # (!!!At this point - and maybe always - this manager only responds to
+    # termination orders!!!!)
+    while ordered_eod_data_retrieval_run_state != SERVICE_TERMINATED
+      wait_for_and_process_eod_event
+      sleep MAIN_LOOP_PAUSE_SECONDS
+    end
+  end
+
   #!!!!!TO-DO: Implement timeouts or loop-count limit:
   #!!!!!         - If we're not finished, but took > {n} minutes, publish
   #!!!!!           that a/(possibly: another) chunk of tradables/symbols
@@ -43,7 +50,7 @@ class EODRetrievalManager < PublisherSubscriber
       implies(target_symbols.count > 0, cardinality(data_ready_key) ==
               target_symbols.count))
   end
-  def execute
+  def wait_for_and_process_eod_event
     wait_for_eod_request
     @update_symbol_count = 0
     # Iterate until all of `target_symbols' have had their EOD data updated.
@@ -52,7 +59,7 @@ class EODRetrievalManager < PublisherSubscriber
         update_eod_data
       else
         error_msg = "'wait_for_eod_request' failed to obtain symbol key"
-        log.error(error_msg)
+        error(error_msg)
         raise error_msg
       end
       if ! update_completed then
@@ -78,6 +85,7 @@ class EODRetrievalManager < PublisherSubscriber
   post :target_symbols do ! target_symbols.nil? end
   post :key_set do eod_check_key != nil end
   def wait_for_eod_request
+    info("#{self.class} subscribing to channel: "+default_subscription_channel)
     subscribe_once do
       @eod_check_key = last_message
     end
@@ -95,19 +103,19 @@ class EODRetrievalManager < PublisherSubscriber
     update_interrupted = false
     target_symbols.each do |s|
       if storage_manager.last_update_empty_for(s) then
-        log.debug("(no data was retrieved for #{s})")
+        debug("(no data was retrieved for #{s})")
       else
         # Update for s was successful, so remove s from the "check-for-eod"
         # list and add it to the "eod-data-ready" list.
         remove_from_set(eod_check_key, s)
         add_set(data_ready_key, s)
         @update_symbol_count += 1
-        log.info("last update count: " +
+        info("last update count: " +
                  "#{storage_manager.last_update_count_for(s)}")
       end
     end
   rescue StandardError => e
-    log.warn(e + "[#{caller}]")
+    warn(e + "[#{caller}]")
     if update_interrupted then
       @update_error = true
     end
@@ -122,14 +130,17 @@ class EODRetrievalManager < PublisherSubscriber
 
   private
 
-  attr_reader :storage_manager, :eod_check_key, :data_ready_key, :log
+  attr_reader :storage_manager, :eod_check_key, :data_ready_key
 
-  RETRY_WAIT_SECONDS = 50
+  RETRY_WAIT_SECONDS, MAIN_LOOP_PAUSE_SECONDS = 50, 15
 
-  post :attrs_set do ! (storage_manager.nil? || log.nil?) end
-  def initialize
-    @log = ErrorLog.new
-    data_config = DataConfig.new(log)
+  require 'logger'
+
+  def initialize(log = nil)
+    if log.nil? then
+      $log = Logger.new(STDOUT)
+    end
+    data_config = DataConfig.new($log)
     @storage_manager = data_config.data_storage_manager
     @update_error = false
     @update_symbol_count = 0
