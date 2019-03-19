@@ -17,9 +17,20 @@ class FileTradableStorage < TradableStorage
     @last_update_rec_count.has_key?(symbol)? @last_update_rec_count[symbol]: 0
   end
 
+  def data_up_to_date_for(symbol, date)
+    result = false
+    data = retriever.data_set_for[symbol]
+    if data != nil then
+      last_record = data.last
+      # (comparing two strings with format "yyyy-mm-dd")
+      result = last_record[DATE_INDEX] >= date
+    end
+    result
+  end
+
   public  ###  Basic operations
 
-  def update_data_stores(symbols, startdate = nil, enddate = nil)
+  def update_data_stores(symbols:, startdate: nil, enddate: nil)
     @last_update_rec_count = {}
     if startdate.nil? then
       # Use the latest start-date from the existing data for each symbol.
@@ -29,17 +40,22 @@ class FileTradableStorage < TradableStorage
           @log.error("Could not find startdate for #{s}")
           @last_update_rec_count[s] = 0
         else
+#!!!!!NOTE: If this note, also in the parent, is FALSE, then -
+#!!!!May not necessarily need an enddate after all - figure it out!!!!!!!!
+#[then] change:
           retriever.retrieve_ohlc_data([s], start)
-          update_data_for(s, retriever.data_sets[s])
-          @last_update_rec_count[s] = retriever.data_sets[s].count
+#!!!!!!!!   to:
+#          retriever.retrieve_ohlc_data([s], start, enddate)
+          update_data_for(s, retriever.data_set_for[s])
+          @last_update_rec_count[s] = retriever.data_set_for[s].count
         end
       end
     else
       # Use the original startdate and enddate arguments.
       retriever.retrieve_ohlc_data(symbols, startdate, enddate)
       symbols.each do |s|
-        update_data_for(s, retriever.data_sets[s])
-        @last_update_rec_count[s] = retriever.data_sets[s].count
+        update_data_for(s, retriever.data_set_for[s])
+        @last_update_rec_count[s] = retriever.data_set_for[s].count
       end
     end
   end
@@ -93,7 +109,7 @@ class FileTradableStorage < TradableStorage
       file = FileTail.new(path)
       lastline = file.last_n_lines(1)
       if lastline != nil then
-        datestr = lastline[0].split(FSEP)[0]
+        datestr = lastline[DATE_INDEX].split(FSEP)[0]
         if datestr.length == 8 then
           datestr = "#{datestr[0..3]}-#{datestr[4..5]}-#{datestr[6..7]}"
           result = (Date.parse(datestr) + 1).to_s
@@ -111,7 +127,7 @@ class FileTradableStorage < TradableStorage
     File.open(path, 'a') do |f|
       data_set.each do |fields|
         # (Write date field, stripped of '-' separators.)
-        date = fields[0]
+        date = fields[DATE_INDEX]
         f.write(date[0..3] + date[5..6] + date[8..9] + FSEP)
         f.write(fields[1..fields.count-1].join(FSEP) + "\n")
       end

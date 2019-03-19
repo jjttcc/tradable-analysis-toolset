@@ -11,17 +11,16 @@ class TradableTrackingManager
   # performed in a child process and thus released (RAM) when completed:
   include ForkedDatabaseExecution
 
+  public  ###  Access
+
+  attr_reader :service_tag
+
   public     ###  Basic operations
 
   # Execute an infinite loop in which the needed actions are periodically
   # performed.
   def execute
-puts "TradableTrackingManager:A"
     while continue_processing
-#!!!TO-DO: send run state - finish!!!!
-      send_manage_tradable_tracking_run_state
-puts "TradableTrackingManager:B"
-STDOUT.flush
       if cleanup_needed then
         execute_complete_cycle
 puts "finished CLEANING up #{DateTime.current}."
@@ -114,8 +113,8 @@ STDOUT.flush
   def check_and_respond_to_sick_exchmon
     if exch_monitor_is_ill then
       pause_time = MODERATE_PAUSE_SECONDS * 3
-      warn("#{EXCH_MON_NAME} is not responding - pausing for #{pause_time} " +
-          "seconds to wait for the process to be re-started.")
+      warn("#{EOD_EXCHANGE_MONITORING} service is not responding - pausing " +
+        "for #{pause_time} seconds to wait for the process to be re-started.")
       sleep pause_time
       if
         ! (eod_exchange_monitoring_unresponsive? ||
@@ -196,6 +195,7 @@ STDOUT.flush
     implies(! exch_monitor_is_ill, eod_exchange_monitoring_suspended?) end
   def suspend_exch_monitor
     if ! eod_exchange_monitoring_suspended? then
+puts "#{self.class}.#{__method__} calling 'order_eod_exchange_monitoring_suspension'"
       order_eod_exchange_monitoring_suspension
       sleep SHORT_PAUSE_SECONDS
 puts "waiting for exch. mon. to suspend itself..."
@@ -207,7 +207,8 @@ STDOUT.flush
             eod_exchange_monitoring_unresponsive? ||
               eod_exchange_monitoring_terminated?
           then
-            warn("#{EXCH_MON_NAME} has terminated or is diseased")
+            warn("#{EOD_EXCHANGE_MONITORING} service has terminated or " +
+                 "is diseased")
             @exch_monitor_is_ill = true
             break
           end
@@ -216,6 +217,8 @@ STDOUT.flush
         sleep SHORT_PAUSE_SECONDS
         pause_count += 1
       end
+puts "FINISHED waiting for exch. mon. to suspend itself..."
+STDOUT.flush
     end
   end
 
@@ -324,17 +327,22 @@ puts "#{__method__} affected_symbol_ids: #{affected_symbol_ids.inspect}"
 
   post :redis_set do redis != nil end
   def initialize
-    @redis = Redis.new
+    init_redis_clients
     @last_update_time = nil
     set_message(TTM_LAST_TIME_KEY, nil)
     @last_cleanup_time = nil
     @last_recorded_close_time = next_exch_close_datetime
     @continue_processing = true
     @exch_monitor_is_ill = false
+    @run_state = SERVICE_RUNNING
+    @service_tag = MANAGE_TRADABLE_TRACKING
     @do_not_re_establish_connection = true
     # Explicitly close the database connection so that the parent process
     # does not hold onto the database. (See ForkedDatabaseExecution .)
     ActiveRecord::Base.remove_connection
+    create_status_report_timer
+    # The 'status_task' will asynchronously periodically report our status.
+    @status_task.execute
   end
 
 end

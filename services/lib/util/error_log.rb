@@ -1,21 +1,30 @@
 
 class ErrorLog
+  include Contracts::DSL
+
   public  ###  Basic operations
 
   def error(msg)
-    $stderr.print :error, ": #{msg}\n"
+    send(:error, msg)
   end
 
   def warn(msg)
-    $stderr.print :warn, ": #{msg}\n"
+    send(:warn, msg)
   end
 
   def debug(msg)
-    $stderr.print :debug, ": #{msg}\n"
+    send(:debug, msg)
   end
 
   def info(msg)
-    $stderr.print :info, ": #{msg}\n"
+    send(:info, msg)
+  end
+
+  protected
+
+  pre :args_exist do |msg, tag| ! (msg.nil? || tag.nil?) end
+  def send(tag, msg)
+    $stderr.print tag, ": #{msg}\n"
   end
 
 end

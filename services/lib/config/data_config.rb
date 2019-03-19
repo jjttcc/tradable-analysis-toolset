@@ -11,6 +11,9 @@ class DataConfig
   #TRACKING_CLEANUP_INTERVAL = 61200
   TRACKING_CLEANUP_INTERVAL = 17200 #!!!!test!!!!
 
+  # redis application and administration ports
+  REDIS_APP_PORT, REDIS_ADMIN_PORT = 16379, 26379
+
   public
 
   # EOD data-retrieval object
@@ -21,6 +24,14 @@ class DataConfig
   # object responsible for storing retrieved data to persistent store
   def data_storage_manager
     FileTradableStorage.new(mas_data_path, data_retriever, log)
+  end
+
+  def redis_application_client
+    Redis.new(port: REDIS_APP_PORT)
+  end
+
+  def redis_administration_client
+    Redis.new(port: REDIS_ADMIN_PORT)
   end
 
   private
@@ -48,8 +59,10 @@ class DataConfig
 
   private  ###  Initialization
 
-  pre :log_exists do |log| ! log.nil? end
   def initialize(the_log)
+    if the_log.nil? then
+      raise "#{self.class}.new: invalid argument - 'the_log' is nil"
+    end
     @log = the_log
   end
 

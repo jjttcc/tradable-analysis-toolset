@@ -2,6 +2,7 @@ require 'ruby_contracts'
 require 'service_tokens'
 require 'redis_facilities'
 require 'tat_services_facilities'
+require 'redis_manager'
 require 'rake_manager'
 require 'external_manager'
 
@@ -17,27 +18,36 @@ class ServicesSupervisor
 
   private
 
-  attr_reader :continue_supervising
+  attr_reader :continue_supervising, :service_managers
 
 #!!!!Each "service supervisor" will probably run in its own thread!!!!!
 
   def supervise
+    service_managers.each do |sm|
+      sm.monitor
+    end
     # Is there any need for this loop?!!!!:
     while continue_supervising
-      check_on_and_revive_services
+      check_on_managers
       sleep MAIN_PAUSE_SECONDS
     end
   end
 
-  # Check the status of each running service, s, and if s is unresponsive
-  # or dead, revive it.
-  def check_on_and_revive_services
-puts "I'm supervising, I'm supervising, ..."
+  # Check the status of the 'service_managers' and, ...!!!!!!
+  def check_on_managers
+    log("threads: #{Thread.list.join("\n")}")
+    service_managers.each do |sm|
+      if ! sm.healthy? then
+puts "#{sm} is NOT healthy!!!! - perhaps I should restart it."
 STDOUT.flush
+      end
+    end
   end
 
   def initialized_service_managers
     result = []
+    result << RedisManager.new(tag: REDIS)
+#!!!!eh?: result << MasServerMonitor.new(tag: MAS_SERVER_MONITOR)
     result << RakeManager.new(tag: EOD_EXCHANGE_MONITORING)
     result << RakeManager.new(tag: MANAGE_TRADABLE_TRACKING)
     result << ExternalManager.new(tag: EOD_DATA_RETRIEVAL)
@@ -50,7 +60,7 @@ STDOUT.flush
 
   private
 
-  MAIN_PAUSE_SECONDS = 5
+  MAIN_PAUSE_SECONDS = 25
 
   private  ###  Initialization
 
@@ -62,10 +72,10 @@ STDOUT.flush
     @service_managers.each do |sm|
       begin
         # (I.e., block until sm has ensured that its service has started.)
+puts "starting #{sm.inspect}"
         sm.block_until_started
       rescue StandardError => e
         log("#{sm} startup failed: #{e}")
-exit 42
       end
     end
     supervise

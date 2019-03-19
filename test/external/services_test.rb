@@ -73,7 +73,6 @@ class ServicesTest < MiniTest::Test
   def test_eod_task
     require "rake"
     symbols = ['I', 'K', 'L']
-#!!!symbols = ['x']
     ModelHelper::track_tradables(symbols) do
       config = data_config
       storage_manager = config.data_storage_manager
@@ -120,7 +119,7 @@ class ServicesTest < MiniTest::Test
     config = data_config
     retriever = config.data_retriever
     retriever.retrieve_ohlc_data(symbols, startd, endd)
-    retriever.data_sets
+    retriever.data_set_for
   end
 
   def data_storage_manager

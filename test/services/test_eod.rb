@@ -14,7 +14,8 @@ class TestEOD
   end
 
   def run_the_test(symbols)
-    redis = Redis.new
+    config = DataConfig.new($log)
+    redis = config.redis_application_client
     redis.sadd @sym_key, symbols
 puts "publishing #{@eod_test_channel}, #{@sym_key}"
     redis.publish @eod_test_channel, @sym_key

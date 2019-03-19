@@ -1,21 +1,16 @@
 require 'service_manager'
+require 'error_log'
+require 'redis_error_log'
 
 # ServiceManagers responsible for managing an external, non-rails-dependent
 # process.
 class ExternalManager < ServiceManager
   include Contracts::DSL
 
-  public
-
-  def block_until_started
-puts "I'm running the task..."
-STDOUT.flush
-    run_program
-puts "I ran the task."
-STDOUT.flush
-  end
-
   private
+
+  # (i.e., redefine log method as an attribute.)
+  attr_reader :log
 
   # Mapping of service symbol-tags to executable file paths
   PATH_FOR = {
@@ -29,25 +24,20 @@ STDOUT.flush
     EOD_DATA_RETRIEVAL       => 'services/non_rails//eod_data_retrieval.rb'
   }
 
-  def run_program
+  def start_service
     path = PATH_FOR[tag]
 #!!!!TO-DO: harden/error-handling/...
-puts "[rp] 1"
-STDOUT.flush
     child = fork do
-puts "[rp] 2"
       exec(path)
-puts "[rp] 3"
     end
-puts "[rp] 4"
     Process.detach(child)
 #!!!maybe this one instead: Process.daemon(child)
-puts "[rp] 5"
   end
 
   private  ###  Initialization
 
   def initialize(tag:)
+    @log = RedisErrorLog.new(redis_port: DataConfig::REDIS_APP_PORT)
     super(tag: tag)
   end
 

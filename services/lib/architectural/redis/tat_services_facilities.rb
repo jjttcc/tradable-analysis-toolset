@@ -1,12 +1,27 @@
+require 'error_log'
+
 # Constants and other "facilities" used by/for the TAT services
+# NOTE: Many of the methods defined here require one or both of the redis
+# client attributes, @redis and @redis_admin, to exist.  This can be
+# accomplished by calling 'init_redis_clients'.
 #!!!!!NOTE: This file might belong somewhere else - not in .../redis!!!!!
 module TatServicesFacilities
   include Contracts::DSL, RedisFacilities, ServiceTokens
 
+  public
+
+  # Tag identifying "this" service
+  post :result_valid do |result|
+    implies(result != nil, SERVICE_EXISTS[result]) end
+  def service_tag
+    nil   # Redefine, if appropriate.
+  end
+
   protected  ### time-related constants
 
   EXMON_PAUSE_SECONDS, EXMON_LONG_PAUSE_ITERATIONS = 3, 35
-  RUN_STATE_EXPIRATION_SECONDS = 15
+  RUN_STATE_EXPIRATION_SECONDS, DEFAULT_EXPIRATION_SECONDS,
+    DEFAULT_ADMIN_EXPIRATION_SECONDS = 15, 28800, 600
   # Number of seconds of "margin" to give the exchange monitor before the
   # next closing time in order to avoid interfering with its operation:
   PRE_CLOSE_TIME_MARGIN = 300
@@ -19,27 +34,18 @@ module TatServicesFacilities
   STATUS_KEY, STATUS_VALUE, STATUS_EXPIRE, EXPIRATION_KEY =
     :status, :value, :expire, :ex
 
-#!!!How much of this stuff can we get rid of?!!!!:
-  EXCH_MON_NAME                 = 'exchange-schedule monitor'
   EOD_CHECK_KEY_BASE            = 'eod-check-symbols'
   EOD_DATA_KEY_BASE             = 'eod-ready-symbols'
   EXCHANGE_CLOSE_TIME_KEY       = 'exchange-next-close-time'
   OPEN_EXCHANGES_KEY            = 'exchange-open-exchanges'
+  # publish/subscribe channels
   EOD_CHECK_CHANNEL             = 'eod-checktime'
   EOD_DATA_CHANNEL              = 'eod-data-ready'
   ANALYSIS_REQUEST_CHANNEL      = 'analysis-requests'
   NOTIFICATION_CREATION_CHANNEL = 'notification-creation-requests'
   NOTIFICATION_DISPATCH_CHANNEL = 'notification-dispatch-requests'
-  EXCH_MONITOR_STATUS_SETTINGS  = {
-    STATUS_KEY    => EXCHANGE_MONITOR_STATUS_KEY,
-    STATUS_VALUE  => lambda {Time.now.utc.to_s},
-    STATUS_EXPIRE => {EXPIRATION_KEY => EXMON_PAUSE_SECONDS + 1}
-  }
-  DEFAULT_RUN_STATE_STATUS_SETTINGS  = {
-    STATUS_KEY    => nil,
-    STATUS_VALUE  => lambda {Time.now.utc.to_s},
-    STATUS_EXPIRE => {EXPIRATION_KEY => RUN_STATE_EXPIRATION_SECONDS}
-  }
+  CLOSE_DATE_SUFFIX             = 'close-date'
+
   EXCH_MONITOR_NEXT_CLOSE_SETTINGS   = {
     STATUS_KEY    => EXCHANGE_CLOSE_TIME_KEY,
     # default:
@@ -91,10 +97,9 @@ module TatServicesFacilities
 
   # Is 'service' alive?
   pre :valid do |service| ServiceTokens::SERVICE_EXISTS[service] end
+  post :clients_set do @redis != nil && @redis_admin != nil end
   def is_alive?(service)
     status = method("#{service}_run_state").call
-puts "is_alive?(#{service}) [#{service}_run_state] got status: #{status}"
-#!!!rm:    result = status == SERVICE_SUSPENDED || status == SERVICE_RUNNING
     result = status =~ /^#{SERVICE_RUNNING}/ ||
       status =~ /^#{SERVICE_SUSPENDED}/
   end
@@ -106,10 +111,8 @@ puts "is_alive?(#{service}) [#{service}_run_state] got status: #{status}"
     MANAGE_TRADABLE_TRACKING
   ].each do |symbol|
     method_name = "ordered_#{symbol}_run_state".to_sym
-puts "ordered... method_name: #{method_name}"
     define_method(method_name) do
-      retrieved_message(STATUS_KEY_FOR[symbol])
-      command = retrieved_message(CONTROL_KEY_FOR[symbol])
+      command = retrieved_message(CONTROL_KEY_FOR[symbol], @redis_admin)
       STATE_FOR_CMD[command]
     end
   end
@@ -126,7 +129,8 @@ puts "ordered... method_name: #{method_name}"
       :termination => SERVICE_TERMINATE
     }.each do |command, state|
       define_method("order_#{symbol}_#{command}".to_sym) do
-        set_message(CONTROL_KEY_FOR[symbol], state)
+        set_message(CONTROL_KEY_FOR[symbol], state,
+            {EXPIRATION_KEY => DEFAULT_ADMIN_EXPIRATION_SECONDS}, @redis_admin)
       end
     end
   end
@@ -138,10 +142,8 @@ puts "ordered... method_name: #{method_name}"
     MANAGE_TRADABLE_TRACKING
   ].each do |symbol|
     method_name = "#{symbol}_run_state".to_sym
-puts "method_name: #{method_name}"
     define_method(method_name) do
-      result = retrieved_message(STATUS_KEY_FOR[symbol])
-puts "state for #{STATUS_KEY_FOR[symbol]}: #{result}"
+      result = retrieved_message(STATUS_KEY_FOR[symbol], @redis_admin)
       result
     end
   # <service>_suspended?, <service>_running?, ... queries
@@ -170,6 +172,27 @@ puts "state for #{STATUS_KEY_FOR[symbol]}: #{result}"
     EOD_EXCHANGE_MONITORING,
     MANAGE_TRADABLE_TRACKING
   ].each do |symbol|
+    m_name = "send_#{symbol}_run_state".to_sym
+    key = STATUS_KEY_FOR[symbol]
+    define_method(m_name) do |exp = RUN_STATE_EXPIRATION_SECONDS|
+      begin
+        expir_arg = {EXPIRATION_KEY => exp}
+        value_arg = "#{run_state}@#{Time.now.utc}"
+        set_message(key, value_arg, expir_arg, @redis_admin)
+      rescue StandardError => e
+        log.warn("exception in #{__method__}: #{e}")
+      end
+    end
+  end
+
+=begin
+###OLD####
+  # send_<service>_run_state reporting
+  [
+    EOD_DATA_RETRIEVAL,
+    EOD_EXCHANGE_MONITORING,
+    MANAGE_TRADABLE_TRACKING
+  ].each do |symbol|
     settings_hash = DEFAULT_RUN_STATE_STATUS_SETTINGS
     settings_hash[STATUS_KEY] = STATUS_KEY_FOR[symbol]
     m_name = "send_#{symbol}_run_state".to_sym
@@ -184,6 +207,7 @@ puts "#{m_name} set_message(#{key}, #{args[1..-1]})"
       set_message(key, *args[1..-1])
     end
   end
+=end
 
 =begin
   def send_exch_mon_run_state
@@ -195,19 +219,34 @@ puts "#{m_name} set_message(#{key}, #{args[1..-1]})"
 
   # Delete the last exchange-monitoring-service control order.
   def delete_exch_mon_order
-    delete_object(EXCHANGE_MONITOR_CONTROL_KEY)
+    delete_object(EXCHANGE_MONITOR_CONTROL_KEY, @redis_admin)
   end
 
   protected  ######## generated constant-based key values ########
 
+  begin
+
+  BOTTOM_KEY_INT, TOP_KEY_INT = 70_000, 99_999
+  @@key_int_bank = []
+
+  def next_key_int
+    if @@key_int_bank.empty? then
+      bank_size = TOP_KEY_INT - BOTTOM_KEY_INT + 1
+      @@key_int_bank = (BOTTOM_KEY_INT...TOP_KEY_INT).to_a.sample(bank_size)
+    end
+    @@key_int_bank.pop
+  end
+
   # new key for symbol set associated with "check for eod data" notifications
   def new_eod_check_key
-    EOD_CHECK_KEY_BASE + rand(1..9999999999).to_s
+    EOD_CHECK_KEY_BASE + next_key_int.to_s
   end
 
   # new key for symbol set associated with eod-data-ready notifications
   def new_eod_data_ready_key
-    EOD_DATA_KEY_BASE + rand(1..9999999999).to_s
+    EOD_DATA_KEY_BASE + next_key_int.to_s
+  end
+
   end
 
   protected  ######## Application-related messaging ########
@@ -232,6 +271,12 @@ puts "#{m_name} set_message(#{key}, #{args[1..-1]})"
     nil
   end
 
+  # The close-date (exchange-closing date) based on 'key'
+  # The key value used for the retrieval will be "#{key}:close-date"
+  def close_date(key)
+    retrieved_message("#{key}:#{CLOSE_DATE_SUFFIX}")
+  end
+
   # List of currently open exchanges
   post :array do |result| result != nil && result.class == Array end
   def open_market_info
@@ -240,17 +285,28 @@ puts "#{m_name} set_message(#{key}, #{args[1..-1]})"
 
   ### Service status/info reports ###
 
+=begin
+#!!!remove:
   # Send the current exchange-monitor 'run_state' (to the redis server).
   def hide_me____send_exch_mon_run_state  #!!!!!!<- rm
     args = eval_settings(EXCH_MONITOR_STATUS_SETTINGS)
     args[1] = "#{run_state}@#{args[1]}"
     set_message(args[0], *args[1..-1])
   end
+=end
 
   # Send the next exchange closing time (to the redis server).
   def send_next_close_time(time)
     args = eval_settings(EXCH_MONITOR_NEXT_CLOSE_SETTINGS, time)
     set_message(args[0], *args[1..-1])
+  end
+
+  # Using 'key' as the base of the message key, send the date portion of the
+  # specified exchange-closing-time (datetime) in 'yyyy-mm-dd' format.
+  # The key value used will be "#{key}:close-date"
+  def send_close_date(key, datetime)
+    set_message("#{key}:#{CLOSE_DATE_SUFFIX}", datetime.to_date,
+                {EXPIRATION_KEY => DEFAULT_EXPIRATION_SECONDS})
   end
 
   # Send the specified list of open exchanges (to the redis server).
@@ -292,10 +348,37 @@ puts "#{m_name} set_message(#{key}, #{args[1..-1]})"
     result
   end
 
+  # Create the timer (task) responsible for periodic reporting of 'run_state'.
+  post :task_exists do @status_task != nil end
+  def create_status_report_timer(srvc_tag: service_tag,
+            period_seconds: RUN_STATE_EXPIRATION_SECONDS - 1)
+    @status_report_method = "send_#{srvc_tag}_run_state"
+    @status_task = Concurrent::TimerTask.new(
+          execution_interval: period_seconds) do |task|
+      begin
+        send(@status_report_method)
+      rescue StandardError => e
+        log.warn("exception in #{__method__}: #{e}")
+      end
+    end
+  end
+
+  protected  ###  Initialization
+
+  post :clients_set do @redis != nil && @redis_admin != nil end
+  def init_redis_clients
+    config = DataConfig.new(log)
+    @redis = config.redis_application_client
+    @redis_admin = config.redis_administration_client
+  end
+
   protected  ## Logging
 
   # The 'log' object
   def log
+    if $log.nil? then
+      $log = ErrorLog.new
+    end
     $log
   end
 
@@ -303,25 +386,7 @@ puts "#{m_name} set_message(#{key}, #{args[1..-1]})"
     [:info, :debug, :warn, :error, :fatal, :unknown].include?(level.to_sym) end
   pre :msg_exists do |msg| msg != nil end
   def log_message(msg, level = 'warn')
-puts "LOG: #{$log}"
     $log.method(level.to_sym).call(msg)
-=begin
-#old######!!!!!!
-    case level.to_sym
-    when :info
-      $log.info(msg)
-    when :debug
-      $log.debug(msg)
-    when :warn
-      $log.warn(msg)
-    when :error
-      $log.error(msg)
-    when :fatal
-      $log.fatal(msg)
-    when :unknown
-      $log.unknown(msg)
-    end
-=end
   end
 
   # Logging with category: info, debug, warn, error, fatal, unknown:

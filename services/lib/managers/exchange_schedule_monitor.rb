@@ -1,7 +1,6 @@
 require 'ruby_contracts'
 require 'error_log'
 require 'publisher'
-#!!!I think this is not needed:
 require 'service_tokens'
 require 'tat_services_facilities'
 
@@ -15,7 +14,7 @@ class ExchangeScheduleMonitor < Publisher
 
   public  ###  Access
 
-  attr_reader :eod_check_channel, :eod_data_ready_channel
+  attr_reader :eod_check_channel, :eod_data_ready_channel, :service_tag
   # List of symbols found to be "ready" upon 'eod_check_channel' notice:
   attr_reader :target_symbols
 
@@ -53,7 +52,7 @@ STDOUT.flush    # Allow any debugging output to be seen.
           else
             # Send a check-for-EOD-data notification to any subscribers.
             send_check_notification(
-              exchange_clock.symbols_for(@next_close_time))
+              exchange_clock.symbols_for(@next_close_time), @next_close_time)
           end
         end
       end
@@ -112,7 +111,7 @@ puts "[heu] - ex_updated was true"
   # parties.  Otherwise, null op.
   def send_status_info
 puts "#{self.class} sending my run-state: #{run_state}"
-    send_eod_exchange_monitoring_run_state
+#!!!rm:    send_eod_exchange_monitoring_run_state
     if run_state == SERVICE_RUNNING then
       close_time = nil
       if @next_close_time != nil then
@@ -149,7 +148,7 @@ puts "#{self.class} sending my run-state: #{run_state}"
         # Make sure the order doesn't "linger" after termination.
         delete_exch_mon_order
       end
-      send_eod_exchange_monitoring_run_state
+    else
     end
   end
 
@@ -162,12 +161,17 @@ puts "#{self.class} sending my run-state: #{run_state}"
     end
   end
 
-  # Send 'symbols', with key 'eod_check_key' to the messaging system.  Then
-  # publish  'eod_check_key' on the 'eod_check_channel'.
+  # Send 'symbols', with key 'eod_check_key', as well as the date part of
+  # 'closing_date_time'[1] (which is the closing time of the exchange(s)
+  # associated with 'symbols'), to the messaging system.  Then publish
+  # 'eod_check_key' on the 'eod_check_channel'.
+  # [1] The key for the closing-date is: "#{eod_check_key}:close-date"
   pre :symbols_array do |symbols| ! symbols.nil? && symbols.class == Array end
-  def send_check_notification(symbols)
+  def send_check_notification(symbols, closing_date_time)
     if symbols.count > 0 then
-      count = add_set(eod_check_key, symbols.map {|s| s.symbol})
+      count = add_set(eod_check_key, symbols.map {|s| s.symbol},
+                     DEFAULT_EXPIRATION_SECONDS)
+      send_close_date(eod_check_key, closing_date_time)
       if count != symbols.count then
         msg = "send_check_notification: add_set returned different count " +
           "(#{count}) than the expected #{symbols.count} - symbols.first: " +
@@ -216,7 +220,7 @@ puts "#{i}th pause for #{sleeptime} seconds..."
   private
 
   attr_reader :eod_check_key, :continue_monitoring, :exchange_clock,
-    :refresh_requested, :run_state
+    :refresh_requested
 
   # While this value is > the number of seconds until the next upcoming
   # market-close time, any new market/exchange updates will be ignored.
@@ -231,7 +235,11 @@ puts "#{i}th pause for #{sleeptime} seconds..."
     @exchange_clock = ExchangeClock.new
     @run_state = SERVICE_RUNNING
     @long_term_i_count = -1
+    @service_tag = EOD_EXCHANGE_MONITORING
+    init_redis_clients
+    create_status_report_timer
     super(EOD_CHECK_CHANNEL)
+    @status_task.execute
   end
 
 end

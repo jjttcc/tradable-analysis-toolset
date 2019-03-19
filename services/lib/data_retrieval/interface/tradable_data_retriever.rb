@@ -6,8 +6,9 @@ class TradableDataRetriever
 
   public  ###  Access
 
-  # hash-table of data sets (keyed by 'symbol') from the last retrieval
-  attr_reader :data_sets
+  # hash-table of data sets (keyed by 'symbol') from the last retrieval -
+  # i.e.: data-set for: symbol
+  attr_reader :data_set_for
 
   # The last set of symbols for which data was retrieved via
   # 'retrieve_ohlc_data'
@@ -43,14 +44,16 @@ class TradableDataRetriever
   # Retrieve historical data for the tradables identified by 'symbols', with
   # the specified start_date and end_date - If end_date is nil, an end-date
   # of "now" is used.  The expected date format is: yyyy-mm-dd.
-  # On success, 'data_sets' will be a Hash[Array[Array]], keyed by symbol.
+  # On success, 'data_set_for' will be a Hash[Array[Array]], keyed by symbol.
   pre :syms_good do |symbols, sd| symbols != nil && symbols.class == Array end
-  pre :start_good do |s, start_date|
+  pre :start_date_good do |s, start_date|
     start_date != nil && start_date.class == String end
-  post :data_sets_result do |result, symbols|
-    data_sets.class == Hash && data_sets.count == symbols.count end
+  pre :end_date_good do |s, start_date, end_date|
+    end_date.nil? || end_date.class == String end
+  post :data_set_for_result do |result, symbols|
+    data_set_for.class == Hash && data_set_for.count == symbols.count end
   def retrieve_ohlc_data(symbols, start_date, end_date = nil)
-    @data_sets = {}
+    @data_set_for = {}
     @last_symbols = symbols
     ohlc_pre_process(symbols)
     if @skip_lines.nil? then
@@ -74,7 +77,7 @@ class TradableDataRetriever
         end
         line_number += 1
       end
-      @data_sets[s] = current_data_set
+      @data_set_for[s] = current_data_set
     end
   end
 
@@ -98,6 +101,14 @@ class TradableDataRetriever
     @exchange_key = 'exchange'
     @name_key = 'name'
     @desc_key = 'description'
+    @data_set_for = {}
+  end
+
+  private  ### Specification
+
+  # class invariant
+  def invariant
+    @data_set_for != nil && @data_set_for.is_a?(Hash)
   end
 
   private  ### Implementation - utilities
