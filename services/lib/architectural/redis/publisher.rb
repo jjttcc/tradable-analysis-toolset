@@ -8,9 +8,9 @@ class Publisher
   private
 
   def initialize(pubchan = 'default-channel')
-    if @redis.nil? then
-      @redis = Redis.new(port: redis_app_port)
-    end
+#!!!    if @redis.nil? then
+#!!!      @redis = Redis.new(port: redis_app_port)
+#!!!    end
     @default_publishing_channel = pubchan
 puts "(#{self.class} [#{__FILE__}]) redis: #{redis}"
 puts "(#{self.class}) default - pubch: #{default_publishing_channel}, "

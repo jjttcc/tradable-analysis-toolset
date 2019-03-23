@@ -1,14 +1,16 @@
 require 'error_log'
 
 # Constants and other "facilities" used by/for the TAT services
-# NOTE: Many of the methods defined here require one or both of the redis
-# client attributes, @redis and @redis_admin, to exist.  This can be
-# accomplished by calling 'init_redis_clients'.
-#!!!!!NOTE: This file might belong somewhere else - not in .../redis!!!!!
+#!!!rm: NOTE: Many of the methods defined here require one or both of the redis
+#!!!!!# client attributes, @redis and @redis_admin, to exist.  This can be
+#!!!!!# accomplished by calling 'init_redis_clients'.
+#!!!!!NOTE: This file might to be moved to somewhere other than .../redis!!!!!
 module TatServicesFacilities
   include Contracts::DSL, RedisFacilities, ServiceTokens
 
   public
+
+#!!!!!  attr_reader :redis, :redis_admin
 
   # Tag identifying "this" service
   post :result_valid do |result|
@@ -16,6 +18,21 @@ module TatServicesFacilities
   def service_tag
     nil   # Redefine, if appropriate.
   end
+
+  def redis
+    if @redis.nil? then
+      @redis = DataConfig.new(log).redis_application_client
+    end
+    @redis
+  end
+
+  def redis_admin
+    if @redis_admin.nil? then
+      @redis_admin = DataConfig.new(log).redis_administration_client
+    end
+    @redis_admin
+  end
+
 
   protected  ### time-related constants
 
@@ -97,7 +114,7 @@ module TatServicesFacilities
 
   # Is 'service' alive?
   pre :valid do |service| ServiceTokens::SERVICE_EXISTS[service] end
-  post :clients_set do @redis != nil && @redis_admin != nil end
+  post :clients_set do redis != nil && redis_admin != nil end
   def is_alive?(service)
     status = method("#{service}_run_state").call
     result = status =~ /^#{SERVICE_RUNNING}/ ||
@@ -112,7 +129,7 @@ module TatServicesFacilities
   ].each do |symbol|
     method_name = "ordered_#{symbol}_run_state".to_sym
     define_method(method_name) do
-      command = retrieved_message(CONTROL_KEY_FOR[symbol], @redis_admin)
+      command = retrieved_message(CONTROL_KEY_FOR[symbol], redis_admin)
       STATE_FOR_CMD[command]
     end
   end
@@ -130,7 +147,7 @@ module TatServicesFacilities
     }.each do |command, state|
       define_method("order_#{symbol}_#{command}".to_sym) do
         set_message(CONTROL_KEY_FOR[symbol], state,
-            {EXPIRATION_KEY => DEFAULT_ADMIN_EXPIRATION_SECONDS}, @redis_admin)
+            {EXPIRATION_KEY => DEFAULT_ADMIN_EXPIRATION_SECONDS}, redis_admin)
       end
     end
   end
@@ -143,7 +160,7 @@ module TatServicesFacilities
   ].each do |symbol|
     method_name = "#{symbol}_run_state".to_sym
     define_method(method_name) do
-      result = retrieved_message(STATUS_KEY_FOR[symbol], @redis_admin)
+      result = retrieved_message(STATUS_KEY_FOR[symbol], redis_admin)
       result
     end
   # <service>_suspended?, <service>_running?, ... queries
@@ -178,48 +195,16 @@ module TatServicesFacilities
       begin
         expir_arg = {EXPIRATION_KEY => exp}
         value_arg = "#{run_state}@#{Time.now.utc}"
-        set_message(key, value_arg, expir_arg, @redis_admin)
+        set_message(key, value_arg, expir_arg, redis_admin)
       rescue StandardError => e
         log.warn("exception in #{__method__}: #{e}")
       end
     end
   end
 
-=begin
-###OLD####
-  # send_<service>_run_state reporting
-  [
-    EOD_DATA_RETRIEVAL,
-    EOD_EXCHANGE_MONITORING,
-    MANAGE_TRADABLE_TRACKING
-  ].each do |symbol|
-    settings_hash = DEFAULT_RUN_STATE_STATUS_SETTINGS
-    settings_hash[STATUS_KEY] = STATUS_KEY_FOR[symbol]
-    m_name = "send_#{symbol}_run_state".to_sym
-puts "DEFINING #{m_name} with #{settings_hash}"
-    key = STATUS_KEY_FOR[symbol]
-#!!!!try: add expire arg, get rid of settings_hash!!!!
-    define_method(m_name) do
-      args = eval_settings(settings_hash)
-      args[1] = "#{run_state}@#{args[1]}"
-puts "#{m_name} set_message(#{key}, #{args[1..-1]})"
-#!!      set_message(args[0], *args[1..-1])
-      set_message(key, *args[1..-1])
-    end
-  end
-=end
-
-=begin
-  def send_exch_mon_run_state
-    args = eval_settings(EXCH_MONITOR_STATUS_SETTINGS)
-    args[1] = "#{run_state}@#{args[1]}"
-    set_message(args[0], *args[1..-1])
-  end
-=end
-
   # Delete the last exchange-monitoring-service control order.
   def delete_exch_mon_order
-    delete_object(EXCHANGE_MONITOR_CONTROL_KEY, @redis_admin)
+    delete_object(EXCHANGE_MONITOR_CONTROL_KEY, redis_admin)
   end
 
   protected  ######## generated constant-based key values ########
@@ -284,16 +269,6 @@ puts "#{m_name} set_message(#{key}, #{args[1..-1]})"
   end
 
   ### Service status/info reports ###
-
-=begin
-#!!!remove:
-  # Send the current exchange-monitor 'run_state' (to the redis server).
-  def hide_me____send_exch_mon_run_state  #!!!!!!<- rm
-    args = eval_settings(EXCH_MONITOR_STATUS_SETTINGS)
-    args[1] = "#{run_state}@#{args[1]}"
-    set_message(args[0], *args[1..-1])
-  end
-=end
 
   # Send the next exchange closing time (to the redis server).
   def send_next_close_time(time)
@@ -365,11 +340,18 @@ puts "#{m_name} set_message(#{key}, #{args[1..-1]})"
 
   protected  ###  Initialization
 
-  post :clients_set do @redis != nil && @redis_admin != nil end
-  def init_redis_clients
-    config = DataConfig.new(log)
-    @redis = config.redis_application_client
-    @redis_admin = config.redis_administration_client
+#!!!  post :clients_set do @redis != nil && @redis_admin != nil end
+  def init_redis_clients(source_obj = nil)
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    if source_obj.nil? then
+      config = DataConfig.new(log)
+      @redis = config.redis_application_client
+      @redis_admin = config.redis_administration_client
+    else
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+      @redis = source_obj.redis
+      @redis_admin = source_obj.redis_admin
+    end
   end
 
   protected  ## Logging

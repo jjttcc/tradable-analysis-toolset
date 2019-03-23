@@ -14,9 +14,9 @@ class PublisherSubscriber
   post :redis do redis != nil end
   def initialize(pubchan = 'default-channel', subchan = 'default-channel')
 puts "#{self.class}.new called with pub: #{pubchan}, sub: #{subchan}"
-    if @redis.nil? then
-      @redis = Redis.new(port: redis_app_port)
-    end
+#!!!    if @redis.nil? then
+#!!!      @redis = Redis.new(port: redis_app_port)
+#!!!    end
     @default_publishing_channel = pubchan
     @default_subscription_channel = subchan
 puts "(#{self.class}) redis: #{redis}"

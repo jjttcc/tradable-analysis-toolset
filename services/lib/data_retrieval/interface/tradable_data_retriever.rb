@@ -50,10 +50,10 @@ class TradableDataRetriever
     start_date != nil && start_date.class == String end
   pre :end_date_good do |s, start_date, end_date|
     end_date.nil? || end_date.class == String end
+  pre :data_set_for do data_set_for != nil end
   post :data_set_for_result do |result, symbols|
-    data_set_for.class == Hash && data_set_for.count == symbols.count end
+    data_set_for.count >= symbols.count end
   def retrieve_ohlc_data(symbols, start_date, end_date = nil)
-    @data_set_for = {}
     @last_symbols = symbols
     ohlc_pre_process(symbols)
     if @skip_lines.nil? then
@@ -61,6 +61,7 @@ class TradableDataRetriever
     end
     symbols.each do |s|
       query = query_from_symbol(s, start_date, end_date)
+puts "rod - query: #{query}"
       uri = URI(query)
       response = Net::HTTP.get(uri)
       lines = response.split(@record_separator)
@@ -79,6 +80,7 @@ class TradableDataRetriever
       end
       @data_set_for[s] = current_data_set
     end
+puts "rod - dsf: #{@data_set_for.inspect}"
   end
 
   # Metadata (e.g.: name, exchange, ...) for the tradable with 'symbol'
@@ -91,6 +93,8 @@ class TradableDataRetriever
 
   private
 
+  post :data_set do data_set_for != nil && data_set_for.is_a?(Hash) end
+  post :metadata do metadata_for != nil && metadata_for.is_a?(Hash) end
   def initialize(*args)
     @field_order = [DATE, OPEN, HIGH, LOW, CLOSE, VOLUME, OI]
     @record_separator = "\n"

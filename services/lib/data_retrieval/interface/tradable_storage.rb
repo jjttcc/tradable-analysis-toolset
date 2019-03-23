@@ -22,7 +22,7 @@ class TradableStorage
   # up-to-date with respect to the specified 'date'? - I.e., is the latest
   # retrieved date for 'symbol' the same or later than 'date'?
   pre :symbol_exists do |symbol| symbol != nil && ! symbol.empty? end
-  pre :date_valid do |date| date != nil && date.length == 10 end
+  pre :date_valid do |symbol, date| date != nil && date.length == 10 end
   def data_up_to_date_for(symbol, date)
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
@@ -43,8 +43,6 @@ class TradableStorage
 #!!!!!TO-DO: Document behavior when error/unexpected-problem occurs!!!!
   pre :keyword_hash do |hash| hash != nil end
   pre :syms_exist do |hash| hash[:symbols] != nil end
-  pre :syms_array do |hash| hash[:symbols].is_a?(Array) end
-  pre :enddate_exists do |hash| hash[:enddate] != nil end
 #!!!!May not necessarily need an enddate after all - figure it out!!!!!!!!
   def update_data_stores(symbols:, startdate: nil, enddate: nil)
     raise "Fatal: abstract method: #{self.class} #{__method__}"
