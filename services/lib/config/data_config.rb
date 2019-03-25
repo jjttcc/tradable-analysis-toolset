@@ -16,12 +16,13 @@ class DataConfig
 
   public
 
-  # EOD data-retrieval object
+  # New instance of the EOD data-retrieval object
   def data_retriever
     TiingoDataRetriever.new(data_retrieval_token, log)
   end
 
-  # object responsible for storing retrieved data to persistent store
+  # New instance of the object responsible for storing retrieved data to
+  # persistent store
   def data_storage_manager
     FileTradableStorage.new(mas_data_path, data_retriever, log)
   end

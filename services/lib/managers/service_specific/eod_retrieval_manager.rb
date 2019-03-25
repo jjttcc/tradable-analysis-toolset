@@ -7,16 +7,88 @@ require 'tat_util'
 require 'service_tokens'
 require 'tat_services_facilities'
 require 'eod_data_wrangler'
+require 'concurrent-ruby'
+
+# Managers of EODDataWrangler object, allowing EOD data retrieval to occur
+# in a separate child process - Example:
+#   handler = DataWranglerHandler.new(service_tag, log)
+#   wrangler = EODDataWrangler.new(...)
+#   ...
+#   handler.async.execute(wrangler)
+class DataWranglerHandler
+  include Concurrent::Async, Contracts::DSL, TatServicesFacilities
+
+  public
+
+  # Perform data polling/retrieval by calling 'wrangler.execute' within a
+  # forked child process.  Note: Invoke this method via 'async' - e.g.:
+  #   handler.async.execute(wrangler)
+  def execute(wrangler)
+    tries = 0
+    loop do
+      child = fork do
+        wrangler.execute(@child_error_key, RETRY_TAG)
+      end
+      tries += 1
+      status = Process.wait(child)
+      if tries > RETRY_LIMIT then
+        @log.warn("#{@tag}: " +
+                  ": Retry limit reached (#{RETRY_LIMIT}) - aborting...")
+        break
+      end
+      error_msg = retrieved_message(@child_error_key)
+      if error_msg != nil then
+        delete_message(@child_error_key)
+        log_msg("#{@tag}: #{error_msg}")
+        if error_msg[0..RETRY_TAG.length-1] == RETRY_TAG then
+          log_msg("Retrying #{@tag} (for #{wrangler.target_symbols.inspect})")
+        else
+          log_msg("#{@tag}: Unrecoverable error")
+          # Unrecoverable error - end loop.
+          break
+        end
+      else
+        @log.info("#{@tag}: succeeded (#{wrangler.target_symbols.inspect})")
+        # error_msg.nil? implies success, end the loop.
+        break
+      end
+      sleep RETRY_PAUSE
+    end
+  end
+
+  private
+
+  RETRY_PAUSE, RETRY_MINUTES_LIMIT = 15, 210
+  RETRY_LIMIT = (RETRY_MINUTES_LIMIT * 60) / RETRY_PAUSE
+  RETRY_TAG = 'retry'
+
+  pre :good_args do |tg, lg| ! (tg.nil? || lg.nil?) end
+  def initialize(svc_tag, the_log)
+    @log = the_log
+    @child_error_key = new_semi_random_key(svc_tag.to_s)
+    @tag = svc_tag
+    # Async initialization:
+    super()
+  end
+
+  def log_msg(s)
+    if @log != nil then
+      @log.warn(s)
+    end
+  end
+
+end
 
 
 # Management of EOD data retrieval logic
 # Subscribes to 'eod_check_channel' for "eod-check" notifications; obtains
 # the current list of symbols to be checked and, for each symbol, s:
-#   if the latest EOD data for s is ready:
+#   when the latest EOD data for s is ready:
 #     retrieve the latest data for s
 #     store the retrieved data in the correct location for s
-# Publishes the list of symbols for which data has been retrieved and
-# stored to the "eod-data-ready" channel.
+# Saves the list of symbols for which data has been retrieved to the
+# messaging system and publishes the key for that list to the
+# "eod-data-ready" channel.
 class EODRetrievalManager < Subscriber
   include Contracts::DSL, RedisFacilities, TatServicesFacilities
 
@@ -45,45 +117,23 @@ class EODRetrievalManager < Subscriber
     end
     if target_symbols.count > 0 then
       end_date = close_date(eod_check_key)
-      wrangler = EODDataWrangler.new(target_symbols, eod_check_key,
-                                     end_date, log) do |w|
-#!!!!        w.init_redis_clients(self)
-      end
-#!!!!wrangler.add_observer(self)
+      handler = DataWranglerHandler.new(service_tag, log)
+      wrangler = EODDataWrangler.new(self, eod_check_key, end_date)
       # Let the "data wrangler" do the actual data-retrieval work.
-      wrangler.execute
+      handler.async.execute(wrangler)
     end
   end
-
-#!!!!!!!!!!!!!!!!!REMOVE:!!!!!!!!!!!!!!!!!!!
-  protected #!!!????????????????????!!!
-  # Notify me/self (child thread/data-wrangler).
-  def notify_from_thread(time, result, exception)
-    msg = "#({time}) wrangler thread update: "
-    if result.nil? then
-      msg += "error: #{exception} (#{exception.class})"
-      log.warn(msg)
-    else
-      msg += "result: #{result.inspect}"
-      log.info(msg)
-    end
-  end
-
-  alias_method :update, :notify_from_thread
-  #!!!!!!!!!!!!!!!!![end] REMOVE!!!!!!!!!!!!!!!!!!!
 
   private
 
   post :target_symbols do ! target_symbols.nil? end
   post :key_set do eod_check_key != nil end
+#!!!!QUESTION: What to do if 'last_message' is nil or empty?!!!!
   def wait_for_eod_request
-log.debug("subscribing to channel: " + default_subscription_channel +
-    " #{DateTime.now} (#{self.inspect})")
-STDOUT.flush
-    info("#{self.class} subscribing to channel: " +
+    debug("#{self.class} subscribing to channel: " +
          "#{default_subscription_channel} (#{self.inspect})")
-log.debug("subsc - redis: #{@redis}")
     subscribe_once do
+#!!!!QUESTION: What to do if 'last_message' is nil or empty?!!!!
       @eod_check_key = last_message
     end
   end
@@ -94,11 +144,14 @@ log.debug("subsc - redis: #{@redis}")
   post :target_syms do target_symbols != nil && target_symbols.is_a?(Set) end
   def post_process_subscription(channel)
     @target_symbols = Set.new(retrieved_set(eod_check_key))
+    log.debug("[ERM] #{__method__} - tgtsyms: #{@target_symbols.inspect}")
   end
 
-  private
+  public
 
   attr_reader :eod_check_key, :log
+
+  private
 
   RETRY_WAIT_SECONDS, MAIN_LOOP_PAUSE_SECONDS = 50, 15
   RUN_STATE_TTL = 300

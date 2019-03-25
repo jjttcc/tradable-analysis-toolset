@@ -35,13 +35,11 @@ class ExchangeScheduleMonitor < Publisher
         check(@next_close_time != nil)
 puts "eom - @next_close_time: #{@next_close_time}"
 STDOUT.flush    # Allow any debugging output to be seen.
+        # (Wait until it's '@next_close_time'.)
         time_to_send = deadline_reached(@next_close_time)
 puts "eom - time_to_send: #{time_to_send}"
 STDOUT.flush    # Allow any debugging output to be seen.
         if time_to_send then
-puts "calling symbols_for, send_check_notification " +
-"with next-close-time: #{@next_close_time}"
-STDOUT.flush    # Allow any debugging output to be seen.
           if run_state != SERVICE_RUNNING then
             if run_state == SERVICE_SUSPENDED then
               wait_for_resume_command
@@ -161,13 +159,14 @@ puts "#{self.class} sending my run-state: #{run_state}"
     end
   end
 
-  # Send 'symbols', with key 'eod_check_key', as well as the date part of
-  # 'closing_date_time'[1] (which is the closing time of the exchange(s)
-  # associated with 'symbols'), to the messaging system.  Then publish
-  # 'eod_check_key' on the 'eod_check_channel'.
+  # Generate a new 'eod_check_key' and send 'symbols', with the new key, as
+  # well as the date part of 'closing_date_time'[1] (which is the closing
+  # time of the exchange(s) associated with 'symbols'), to the messaging
+  # system.  Then publish 'eod_check_key' on the 'eod_check_channel'.
   # [1] The key for the closing-date is: "#{eod_check_key}:close-date"
   pre :symbols_array do |symbols| ! symbols.nil? && symbols.class == Array end
   def send_check_notification(symbols, closing_date_time)
+    eod_check_key = new_eod_check_key
     if symbols.count > 0 then
       count = add_set(eod_check_key, symbols.map {|s| s.symbol},
                      DEFAULT_EXPIRATION_SECONDS)
@@ -178,7 +177,6 @@ puts "#{self.class} sending my run-state: #{run_state}"
           symbols.first.symbol
         warn(msg)
       end
-puts "send_check_notification - publishing '#{eod_check_key}'"
       publish eod_check_key
     end
   end
@@ -186,13 +184,10 @@ puts "send_check_notification - publishing '#{eod_check_key}'"
   # Sleep for EXMON_PAUSE_SECONDS.
   def pause
     sleeptime = EXMON_PAUSE_SECONDS
-puts "sleeping #{sleeptime} seconds..."
     STDOUT.flush    # Allow any debugging output to be seen.
     sleep  sleeptime
     send_status_info
     process_external_command
-print "woke up at: "
-system('date')
   end
 
   # Sleep for EXMON_LONG_PAUSE_ITERATIONS periods of EXMON_PAUSE_SECONDS.
@@ -200,7 +195,6 @@ system('date')
     sleeptime = EXMON_PAUSE_SECONDS
     pause_counter = 0
     EXMON_LONG_PAUSE_ITERATIONS.times do |i|
-puts "#{i}th pause for #{sleeptime} seconds..."
       STDOUT.flush    # Allow any debugging output to be seen.
       sleep sleeptime
       if pause_counter > CHECK_FOR_UPDATES_THRESHOLD then
@@ -219,8 +213,7 @@ puts "#{i}th pause for #{sleeptime} seconds..."
 
   private
 
-  attr_reader :eod_check_key, :continue_monitoring, :exchange_clock,
-    :refresh_requested
+  attr_reader :continue_monitoring, :exchange_clock, :refresh_requested
 
   # While this value is > the number of seconds until the next upcoming
   # market-close time, any new market/exchange updates will be ignored.
@@ -231,7 +224,6 @@ puts "#{i}th pause for #{sleeptime} seconds..."
 
   def initialize
     @refresh_requested = false
-    @eod_check_key = new_eod_check_key
     @exchange_clock = ExchangeClock.new
     @run_state = SERVICE_RUNNING
     @long_term_i_count = -1

@@ -85,16 +85,9 @@ STDOUT.flush
     begin
       lut = retrieved_message(TTM_LAST_TIME_KEY)
       if ! lut.nil? && ! lut.empty? then
-puts "lut: '#{lut}'"
-STDOUT.flush
         new_lut = DateTime.parse(lut)
-puts "comparing '#{new_lut}' with '#{last_update_time}'"
-puts "(comparing '#{new_lut.inspect}' with '#{last_update_time.inspect}'}"
-STDOUT.flush
         if new_lut > last_update_time then
           @last_update_time = DateTime.parse(lut)
-puts "last_update_time set to: #{last_update_time}"
-STDOUT.flush
         end
       end
     rescue StandardError => e
@@ -134,9 +127,6 @@ STDOUT.flush
     #          allocated-tracking-cleanup-interval[in-seconds]
     result = DateTime.current.to_i - last_cleanup_time.to_i >
       DataConfig::TRACKING_CLEANUP_INTERVAL
-if result then
-puts "A cleanup is due! (#{DateTime.current})"
-end
     result
   end
 
@@ -308,8 +298,8 @@ end
   end
 
   pre :one_or_more do |sym_ids| sym_ids != nil && sym_ids.count > 0 end
+  # Mark, in the database, the specified tradable-symbols as "tracked".
   def track(affected_symbol_ids)
-puts "#{__method__} affected_symbol_ids: #{affected_symbol_ids.inspect}"
     TradableSymbol.where(id: affected_symbol_ids).update_all(tracked: true)
   end
 

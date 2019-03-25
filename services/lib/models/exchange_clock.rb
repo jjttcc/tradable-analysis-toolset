@@ -25,7 +25,6 @@ class ExchangeClock
   pre  :valid_time do |ctime| ctime != nil && ctime.respond_to?(:strftime) end
   post :exists do |result| ! result.nil? end
   def symbols_for(close_time)
-STDOUT.flush    # Allow any debugging output to be seen.
     exchanges = exchanges_for(close_time)
     ex_id_map = Hash[exchanges.collect { |x| [x.id, true] } ]
     tracked = TradableSymbol.tracked_tradables
@@ -35,15 +34,6 @@ print "looking for exchange for #{s.symbol} (xid: #{s.exchange_id}):\n" +
 ex_id_map[s.exchange_id].inspect
       ex_id_map[s.exchange_id]
     end
-if result.empty? then
-  ['IBM', 'RHT'].each do |s|   #!!!!testing STUB!!!!
-    ts = TradableSymbol.find_by_symbol(s)
-    if ! ts.nil? then
-      result << ts
-      puts "[symbols_for] cheated - added #{ts.symbol}"
-    end
-  end
-end
     result
   end
 

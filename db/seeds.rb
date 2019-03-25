@@ -34,43 +34,11 @@ if ENV['RAILS_ENV'] == "test"
 end
 
 ############################ REFERENCE DATA ###################################
-#!!!!!VERBOSE = false
 VERBOSE = true
 require 'csv'
 SYM = 'symbol'; NAME = 'name'; TYPE = 'type'; TZ = 'timezone'
 DATE = 'date'; FNAME = 'full_name'
 
-#!!!!obsolete!!!!
-def load_tradable_entities_and_symbols(input_file_name, discarded = nil)
-  if ! TradableEntity.find_by_symbol('IBM').nil? then
-    return
-  end
-  puts "loading tradable_entities table"
-  entities = {}
-  symbols = []
-  converter = lambda { |header| header.downcase }
-  csv_text = File.read(Rails.root.join('db',input_file_name))
-  csv = CSV.parse(csv_text, :headers => true, header_converters: converter)
-  i=1
-  csv.each do |row|
-    row.to_hash
-    if entities.has_key?(row[SYM]) then
-      $stderr.puts "duplicate key found on line #{i}"
-    else
-      symbol = row[SYM].strip
-      entities[row[SYM]] = TradableEntity.new(
-        symbol: symbol, name: row[NAME].strip)
-      symbols << TradableSymbol.new(symbol: symbol)
-    end
-    i += 1
-  end
-  TradableEntity.transaction do
-    entities.each do |key, value|
-      value.save!
-    end
-    symbols.each { |s| s.save! }
-  end
-end
 
 def load_tradables_with_exchange(input_file_name, exchanges, test_symbol)
   if exchanges.nil? then
@@ -90,9 +58,6 @@ def load_tradables_with_exchange(input_file_name, exchanges, test_symbol)
   i=2
   csv.each do |row|
     symbol, tradable_name, exchange = row[0..2].map {|f| f.strip}
-if i < 15 then
-  puts "line #{i}: sym: #{symbol}, name: #{tradable_name}, exch: #{exchange}"
-end
     if symbol != symbol.upcase then
       raise "unexpected: symbol not in all caps: #{symbol} (line #{i})"
     end
@@ -105,12 +70,6 @@ end
                                               name: tradable_name)
         new_symbol = TradableSymbol.new(symbol: symbol, exchange: exchobj)
         symbols << new_symbol
-      elsif VERBOSE then
-if ! ['U', 'BATS', 'IEX'].include?(exchange) then
-        puts "#{symbol} not in a logged exchange (#{exchange}) - skipping..."
-puts "exchs: #{exchanges.inspect}"
-raise "#{symbol} not in a logged exchange (#{exchange}) - skipping..."
-end
       end
     end
     i += 1
@@ -123,7 +82,6 @@ end
   end
 end
 
-old_stocks_file = 'allusstocks.csv'   #!!!!obsolete!!!!
 stock_csv_files_with_test_symbol = {
   'stocks_with_exchange.csv' => 'IBM',
   'shanghai_and_shenzhen_stocks.csv' => '000001',
@@ -198,7 +156,6 @@ def load_market_schedules(exchanges)
             else
               value = (row[i].blank?)? nil: row[i].strip
             end
-#!!!puts "field #{i}: #{fnames[i]}, value: #{value}"
             ms.write_attribute(fnames[i].to_sym, value)
           end
           ms.save!
@@ -210,50 +167,6 @@ def load_market_schedules(exchanges)
   end
 end
 
-def old___load_market_schedules(exchanges)
-  # Note: a candidate key consists of 'schedule_type', 'date', 'market_id'.
-  if MarketSchedule.count == 0 then
-    fnames = [STYPE, DATE, PRE_START, PRE_END, CORE_START, CORE_END,
-              POST_START, POST_END]
-    MarketSchedule.transaction do
-      converter = lambda { |header| header.downcase }
-      csv_text = File.read(Rails.root.join('db','market_schedule.csv'))
-      csv = CSV.parse(csv_text, :headers => true, header_converters: converter)
-      finished = false
-      csv.each do |row|
-        ms = MarketSchedule.new
-        (0..fnames.count-1).each do |i|
-          case fnames[i]
-          when STYPE then
-            value = row[i].to_i
-          when DATE then
-            value = (row[i].blank?)? nil: Date.parse(row[i].strip)
-          else
-            value = (row[i].blank?)? nil: Time.parse(row[i].strip)
-          end
-puts "field #{i}: #{fnames[i]}, value: #{value}"
-          if value == 0 then
-            puts "Found 0 schedule_type value - ending load."
-            finished = true
-            break
-          end
-          ms.write_attribute(fnames[i].to_sym, value)
-        end
-        if not finished then
-          row.to_hash
-          market = row[MKTLBL].strip.upcase
-          exch = exchanges[market]
-          if exch != nil then
-            ms.market = exch
-          end
-          ms.save!
-        else
-          break
-        end
-      end
-    end
-  end
-end
 
 CLOSE_YEAR, CLOSE_MONTH, CLOSE_DAY, CLOSE_REASON = 0,1,2,3
 

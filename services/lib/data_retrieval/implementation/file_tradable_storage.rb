@@ -39,20 +39,14 @@ puts "dutdf[5](#{symbol}, #{date}): #{result}"
   public  ###  Basic operations
 
   def update_data_stores(symbols:, startdate: nil, enddate: nil)
-puts "uds[1]"
-$stdout.flush
 puts "uds[1b] sy, sd, ed: #{symbols.inspect}, #{startdate}, #{enddate}"
 $stdout.flush
     @last_update_rec_count = {}
     if startdate.nil? then
-puts "uds[2]"
-$stdout.flush
       # Use the latest start-date from the existing data for each symbol.
       symbols.each do |s|
         start = startdate_for(s)
         if start.nil? then
-puts "uds[3]"
-$stdout.flush
           @log.error("Could not find startdate for #{s}")
           @last_update_rec_count[s] = 0
         else
@@ -67,8 +61,6 @@ $stdout.flush
 #!!!!!!!!   to:
 #          retriever.retrieve_ohlc_data([s], start, enddate)
           update_data_for(s, retriever.data_set_for[s])
-puts "uds[6]"
-$stdout.flush
           @last_update_rec_count[s] = retriever.data_set_for[s].count
 puts "uds[7]"
 $stdout.flush
@@ -79,15 +71,9 @@ $stdout.flush
 puts "uds[8]"
 $stdout.flush
       retriever.retrieve_ohlc_data(symbols, startdate, enddate)
-puts "uds[9]"
-$stdout.flush
       symbols.each do |s|
-puts "uds[10]"
-$stdout.flush
         update_data_for(s, retriever.data_set_for[s])
         @last_update_rec_count[s] = retriever.data_set_for[s].count
-puts "uds[11]"
-$stdout.flush
       end
     end
 puts "uds[12] - retriever: #{retriever.inspect}"

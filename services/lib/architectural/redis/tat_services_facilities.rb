@@ -38,7 +38,8 @@ module TatServicesFacilities
 
   EXMON_PAUSE_SECONDS, EXMON_LONG_PAUSE_ITERATIONS = 3, 35
   RUN_STATE_EXPIRATION_SECONDS, DEFAULT_EXPIRATION_SECONDS,
-    DEFAULT_ADMIN_EXPIRATION_SECONDS = 15, 28800, 600
+    DEFAULT_ADMIN_EXPIRATION_SECONDS, DEFAULT_APP_EXPIRATION_SECONDS =
+      15, 28800, 600, 120
   # Number of seconds of "margin" to give the exchange monitor before the
   # next closing time in order to avoid interfering with its operation:
   PRE_CLOSE_TIME_MARGIN = 300
@@ -232,6 +233,11 @@ module TatServicesFacilities
     EOD_DATA_KEY_BASE + next_key_int.to_s
   end
 
+  # A new, "semi-random", key starting with 'base'
+  def new_semi_random_key(base)
+    base + next_key_int.to_s
+  end
+
   end
 
   protected  ######## Application-related messaging ########
@@ -296,6 +302,19 @@ module TatServicesFacilities
     else
       replace_set(key, args.second)
     end
+  end
+
+  ### General messaging utilities ###
+
+  # Send a "generic" application message ('msg'), using 'key', with
+  # default expiration TTL.
+  def send_generic_message(key, msg, exp = DEFAULT_APP_EXPIRATION_SECONDS)
+    set_message(key, msg, {EXPIRATION_KEY => exp})
+  end
+
+  # Delete the message with the specified key.
+  def delete_message(key)
+    delete_object(key)
   end
 
   protected  ## Utilities
