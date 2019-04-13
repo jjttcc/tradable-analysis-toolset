@@ -14,9 +14,7 @@ class ExchangeScheduleMonitor < Publisher
 
   public  ###  Access
 
-  attr_reader :eod_check_channel, :eod_data_ready_channel, :service_tag
-  # List of symbols found to be "ready" upon 'eod_check_channel' notice:
-  attr_reader :target_symbols
+  attr_reader :service_tag
 
   public  ###  Basic operations
 
@@ -36,6 +34,11 @@ class ExchangeScheduleMonitor < Publisher
 puts "eom - @next_close_time: #{@next_close_time}"
 STDOUT.flush    # Allow any debugging output to be seen.
         # (Wait until it's '@next_close_time'.)
+#!!!!Consider sending (queue_messages) the list of symbols and the
+#!!!close-date (send_close_date) ahead of time for robustness -
+#!!!If the process dies and is not restarted until after 'next_close_time'
+#!!!occurs, then (on startup) retrieve the key (from where? - redis?) and
+#!!!do the 'publish eod_check_key' again.
         time_to_send = deadline_reached(@next_close_time)
 puts "eom - time_to_send: #{time_to_send}"
 STDOUT.flush    # Allow any debugging output to be seen.
@@ -71,9 +74,9 @@ STDOUT.flush    # Allow any debugging output to be seen.
     cancel_wait = false
     pause_counter = 0
     while ! terminated? && ! cancel_wait && Time.current < utc_time
-puts "[dr] It's #{Time.current} and I'm waiting for a deadline of #{utc_time}."
       pause
       if pause_counter > CHECK_FOR_UPDATES_THRESHOLD then
+puts "It's #{Time.current} and I'm waiting for a deadline of #{utc_time}."
         handle_exchange_updates
         pause_counter = 0
       else
@@ -108,8 +111,6 @@ puts "[heu] - ex_updated was true"
   # If run_state == SERVICE_RUNNING: send status info to any interested
   # parties.  Otherwise, null op.
   def send_status_info
-puts "#{self.class} sending my run-state: #{run_state}"
-#!!!rm:    send_eod_exchange_monitoring_run_state
     if run_state == SERVICE_RUNNING then
       close_time = nil
       if @next_close_time != nil then
@@ -154,7 +155,7 @@ puts "#{self.class} sending my run-state: #{run_state}"
   pre  :suspended do run_state == SERVICE_SUSPENDED end
   post :not_susp  do run_state != SERVICE_SUSPENDED end
   def wait_for_resume_command
-    while run_state == SERVICE_SUSPENDED do
+    while run_state == SERVICE_SUSPENDED
       pause
     end
   end
@@ -162,13 +163,13 @@ puts "#{self.class} sending my run-state: #{run_state}"
   # Generate a new 'eod_check_key' and send 'symbols', with the new key, as
   # well as the date part of 'closing_date_time'[1] (which is the closing
   # time of the exchange(s) associated with 'symbols'), to the messaging
-  # system.  Then publish 'eod_check_key' on the 'eod_check_channel'.
+  # system.  Then publish 'eod_check_key' on the EOD_CHECK_CHANNEL.
   # [1] The key for the closing-date is: "#{eod_check_key}:close-date"
   pre :symbols_array do |symbols| ! symbols.nil? && symbols.class == Array end
   def send_check_notification(symbols, closing_date_time)
     eod_check_key = new_eod_check_key
     if symbols.count > 0 then
-      count = add_set(eod_check_key, symbols.map {|s| s.symbol},
+      count = queue_messages(eod_check_key, symbols.map {|s| s.symbol},
                      DEFAULT_EXPIRATION_SECONDS)
       send_close_date(eod_check_key, closing_date_time)
       if count != symbols.count then

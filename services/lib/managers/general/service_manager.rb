@@ -18,11 +18,11 @@ class ServiceManager
   post :started do is_alive?(tag) end
   def block_until_started
     if ! is_alive?(tag) then
-log.debug("#{tag} is NOT running - starting it up...")
+      log.warn("#{tag} is NOT running - starting it up...")
       start_service
       tries = 0
       sleep PING_RETRY_PAUSE
-      while ! is_alive?(tag) do
+      while ! is_alive?(tag)
         if tries > LIFE_CHECK_LIMIT then
           raise "#{tag} failed to start"
         end
@@ -30,7 +30,6 @@ log.debug("#{tag} is NOT running - starting it up...")
         tries += 1
       end
     else
-log.debug("#{tag} is running - nothing to do...")
     end
   end
 
@@ -40,8 +39,6 @@ log.debug("#{tag} is running - nothing to do...")
     @monitoring_task = Concurrent::TimerTask.new(execution_interval:
                                                 MONITORING_INTERVAL) do |task|
       begin
-log.debug("If WE're debugging: The task is running - calling " +
-"'ensure_service_is_running'")
         ensure_service_is_running
 #!!!!Add some method to shut this timer down on command!!!!
       rescue StandardError => e
@@ -50,8 +47,6 @@ log.debug("If WE're debugging: The task is running - calling " +
       end
     end
     @monitoring_task.execute
-log.debug("If you're debugging: #{self}.monitor is returning, and" +
-" @monitoring_task: #{@monitoring_task.inspect}")
   end
 
   ###  Status report

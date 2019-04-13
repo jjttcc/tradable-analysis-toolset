@@ -17,8 +17,11 @@ class RakeManager < ServiceManager
     START_ANALYSIS_SERVICE   => 'analysis_startup:start_analysis_service',
     START_POST_PROCESSING_SERVICE =>
       'analysis_startup:start_post_processing_service',
-    EOD_EXCHANGE_MONITORING  => 'eod_exchange_monitoring_startup',
+    EOD_EXCHANGE_MONITORING  => 'eod_exchange_monitoring',
     MANAGE_TRADABLE_TRACKING => 'manage_tradable_tracking',
+    EOD_EVENT_TRIGGERING     => 'manage_event_triggering',
+    TRIGGER_PROCESSING       => 'manage_trigger_processing',
+    NOTIFICATION_PROCESSING  => 'manage_notifications',
   }
 
   private  ### Hook method implementations
@@ -28,21 +31,11 @@ class RakeManager < ServiceManager
   def start_service
     task = TASK_NAME_FOR[tag]
 #!!!!TO-DO: harden/error-handling/...
-puts "1"
-STDOUT.flush
     child = fork do
-puts "a"
-STDOUT.flush
       exec(@@rake_command, task)
-puts "b"
-STDOUT.flush
     end
-puts "A"
-STDOUT.flush
     Process.detach(child)
 #!!!maybe this one instead: Process.daemon(child)
-puts "B"
-STDOUT.flush
   end
 
 end

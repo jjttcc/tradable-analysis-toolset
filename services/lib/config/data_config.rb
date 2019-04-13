@@ -35,10 +35,16 @@ class DataConfig
     Redis.new(port: REDIS_ADMIN_PORT)
   end
 
+  # Is debug-logging enabled?
+  def debugging?
+    ENV.has_key?(DEBUG_ENV_VAR)
+  end
+
   private
 
   EOD_ENV_VAR = 'TIINGO_TOKEN'
   DATA_PATH_ENV_VAR = 'MAS_RUNDIR'
+  DEBUG_ENV_VAR = 'TAT_DEBUG'
 
   attr_reader :log
 

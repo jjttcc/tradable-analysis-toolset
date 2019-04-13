@@ -15,6 +15,8 @@ require 'concurrent-ruby'
 #   wrangler = EODDataWrangler.new(...)
 #   ...
 #   handler.async.execute(wrangler)
+#!!!!???Can this class be generalized to also handle EOD-data-ready ->
+#!!!!!!!EventBasedTrigger processing?
 class DataWranglerHandler
   include Concurrent::Async, Contracts::DSL, TatServicesFacilities
 
@@ -41,14 +43,14 @@ class DataWranglerHandler
         delete_message(@child_error_key)
         log_msg("#{@tag}: #{error_msg}")
         if error_msg[0..RETRY_TAG.length-1] == RETRY_TAG then
-          log_msg("Retrying #{@tag} (for #{wrangler.target_symbols.inspect})")
+          log_msg("Retrying #{@tag} (for #{wrangler.inspect})")
         else
           log_msg("#{@tag}: Unrecoverable error")
           # Unrecoverable error - end loop.
           break
         end
       else
-        @log.info("#{@tag}: succeeded (#{wrangler.target_symbols.inspect})")
+        @log.info("#{@tag}: succeeded (#{wrangler.inspect})")
         # error_msg.nil? implies success, end the loop.
         break
       end
@@ -81,23 +83,25 @@ end
 
 
 # Management of EOD data retrieval logic
-# Subscribes to 'eod_check_channel' for "eod-check" notifications; obtains
+# Subscribes to EOD_CHECK_CHANNEL for "eod-check" notifications; obtains
 # the current list of symbols to be checked and, for each symbol, s:
 #   when the latest EOD data for s is ready:
 #     retrieve the latest data for s
 #     store the retrieved data in the correct location for s
 # Saves the list of symbols for which data has been retrieved to the
 # messaging system and publishes the key for that list to the
-# "eod-data-ready" channel.
+# EOD_DATA_CHANNEL.
 class EODRetrievalManager < Subscriber
-  include Contracts::DSL, RedisFacilities, TatServicesFacilities
+#!!!!check change:
+  include Contracts::DSL, TatServicesFacilities
+#!!!old:  include Contracts::DSL, RedisFacilities, TatServicesFacilities
 
   public  ###  Access
 
-  attr_reader :update_error, :eod_check_channel, :eod_data_ready_channel,
-    :service_tag
-  # List of symbols found to be "ready" upon 'eod_check_channel' notice:
-  attr_reader :target_symbols
+  attr_reader :HIDME_DUDEeod_data_ready_channel   #!!!!!<---
+  attr_reader :service_tag
+  # List of symbols found to be "ready" upon EOD_CHECK_CHANNEL notice:
+  attr_reader :target_symbols_count
 
   public  ###  Basic operations
 
@@ -115,7 +119,7 @@ class EODRetrievalManager < Subscriber
       error(error_msg)
       raise error_msg
     end
-    if target_symbols.count > 0 then
+    if target_symbols_count > 0 then
       end_date = close_date(eod_check_key)
       handler = DataWranglerHandler.new(service_tag, log)
       wrangler = EODDataWrangler.new(self, eod_check_key, end_date)
@@ -126,7 +130,7 @@ class EODRetrievalManager < Subscriber
 
   private
 
-  post :target_symbols do ! target_symbols.nil? end
+  post :target_symbols_count do ! target_symbols_count.nil? end
   post :key_set do eod_check_key != nil end
 #!!!!QUESTION: What to do if 'last_message' is nil or empty?!!!!
   def wait_for_eod_request
@@ -141,10 +145,10 @@ class EODRetrievalManager < Subscriber
   private  ### Hook method implementations
 
   # Finish up for 'wait_for_eod_request'.
-  post :target_syms do target_symbols != nil && target_symbols.is_a?(Set) end
+  post :target_syms do target_symbols_count != nil && target_symbols >= 0 end
   def post_process_subscription(channel)
-    @target_symbols = Set.new(retrieved_set(eod_check_key))
-    log.debug("[ERM] #{__method__} - tgtsyms: #{@target_symbols.inspect}")
+    @target_symbols_count = queue_count(eod_check_key)
+    log.debug("[ERM] #{__method__} - tgtsymscnt: #{@target_symbols_count}")
   end
 
   public
@@ -166,13 +170,10 @@ class EODRetrievalManager < Subscriber
     end
     $log = @log
     data_config = DataConfig.new(log)
-    @update_error = false
     @run_state = SERVICE_RUNNING
     @service_tag = EOD_DATA_RETRIEVAL
     init_redis_clients
     super(EOD_CHECK_CHANNEL)  # i.e., subscribe channel
-    # Create an alternate Redis for the timer to avoid conflict with
-    # Redis subscriptions.
     create_status_report_timer
     @status_task.execute
   end

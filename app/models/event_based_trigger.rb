@@ -14,6 +14,7 @@ class EventBasedTrigger < ApplicationRecord
 
   public ###  Access
 
+#!!!!This query appears to not be used - remove it if that status continues!!!
   # All exchanges associated 'symbols'
   post :exists do |result| ! result.nil? end
   def exchanges
@@ -50,7 +51,8 @@ class EventBasedTrigger < ApplicationRecord
   enum triggered_event_type: {
     user_triggered:         1,
     EOD_US_stocks:          2,
-    # etc...
+    # etc... (e.g., perhaps: a tradable-analysis event occurs that
+    # is configured to trigger a new analysis for a set of tradables)
   }
 
 end

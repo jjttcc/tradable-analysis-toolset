@@ -10,6 +10,10 @@ class TradableDataRetriever
   # i.e.: data-set for: symbol
   attr_reader :data_set_for
 
+  # hash-table: start_date used for the last retrieval of symbol
+  # i.e.: start_date for: symbol
+  attr_reader :start_date_for
+
   # The last set of symbols for which data was retrieved via
   # 'retrieve_ohlc_data'
   attr_reader :last_symbols
@@ -44,15 +48,19 @@ class TradableDataRetriever
   # Retrieve historical data for the tradables identified by 'symbols', with
   # the specified start_date and end_date - If end_date is nil, an end-date
   # of "now" is used.  The expected date format is: yyyy-mm-dd.
-  # On success, 'data_set_for' will be a Hash[Array[Array]], keyed by symbol.
+  # On success, 'data_set_for' and 'start_date_for' will both be a
+  # Hash[Array[Array]], keyed by symbol.
   pre :syms_good do |symbols, sd| symbols != nil && symbols.class == Array end
   pre :start_date_good do |s, start_date|
-    start_date != nil && start_date.class == String end
+    start_date != nil && start_date.class == String && ! start_date.empty? end
   pre :end_date_good do |s, start_date, end_date|
     end_date.nil? || end_date.class == String end
   pre :data_set_for do data_set_for != nil end
+  pre :start_date_for do start_date_for != nil end
   post :data_set_for_result do |result, symbols|
     data_set_for.count >= symbols.count end
+  post :start_date_for_result do |result, symbols|
+    start_date_for.count >= symbols.count end
   def retrieve_ohlc_data(symbols, start_date, end_date = nil)
     @last_symbols = symbols
     ohlc_pre_process(symbols)
@@ -60,6 +68,7 @@ class TradableDataRetriever
       @skip_lines = 0
     end
     symbols.each do |s|
+      @start_date_for[s] = start_date
       query = query_from_symbol(s, start_date, end_date)
 puts "rod - query: #{query}"
       uri = URI(query)
@@ -93,8 +102,7 @@ puts "rod - dsf: #{@data_set_for.inspect}"
 
   private
 
-  post :data_set do data_set_for != nil && data_set_for.is_a?(Hash) end
-  post :metadata do metadata_for != nil && metadata_for.is_a?(Hash) end
+  post :invariant do invariant end
   def initialize(*args)
     @field_order = [DATE, OPEN, HIGH, LOW, CLOSE, VOLUME, OI]
     @record_separator = "\n"
@@ -105,6 +113,7 @@ puts "rod - dsf: #{@data_set_for.inspect}"
     @exchange_key = 'exchange'
     @name_key = 'name'
     @desc_key = 'description'
+    @start_date_for = {}
     @data_set_for = {}
   end
 
@@ -112,7 +121,11 @@ puts "rod - dsf: #{@data_set_for.inspect}"
 
   # class invariant
   def invariant
-    @data_set_for != nil && @data_set_for.is_a?(Hash)
+    (
+      data_set_for != nil && data_set_for.is_a?(Hash) &&
+      start_date_for != nil && start_date_for.is_a?(Hash) &&
+      metadata_for != nil && metadata_for.is_a?(Hash)
+    )
   end
 
   private  ### Implementation - utilities

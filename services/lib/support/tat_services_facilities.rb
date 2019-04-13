@@ -1,9 +1,9 @@
 require 'error_log'
 
 # Constants and other "facilities" used by/for the TAT services
-#!!!rm: NOTE: Many of the methods defined here require one or both of the redis
-#!!!!!# client attributes, @redis and @redis_admin, to exist.  This can be
-#!!!!!# accomplished by calling 'init_redis_clients'.
+# NOTE: Many of the methods defined here require one or both of the redis
+# client attributes, @redis and @redis_admin, to exist.  This can be
+# accomplished by calling 'init_redis_clients'.
 #!!!!!NOTE: This file might to be moved to somewhere other than .../redis!!!!!
 module TatServicesFacilities
   include Contracts::DSL, RedisFacilities, ServiceTokens
@@ -59,9 +59,11 @@ module TatServicesFacilities
   # publish/subscribe channels
   EOD_CHECK_CHANNEL             = 'eod-checktime'
   EOD_DATA_CHANNEL              = 'eod-data-ready'
-  ANALYSIS_REQUEST_CHANNEL      = 'analysis-requests'
+  TRIGGERED_EVENTS_CHANNEL      = 'triggering-completed'
+  TRIGGERED_RESPONSE_CHANNEL    = 'trigger-response'
   NOTIFICATION_CREATION_CHANNEL = 'notification-creation-requests'
   NOTIFICATION_DISPATCH_CHANNEL = 'notification-dispatch-requests'
+
   CLOSE_DATE_SUFFIX             = 'close-date'
 
   EXCH_MONITOR_NEXT_CLOSE_SETTINGS   = {
@@ -107,26 +109,21 @@ module TatServicesFacilities
     run_state == SERVICE_RUNNING
   end
 
-  # Current state ordered for the exchange monitor - nil if none
-  def iamhiding___current_ordered_exch_mon_state
-    command = retrieved_message(EXCHANGE_MONITOR_CONTROL_KEY)
-    STATE_FOR_CMD[command]
-  end
-
   # Is 'service' alive?
   pre :valid do |service| ServiceTokens::SERVICE_EXISTS[service] end
-  post :clients_set do redis != nil && redis_admin != nil end
   def is_alive?(service)
     status = method("#{service}_run_state").call
     result = status =~ /^#{SERVICE_RUNNING}/ ||
-      status =~ /^#{SERVICE_SUSPENDED}/
+        status =~ /^#{SERVICE_SUSPENDED}/
+    result
   end
 
   # query: ordered_<service>_run_state (last ordered run-state for <service>)
   [
     EOD_DATA_RETRIEVAL,
     EOD_EXCHANGE_MONITORING,
-    MANAGE_TRADABLE_TRACKING
+    MANAGE_TRADABLE_TRACKING,
+    EOD_EVENT_TRIGGERING,
   ].each do |symbol|
     method_name = "ordered_#{symbol}_run_state".to_sym
     define_method(method_name) do
@@ -139,7 +136,8 @@ module TatServicesFacilities
   [
     EOD_DATA_RETRIEVAL,
     EOD_EXCHANGE_MONITORING,
-    MANAGE_TRADABLE_TRACKING
+    MANAGE_TRADABLE_TRACKING,
+    EOD_EVENT_TRIGGERING,
   ].each do |symbol|
     {
       :suspension  => SERVICE_SUSPEND,
@@ -157,7 +155,8 @@ module TatServicesFacilities
   [
     EOD_DATA_RETRIEVAL,
     EOD_EXCHANGE_MONITORING,
-    MANAGE_TRADABLE_TRACKING
+    MANAGE_TRADABLE_TRACKING,
+    EOD_EVENT_TRIGGERING,
   ].each do |symbol|
     method_name = "#{symbol}_run_state".to_sym
     define_method(method_name) do
@@ -188,7 +187,8 @@ module TatServicesFacilities
   [
     EOD_DATA_RETRIEVAL,
     EOD_EXCHANGE_MONITORING,
-    MANAGE_TRADABLE_TRACKING
+    MANAGE_TRADABLE_TRACKING,
+    EOD_EVENT_TRIGGERING,
   ].each do |symbol|
     m_name = "send_#{symbol}_run_state".to_sym
     key = STATUS_KEY_FOR[symbol]
@@ -212,31 +212,31 @@ module TatServicesFacilities
 
   begin
 
-  BOTTOM_KEY_INT, TOP_KEY_INT = 70_000, 99_999
-  @@key_int_bank = []
+    BOTTOM_KEY_INT, TOP_KEY_INT = 70_000, 99_999
+    @@key_int_bank = []
 
-  def next_key_int
-    if @@key_int_bank.empty? then
-      bank_size = TOP_KEY_INT - BOTTOM_KEY_INT + 1
-      @@key_int_bank = (BOTTOM_KEY_INT...TOP_KEY_INT).to_a.sample(bank_size)
+    def next_key_int
+      if @@key_int_bank.empty? then
+        bank_size = TOP_KEY_INT - BOTTOM_KEY_INT + 1
+        @@key_int_bank = (BOTTOM_KEY_INT...TOP_KEY_INT).to_a.sample(bank_size)
+      end
+      @@key_int_bank.pop
     end
-    @@key_int_bank.pop
-  end
 
-  # new key for symbol set associated with "check for eod data" notifications
-  def new_eod_check_key
-    EOD_CHECK_KEY_BASE + next_key_int.to_s
-  end
+    # new key for symbol set associated with "check for eod data" notifications
+    def new_eod_check_key
+      EOD_CHECK_KEY_BASE + next_key_int.to_s
+    end
 
-  # new key for symbol set associated with eod-data-ready notifications
-  def new_eod_data_ready_key
-    EOD_DATA_KEY_BASE + next_key_int.to_s
-  end
+    # new key for symbol set associated with eod-data-ready notifications
+    def new_eod_data_ready_key
+      EOD_DATA_KEY_BASE + next_key_int.to_s
+    end
 
-  # A new, "semi-random", key starting with 'base'
-  def new_semi_random_key(base)
-    base + next_key_int.to_s
-  end
+    # A new, "semi-random", key starting with 'base'
+    def new_semi_random_key(base)
+      base + next_key_int.to_s
+    end
 
   end
 
@@ -274,6 +274,23 @@ module TatServicesFacilities
     retrieved_set(OPEN_EXCHANGES_KEY)
   end
 
+  begin  ## EOD-data-related messaging ##
+
+    EOD_READY_QUEUE = 'eod-data-ready-queue'
+
+    # Add the specified EOD data-ready key-value to the "EOD-data-ready" queue.
+    def add_eod_ready_key(key_value)
+      queue_messages(EOD_READY_QUEUE, key_value, DEFAULT_EXPIRATION_SECONDS)
+    end
+
+    # The next EOD data-ready key-value - i.e., the value currently at the
+    # head of the "EOD-data-ready" queue.
+    def next_eod_ready_key
+      queue_head(EOD_READY_QUEUE)
+    end
+
+  end
+
   ### Service status/info reports ###
 
   # Send the next exchange closing time (to the redis server).
@@ -302,6 +319,51 @@ module TatServicesFacilities
     else
       replace_set(key, args.second)
     end
+  end
+
+  ### EOD data retrieval -> triggering services communication ###
+
+  begin
+
+    EOD_FINISHED_SUFFIX = :finished
+    EOD_COMPLETED_STATUS = ""
+    EOD_TIMED_OUT_STATUS = :timed_out
+
+    # Send status: EOD-data-retrieval completed successfully.
+    def send_eod_retrieval_completed(key)
+      completion_key = "#{key}:#{EOD_FINISHED_SUFFIX}"
+      set_message(completion_key, EOD_COMPLETED_STATUS)
+    end
+
+    # Send status: EOD-data-retrieval ended without completing due to
+    # time-out, with ":msg" (if not empty) appended.
+    def send_eod_retrieval_timed_out(key, msg)
+      completion_key = "#{key}:#{EOD_FINISHED_SUFFIX}"
+      status_msg = EOD_TIMED_OUT_STATUS
+      if msg != nil && ! msg.empty? then
+        status_msg = "#{status_msg}:#{msg}"
+      end
+      set_message(completion_key, status_msg)
+    end
+
+    # Status reported by the EOD-data-retrieval service
+    def eod_retrieval_completion_status(key)
+      completion_key = "#{key}:#{EOD_FINISHED_SUFFIX}"
+      result = retrieved_message(completion_key)
+    end
+
+    # Does the value returned by 'eod_retrieval_completion_status' indicate
+    # that the retrieval completed successfully?
+    def eod_retrieval_completed?(value)
+      value == EOD_COMPLETED_STATUS
+    end
+
+    # Does the value returned by 'eod_retrieval_completion_status' indicate
+    # that the retrieval timed-out before completion?
+    def eod_retrieval_timed_out?(value)
+      value =~ /^#{EOD_TIMED_OUT_STATUS}/
+    end
+
   end
 
   ### General messaging utilities ###
@@ -347,9 +409,11 @@ module TatServicesFacilities
   def create_status_report_timer(srvc_tag: service_tag,
             period_seconds: RUN_STATE_EXPIRATION_SECONDS - 1)
     @status_report_method = "send_#{srvc_tag}_run_state"
+system("echo '#{__method__}: srm: #{@status_report_method}' >>/tmp/db101a")
     @status_task = Concurrent::TimerTask.new(
           execution_interval: period_seconds) do |task|
       begin
+system("echo '#{__method__}: sending: #{@status_report_method}' >>/tmp/db101b")
         send(@status_report_method)
       rescue StandardError => e
         log.warn("exception in #{__method__}: #{e}")
@@ -359,17 +423,13 @@ module TatServicesFacilities
 
   protected  ###  Initialization
 
-#!!!  post :clients_set do @redis != nil && @redis_admin != nil end
-  def init_redis_clients(source_obj = nil)
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    if source_obj.nil? then
-      config = DataConfig.new(log)
-      @redis = config.redis_application_client
-      @redis_admin = config.redis_administration_client
-    else
-#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-      @redis = source_obj.redis
-      @redis_admin = source_obj.redis_admin
+  post :clients_set do @redis != nil && @redis_admin != nil end
+  def init_redis_clients
+    config = DataConfig.new(log)
+    @redis = config.redis_application_client
+    @redis_admin = config.redis_administration_client
+    if config.debugging? then
+      @@redis_debug = true
     end
   end
 

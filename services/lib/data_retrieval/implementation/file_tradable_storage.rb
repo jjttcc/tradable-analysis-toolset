@@ -28,9 +28,17 @@ puts "dutdf[2] - data: #{data.inspect}"
 puts "dutdf[3] - last_record: #{last_record.inspect}"
       # (comparing two strings with format "yyyy-mm-dd")
       result = last_record[DATE_INDEX] >= date
-puts "dutdf[4] - result: #{result}"
+puts "dutdf[4a] - result: #{result}"
 puts "lr.di: #{last_record[DATE_INDEX]}"
 puts "lr: #{last_record.inspect}"
+    else
+      start_date = retriever.start_date_for[symbol]
+      if start_date != nil && start_date > date then
+        # (I.e., "start_date is-later-than date" implies "data is up to
+        # date" [and the empty data-set is expected]:)
+        result = true
+      end
+puts "dutdf[4b] - result: #{result}, start_date: #{start_date}"
     end
 puts "dutdf[5](#{symbol}, #{date}): #{result}"
     result
