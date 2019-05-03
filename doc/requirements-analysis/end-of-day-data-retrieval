@@ -1,8 +1,0 @@
-                                END-OF-DAY DATA
-
-EOD data will only be retrieved for the tradables/symbols that are "in
-use", where "in-use", for tradable 't', means:
-
-  - t is used in one or more analysis configurations.
-  - [TBE: used in any other way that implies up-to-date EOD data is
-    required for t.]

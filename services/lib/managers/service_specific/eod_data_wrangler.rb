@@ -19,21 +19,37 @@ class EODDataWrangler
 
   public
 
-  attr_reader :data_ready_key, :eod_check_key, :log
+  attr_reader :eod_check_key, :data_ready_key, :terminated, :log
 
   PROC_NAME = "EOD Retrieval"
 
   public  ###  Basic operations
 
-  pre :tag do |tag, rtag| tag != nil && rtag != nil end
-  pre :at_least_1_tradable do queue_count(eod_check_key) > 0 end
-  def execute(tag, rtag)
-    @error_msg_key = tag
-    @retry_tag = rtag
+  # For each symbol, s, in the set of symbols associated with 'eod_check_key'
+  # (i.e., queue_contents(eod_check_key)), poll the data provider for the
+  # latest data for s and, when those data become available, retrieve and
+  # store them.  When the data for all symbols in queue_contents(eod_check_key)
+  # are up to date, remove eod_check_key from the messaging queue (i.e.,
+  # call remove_from_eod_check_queue(eod_check_key) and then call 'exit 0' -
+  # i.e., terminate the process normally.
+  pre  :err_tag do |err_tag, retrytag| err_tag != nil && retrytag != nil end
+  pre  :at_least_1_tradable do queue_count(eod_check_key) > 0 end
+  pre  :check_key_in_queue  do eod_check_queue_contains(eod_check_key) end
+  post :key_remains_iff_terminated   do
+    terminated == eod_check_queue_contains(eod_check_key) end
+  post :tags_set do |result, err_tag, retrytag|
+    @error_msg_key == err_tag && @retry_tag == retrytag end
+  def execute(err_tag, retrytag)
+    @error_msg_key = err_tag
+    @retry_tag = retrytag
     @update_retries = 0
     data_config = DataConfig.new(log)
     @storage_manager = data_config.data_storage_manager
     loop do
+      @terminated = termination_ordered(eod_check_key, true)
+      if terminated then
+        break
+      end
       perform_update
       @update_retries += 1
       if updates_completed || update_retries == UPDATE_RETRY_LIMIT then
@@ -41,17 +57,33 @@ class EODDataWrangler
       end
       sleep SECONDS_BETWEEN_UPDATE_TRIES
     end
-    if ! updates_completed then
-      # Limit has been reached:
-      check(update_retries == UPDATE_RETRY_LIMIT, 'update_retries == limit')
-#!!!!!Fix: replace 'therightkey' with the right name!!!!:
-      remsyms = queue_contents(therightkey)
-      msg = "#{PROC_NAME}: Time limit reached - failed to bring the " +
-        "following symbols up to date:\n" + remsyms.join(",")
-      log.warn(msg)
-      send_eod_retrieval_timed_out(data_ready_key, msg)
+    remaining_symbols = queue_contents(eod_check_key)
+    if terminated then
+      msg = "Termination ordered for process #{$$} " +
+        "(#{self.class}:#{__method__})"
+      log.info(msg)
+puts msg  #!!!![tmp/debugging]
+      # (Since 'terminated' implies that the data-retrieval has not
+      # completed, the queue is left intact ['remove_from_eod_check_queue' is
+      # not called] so that a future process will be able to obtain the key
+      # in order to complete the retrieval.)
     else
-      send_eod_retrieval_completed(data_ready_key)
+      if ! updates_completed then
+        # Limit has been reached:
+        check(! terminated && update_retries == UPDATE_RETRY_LIMIT,
+              'update_retries == limit')
+        msg = "#{PROC_NAME}: Time limit reached - failed to bring the " +
+          "following symbols up to date:\n" + remaining_symbols.join(",")
+        log.warn(msg)
+        check(remaining_symbols.count > 0, 'updates not completed')
+        send_eod_retrieval_timed_out(data_ready_key, msg)
+      else
+        check(remaining_symbols.count == 0, 'updates completed')
+        send_eod_retrieval_completed(data_ready_key)
+        log.info("process #{$$}: EOD retrieval completed.")
+      end
+      # Clean up (not 'terminated'). (!!!reusable/refactorable logic!!!?):
+      remove_from_eod_check_queue(eod_check_key)
     end
     # The requested retrievals have been completed or timed-out - the child
     # can exit.
@@ -75,105 +107,53 @@ class EODDataWrangler
   post :invariant do invariant end
   def perform_update
     old_count = queue_count(eod_check_key)
-log.debug("#{self}.#{__method__} starting")
     update_eod_data
     # If at least one symbol was updated and removed from the queue:
     if queue_count(eod_check_key) < old_count then
 #!!!!Note: data_ready_key can be published before all of <self>'s updates
 #!!!!  have been completed - The subscriber needs to be aware of that!!!!
       # At least one tradable/symbol retrieval was completed:
-log.debug("#{__method__} (publishing #{data_ready_key})")
       publish data_ready_key
-      add_eod_ready_key data_ready_key
-log.debug("#{__method__} (publishED #{data_ready_key})")
+      if next_eod_ready_key != data_ready_key then
+        # !!!!xxxInsurance - in case subscriber crashes while processing data_ready_key:
+        enqueue_eod_ready_key data_ready_key
+      end
     end
   rescue StandardError => e
-    log.debug("#{self}.#{__method__} caught #{e}")
-#!!!what else???!!!! - maybe: send_generic_message(...) and exit???!!!
+    msg = "#{self.class}.#{__method__} caught #{e}"
+    log.debug(msg)
+    send_generic_message(@error_msg_key, msg)   # (no retry)
+    exit 1
   end
 
   pre :storage_mgr_set do ! storage_manager.nil? end
   pre :not_finished do ! updates_completed end
   def update_eod_data
-log.debug("[UED] START")
     update_interrupted = true
     storage_manager.update_data_stores(symbols: queue_contents(eod_check_key))
     update_interrupted = false
-log.debug("[UED(1)] qcount: #{queue_count(eod_check_key)}")
     # Iterate over each member of the 'eod_check_key' queue.
     (1 .. queue_count(eod_check_key)).each do
       head = queue_head(eod_check_key)
-log.debug("[UED] head: #{head}")
       check(head == queue_contents(eod_check_key).first, 'head is first')
       if ! storage_manager.data_up_to_date_for(head, end_date) then
         log.debug("(data not yet up to date for #{head})")
         # (Move the head of the 'eod_check_key' queue to the tail.)
         rotate_queue(eod_check_key)
-log.debug("[UED(2)] qcount: #{queue_count(eod_check_key)}")
         # Comment out (for efficiency) after enough testing!!!!:
         check(queue_tail(eod_check_key) == head, 'qtail == head')
       else
-log.debug("(data UP TO DATE for #{head})")
+        log.debug("(data UP TO DATE for #{head})")
         # Update for 'head' was successful, so remove 'head' from the
         # "check-for-eod" queue and add it to the "eod-data-ready" queue.
-log.debug("[UED(3a)] [move_head_to_tail(#{eod_check_key}, #{data_ready_key})]")
         move_head_to_tail(eod_check_key, data_ready_key)
-log.debug("[UED(3b)]")
-log.debug("[UED(3c)] qcount: #{queue_count(eod_check_key)}")
         # Remove/comment these (for efficiency) after enough testing!!!!:
         check(! queue_contents(eod_check_key).include?(head), 'head moved')
         check(queue_tail(data_ready_key) == head, 'to new tail')
       end
-log.debug("[UED(4)] qhead: #{queue_head(eod_check_key)}")
       check(queue_count(eod_check_key) == 1 ||
             queue_head(eod_check_key) != head, 'queue_head(eckey) != head')
     end
-log.debug("[UED] END")
-  rescue SocketError => e
-    msg = "Error contacting data provider: #{e}"
-log.debug("[UED] rescue1 - msg: #{msg}")
-    send_generic_message(@error_msg_key, "#{@retry_tag}:#{msg}")
-    # Indicate to parent process that the operation should be retried.
-    exit 2
-  rescue StandardError => e
-    msg = "#{e} [#{caller}]"
-log.debug("[UED] rescue2 - msg: #{msg}")
-    if update_interrupted then
-      send_generic_message(@error_msg_key, msg)   # (no retry)
-      exit 3
-    end
-  rescue Exception => e
-    log.debug("#{self}.#{__method__} caught #{e}")
-#!!!!??:    send_generic_message(@error_msg_key, msg)   # (no retry)
-    #!!!!Should we exit here???!!!!
-    raise e
-  end
-
-  pre :storage_mgr_set do ! storage_manager.nil? end
-  pre :not_finished do ! updates_completed end
-  def update_eod_data_vsn2
-    update_interrupted = true
-    symbols = remaining_symbols
-    storage_manager.update_data_stores(symbols: symbols)
-    update_interrupted = false
-    symbols.each do |s|
-      check(queue_head(eod_check_key) == s)
-      if ! storage_manager.data_up_to_date_for(s, end_date) then
-        log.debug("(data not yet up to date for #{s})")
-        # (Move the head [s] of the 'eod_check_key' queue to the tail.)
-        move_head_to_tail(eod_check_key, eod_check_key)
-        # Comment out (for efficiency) after enough testing!!!!:
-        check(queue_tail(eod_check_key) == s)
-      else
-        # Update for s was successful, so remove s from the "check-for-eod"
-        # queue and add it to the "eod-data-ready" queue.
-        # (s is currently at the head of the 'eod_check_key' queue.)
-        move_head_to_tail(eod_check_key, data_ready_key)
-        # Remove this (for efficiency) after enough testing!!!!:
-        check(! remaining_symbols.include?(s))
-      end
-      check(queue_head(eod_check_key) != s)
-    end
   rescue SocketError => e
     msg = "Error contacting data provider: #{e}"
     send_generic_message(@error_msg_key, "#{@retry_tag}:#{msg}")
@@ -187,56 +167,8 @@ log.debug("[UED] rescue2 - msg: #{msg}")
     end
   rescue Exception => e
     log.debug("#{self}.#{__method__} caught #{e}")
-#!!!!??:    send_generic_message(@error_msg_key, msg)   # (no retry)
-    #!!!!Should we exit here???!!!!
-    raise e
-  end
-
-  pre :check_key do ! eod_check_key.nil? && ! eod_check_key.empty? end
-#!!!!OBSOLETE - remove soon:
-  def remaining_symbols
-    queue_contents(eod_check_key)
-  end
-
-  pre :update_not_complete do ! remaining_symbols.empty? end
-  pre :storage_mgr_set do ! storage_manager.nil? end
-  def old___remove____update_eod_data
-    update_interrupted = true
-    storage_manager.update_data_stores(symbols: remaining_symbols)
-    update_interrupted = false
-    symbols = remaining_symbols.clone
-    symbols.each do |s|
-      if ! storage_manager.data_up_to_date_for(s, end_date) then
-        log.debug("(data not yet up to date for #{s})")
-      else
-        # Update for s was successful, so remove s from the "check-for-eod"
-        # list and add it to the "eod-data-ready" list.
-log.debug("ued - calling remove_from_set(#{eod_check_key}, #{s})")
-        remove_from_set(eod_check_key, s)
-log.debug("ued - calling add_set(#{data_ready_key}, #{s}, " +
-"#{DEFAULT_EXPIRATION_SECONDS})")
-        add_set(data_ready_key, s, DEFAULT_EXPIRATION_SECONDS)
-log.debug("ued - survived call to add_set - removing #{s} from @remsym")
-        remaining_symbols.delete(s)
-        check(! remaining_symbols.include?(s))
-      end
-    end
-  rescue SocketError => e
-    msg = "Error contacting data provider: #{e}"
-    send_generic_message(@error_msg_key, "#{@retry_tag}:#{msg}")
-    # Indicate to parent process that the operation should be retried.
-    exit 2
-  rescue StandardError => e
-    msg = "#{e} [#{caller}]"
-    if update_interrupted then
-      send_generic_message(@error_msg_key, msg)   # (no retry)
-      exit 3
-    end
-  rescue Exception => e
-    log.debug("#{self}.#{__method__} caught #{e}")
-#!!!!??:    send_generic_message(@error_msg_key, msg)   # (no retry)
-    #!!!!Should we exit here???!!!!
-    raise e
+    send_generic_message(@error_msg_key, msg)   # (no retry)
+    exit 4
   end
 
   private

@@ -1,0 +1,19 @@
+                               TAT Services Specs
+
+
+END-OF-DAY DATA-RETRIEVAL
+
+Which Datasets to Retrieve:
+
+EOD data will only be retrieved for the tradables/symbols that are "in
+use", where "in-use", for tradable 't', means:
+
+  o t is used in one or more analysis configurations.
+  o [TBE: used in any other way that implies up-to-date EOD data are
+    required for t.]
+
+Note that the EOD data-retrieval service will not access the database to
+determine which symbols to retrieve data for.  Instead it will obtain the
+list of symbols for which data are to be retrieved from the messaging
+system.  This list will be supplied by a separate service.
+

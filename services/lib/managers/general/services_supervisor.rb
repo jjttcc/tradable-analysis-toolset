@@ -75,7 +75,7 @@ log("#{sm} is NOT healthy!!!! - perhaps I should restart it.")
     result << RakeManager.new(tag: EOD_EXCHANGE_MONITORING)
     result << RakeManager.new(tag: MANAGE_TRADABLE_TRACKING)
     result << ExternalManager.new(tag: EOD_DATA_RETRIEVAL)
-#    result << RakeManager.new(tag: EOD_EVENT_TRIGGERING)
+    result << RakeManager.new(tag: EOD_EVENT_TRIGGERING)
 #result << RakeManager.new(tag: TRIGGER_PROCESSING)
 #result << RakeManager.new(tag: NOTIFICATION_PROCESSING)
   end

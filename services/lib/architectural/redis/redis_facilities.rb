@@ -21,6 +21,40 @@ module RedisFacilities
     redis_client.smembers key
   end
 
+  # The next element (head) in the queue with key 'key' (typically,
+  # inserted via 'queue_messages')
+  pre  :at_least_one_redis do |k, redis_cl| ! (redis_cl.nil? && redis.nil?) end
+  post :nil_if_empty do |res, key| implies(queue_count(key) == 0, res.nil?) end
+  def queue_head(key, redis_client = redis)
+    result = nil
+    array = redis_client.lrange(key, -1, -1)
+    if ! array.empty? then
+      result = array.first
+    end
+    result
+  end
+
+  # The last element (tail) in the queue with key 'key' (typically,
+  # inserted via 'queue_messages')
+  pre  :at_least_one_redis do |k, redis_cl| ! (redis_cl.nil? && redis.nil?) end
+  post :nil_if_empty do |res, key| implies(queue_count(key) == 0, res.nil?) end
+  def queue_tail(key, redis_client = redis)
+    result = nil
+    array = redis_client.lrange(key, 0, 0)
+    if ! array.empty? then
+      result = array.first
+    end
+    result
+  end
+
+  # All elements of the queue identified with 'key', in their original
+  # order - The queue's state is not changed.
+  pre :at_least_one_redis do |k, redis_cl| ! (redis_cl.nil? && redis.nil?) end
+  def queue_contents(key, redis_client = redis)
+    # ('.reverse' because the list representation reverses the elements' order.)
+    redis_client.lrange(key, 0, -1).reverse
+  end
+
   public  ###  Status report
 
   # The number of members in the set identified by 'key'
@@ -28,6 +62,19 @@ module RedisFacilities
   post :result_exists do |result| ! result.nil? && result >= 0 end
   def cardinality(key, redis_client = redis)
     redis_client.scard key
+  end
+
+  # The count (size) of the queue with key 'key'
+  pre :at_least_one_redis do |k, redis_cl| ! (redis_cl.nil? && redis.nil?) end
+  def queue_count(key, redis_client = redis)
+    redis_client.llen(key)
+  end
+
+  # Does the queue with key 'key' contain at least one instance of 'value'?
+  # Note: This query is relatively expensive.
+  pre :at_least_one_redis do |k, v, rclient| ! (rclient.nil? && redis.nil?) end
+  def queue_contains(key, value, redis_client = redis)
+    redis_client.lrange(key, 0, -1).include?(value)
   end
 
   public  ###  Element change
@@ -46,10 +93,10 @@ module RedisFacilities
   end
 
   # Add 'msgs' (a String, if 1 message, or an array of Strings) to the end of
-  # the list with key 'key'.
+  # the queue (implemented as a list) with key 'key'.
   # If 'expiration' is not nil, set the time-to-live for the set to
   # 'expiration'.
-  # Return the resulting size of the list.
+  # Return the resulting size of the queue.
   pre :at_least_one_redis do |k, m, e, r_cl| ! (r_cl.nil? && redis.nil?) end
   def queue_messages(key, msgs, expiration, redis_client = redis)
     result = redis_client.lpush(key, msgs)
@@ -57,33 +104,6 @@ module RedisFacilities
       redis_client.expire key, expiration
     end
     result
-  end
-
-  # The next element (head) in the queue with key 'key' (typically,
-  # inserted via 'queue_messages')
-  pre :at_least_one_redis do |k, redis_cl| ! (redis_cl.nil? && redis.nil?) end
-  def queue_head(key, redis_client = redis)
-    redis_client.lrange(key, -1, -1).first
-  end
-
-  # The last element (tail) in the queue with key 'key' (typically,
-  # inserted via 'queue_messages')
-  pre :at_least_one_redis do |k, redis_cl| ! (redis_cl.nil? && redis.nil?) end
-  def queue_tail(key, redis_client = redis)
-    redis_client.lrange(key, 0, 0).first
-  end
-
-  # The count (size) of the queue with key 'key'
-  pre :at_least_one_redis do |k, redis_cl| ! (redis_cl.nil? && redis.nil?) end
-  def queue_count(key, redis_client = redis)
-    redis_client.llen(key)
-  end
-
-  # Remove the next element (head) of the queue with key 'key' (typically,
-  # inserted via 'queue_messages').  Return the value of that element.
-  pre :at_least_one_redis do |k, redis_cl| ! (redis_cl.nil? && redis.nil?) end
-  def remove_next_from_queue(key, redis_client = redis)
-    redis_client.rpop(key)
   end
 
   # Move the next (head) element from the queue @ key1 to the tail of the
@@ -114,14 +134,6 @@ puts "mhtt - ttl: #{ttl.inspect}"
     move_head_to_tail(key, key)
   end
 
-  # All elements of the queue identified with 'key', in their original
-  # order - The queue's state is not changed.
-  pre :at_least_one_redis do |k, redis_cl| ! (redis_cl.nil? && redis.nil?) end
-  def queue_contents(key, redis_client = redis)
-    # ('.reverse' because the list representation reverses the elements' order.)
-    redis_client.lrange(key, 0, -1).reverse
-  end
-
   # Add, with 'key', the specified set with items 'args'.  If the set
   # (with 'key') already exists, simply add to the set any items from 'args'
   # that aren't already in the set.
@@ -147,10 +159,29 @@ puts "mhtt - ttl: #{ttl.inspect}"
     redis_client.sadd key, args
   end
 
+  public  ###  Removal
+
   # Remove members 'args' from the set specified by 'key'.
   pre :at_least_one_redis do |k, a, r_cl| ! (r_cl.nil? && redis.nil?) end
   def remove_from_set(key, args, redis_client = redis)
     redis_client.srem key, args
+  end
+
+  # Remove the next-element/head (i.e., dequeue) of the queue with key 'key'
+  # (typically, inserted via 'queue_messages').  Return the value of that
+  # element.
+  pre :at_least_one_redis do |k, redis_cl| ! (redis_cl.nil? && redis.nil?) end
+  def remove_next_from_queue(key, redis_client = redis)
+    redis_client.rpop(key)
+  end
+
+  alias_method :dequeue, :remove_next_from_queue
+
+  # Remove all occurrences of 'value' from the queue with key 'key'.
+  # Return the number of removed elements.
+  pre :at_least_one_redis do |k, v, rclient| ! (rclient.nil? && redis.nil?) end
+  def remove_from_queue(key, value, redis_client = redis)
+    redis_client.lrem(key, 0, value)
   end
 
   # Delete the object (message inserted via 'set_message', set added via

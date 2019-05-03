@@ -1,0 +1,67 @@
+                   Specs for Messaging/Publishing/Subscribing
+
+
+APPLICATION-LEVEL
+
+exchange/EOD monitor:
+
+  o Will publish to the EOD_CHECK_CHANNEL channel.
+  o Data published:
+    - <eod_check_key>
+  o Messaging output:
+    - sent periodically:
+      * current "next upcoming exchange-close time"
+      * list of currently open exchanges, with key: "exchange-open-exchanges"
+    - sent when the closing-time for a set of exchanges is reached:
+      * <symbol-list>: list of symbols, associated with <eod_check_key>, that
+        are being "tracked" and that are associated with one of the current
+        "recently-closed" (i.e., market-close time just occurred) exchanges.
+      * <close-date>: the 'date' (UTC) part of the closing-time that just
+        occurred, associated with a key based on <eod_check_key>.
+    - the current <eod_check_key> - added (enqueued to the "eod_check_queue".
+      (The purpose of the queue is to allow services consuming the published
+      symbols to keep track of which keys to look for for a pending symbol
+      list - e.g., to allow reliable recovery from a system crash.)
+
+end-of-day data-retrieval:
+
+  o Will subscribe to the EOD_CHECK_CHANNEL channel.
+  o Will publish to the EOD_DATA_CHANNEL channel.
+  o Data received via subscription:
+    - <eod_check_key>
+  o Data published:
+    - <data_ready_key>
+  o Messaging input (See exchange/EOD monitor -> "Messaging output".):
+    - <symbol-list>
+    - <close-date>    - Used as the "end-date" for data retrieval.
+    - <eod_check_key> - Retrieved from "eod_check_queue" as part of
+      recovery from interruption or abnormal termination.
+  o Messaging output:
+    - list of symbols, associated with <data_ready_key>, for which data have
+      been retrieved.
+    - the current <data_ready_key> - stored in a list associated with key
+      EOD_READY_QUEUE.  (The purpose of the list is to allow services
+      consuming the published symbols to keep track of which keys to look for
+      for a pending symbol list - e.g., to allow reliable recovery from a
+      system crash.)
+    - for a "data-retrieval run", one and only one of the following[1]:
+      * upon completing an entire "data-retrieval run", a 'completed'
+        status-message, associated with a key based on <data_ready_key>.
+      * upon running out of time during a "data-retrieval run", a 'timed-out'
+        status-message, associated with a key based on <data_ready_key>.
+
+end-of-day event management:
+
+  o Will subscribe to the EOD_DATA_CHANNEL channel.
+  o Will publish to the TRIGGERED_EVENTS_CHANNEL channel.
+  o Data received via subscription:
+    - <data_ready_key> (!!!check!!!)
+
+[1] Client services (such as the service responsible for triggering tradable
+analysis) will use this datum to discover when there are no more symbols to
+be processed for a particular "end-of-a-day".
+
+
+ADMIN-LEVEL
+
+[TBS]

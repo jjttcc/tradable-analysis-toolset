@@ -92,48 +92,45 @@ end
 # messaging system and publishes the key for that list to the
 # EOD_DATA_CHANNEL.
 class EODRetrievalManager < Subscriber
-#!!!!check change:
   include Contracts::DSL, TatServicesFacilities
-#!!!old:  include Contracts::DSL, RedisFacilities, TatServicesFacilities
 
   public  ###  Access
 
-  attr_reader :HIDME_DUDEeod_data_ready_channel   #!!!!!<---
-  attr_reader :service_tag
+  attr_reader :service_tag, :eod_check_key, :log
   # List of symbols found to be "ready" upon EOD_CHECK_CHANNEL notice:
   attr_reader :target_symbols_count
 
   public  ###  Basic operations
 
   def execute
+    handle_unfinished_processing
+#!!!template method needed (ordered_eod_data_retrieval_run_state -> xxx):
     while ordered_eod_data_retrieval_run_state != SERVICE_TERMINATED
       wait_for_and_process_eod_event
       sleep MAIN_LOOP_PAUSE_SECONDS
     end
   end
 
+  private
+
   def wait_for_and_process_eod_event
-    wait_for_eod_request
+    wait_for_notification
+#!!!template method needed (eod_check_key -> xxx):
     if eod_check_key.nil? then
+#!!!      error_msg = "failed to obtain <templated-label> key"
       error_msg = "failed to obtain 'EOD-check' key"
       error(error_msg)
       raise error_msg
     end
-    if target_symbols_count > 0 then
-      end_date = close_date(eod_check_key)
-      handler = DataWranglerHandler.new(service_tag, log)
-      wrangler = EODDataWrangler.new(self, eod_check_key, end_date)
-      # Let the "data wrangler" do the actual data-retrieval work.
-      handler.async.execute(wrangler)
-    end
+#!!!template method needed (handle_data_retrieval -> xxx):
+    handle_data_retrieval
   end
 
-  private
-
   post :target_symbols_count do ! target_symbols_count.nil? end
+#!!!templatize:
   post :key_set do eod_check_key != nil end
 #!!!!QUESTION: What to do if 'last_message' is nil or empty?!!!!
-  def wait_for_eod_request
+  def wait_for_notification
     debug("#{self.class} subscribing to channel: " +
          "#{default_subscription_channel} (#{self.inspect})")
     subscribe_once do
@@ -142,23 +139,89 @@ class EODRetrievalManager < Subscriber
     end
   end
 
+  # Check if there are any past "eod-check" notifications whose processing
+  # has not been finished (for example, due to the EOD-retrieval process
+  # aborting or being killed), retrieve the associated symbol list, and
+  # complete the processing for those symbols.
+  def orig___handle_unfinished_processing
+    loop do
+      # (Assume each call to 'handle_data_retrieval' results in the current
+      # eod_check_key being removed from the queue, allowing the loop to
+      # eventually terminate.)
+      @eod_check_key = next_eod_check_key
+      if @eod_check_key != nil then
+        msg = "recovering '#{@eod_check_key}' at #{Time.now} (ERM)"
+        log.warn(msg)
+        # Terminate the orphaned EOD-retrieval process - prevent conflict:
+        order_termination(eod_check_key)
+        sleep 1 # (Allow time for the termination to complete.)
+        @target_symbols_count = queue_count(eod_check_key)
+        handle_data_retrieval
+      else
+        break   # eod_check_key == nil: We are finished.
+      end
+break #!!!!!Fix!!!!!
+    end
+  end
+
+  # Check if there are any past "eod-check" notifications whose processing
+  # has not been finished (for example, due to the EOD-retrieval process
+  # aborting or being killed), retrieve the associated symbol list, and
+  # complete the processing for those symbols.
+  def handle_unfinished_processing
+    eod_check_keys = eod_check_contents
+    eod_check_keys.each do |key|
+      @eod_check_key = key
+puts "'handle_unfinished_processing': eod-check-key: #{eod_check_key}"
+      if @eod_check_key != nil then
+        msg = "recovering '#{@eod_check_key}' at #{Time.now} (ERM)"
+        log.warn(msg)
+puts msg
+        # Terminate the orphaned EOD-retrieval process to prevent conflict:
+#!!!!(Will block [with time-limit] until acknowledgement is received.)!!!!
+        order_termination(eod_check_key)
+        @target_symbols_count = queue_count(eod_check_key)
+        handle_data_retrieval
+      else
+        log.warn("#{__method__}: eod_check_key == nil")
+      end
+    end
+  end
+
+  # Oversee the retrieval of EOD data for the symbols associated with
+  # 'eod_check_key'.
+  pre  :eod_check_key do eod_check_key != nil && ! eod_check_key.empty? end
+  pre  :target_syms do
+    target_symbols_count != nil && target_symbols_count >= 0 end
+  post :empty_symlist_cleanup do implies(target_symbols_count == 0,
+         ! eod_check_queue_contains(eod_check_key)) end
+  def handle_data_retrieval
+    if target_symbols_count > 0 then
+      end_date = close_date(eod_check_key)
+      handler = DataWranglerHandler.new(service_tag, log)
+      wrangler = EODDataWrangler.new(self, eod_check_key, end_date)
+      # Let the "data wrangler" do the actual data-retrieval work.
+      handler.async.execute(wrangler)
+    else
+      # Ensure that potential recovery work does not see this
+      # 'eod-check-key', since it has 0 associated symbols.
+      remove_from_eod_check_queue(eod_check_key)
+    end
+  end
+
   private  ### Hook method implementations
 
-  # Finish up for 'wait_for_eod_request'.
-  post :target_syms do target_symbols_count != nil && target_symbols >= 0 end
+  # Finish up for 'wait_for_notification'.
+  post :target_syms do
+    target_symbols_count != nil && target_symbols_count >= 0 end
   def post_process_subscription(channel)
     @target_symbols_count = queue_count(eod_check_key)
     log.debug("[ERM] #{__method__} - tgtsymscnt: #{@target_symbols_count}")
   end
 
-  public
-
-  attr_reader :eod_check_key, :log
-
   private
 
-  RETRY_WAIT_SECONDS, MAIN_LOOP_PAUSE_SECONDS = 50, 15
-  RUN_STATE_TTL = 300
+  MAIN_LOOP_PAUSE_SECONDS = 15
 
   require 'logger'
 

@@ -3,6 +3,8 @@
 Required services:
 
 (!!!!!TO-DO: Fit exchange-schedule monitoring into this doc.[1]!!!!!)
+(!!!!!TO-DO: Update re. current design [2019-04-16 or later] - or: If this
+doc is too different from reality, just delete it.!!!!)
 
 !!!!!!!!:
 NOTE: one or more of these processes will use 'fork' to ensure that the
@@ -28,7 +30,7 @@ code that loads the rails environment and accesses the database will not
       earliest_future_close_time, query for the needed (based on list
       of symbols) EOD data from ex. This "polling" will continue for ex
       until all data needed from that exchange has been retrieved.
-  o A service will watch for newly arrived EOD data for today for "used"
+  o A service will watch for newly arrived EOD data for today for "tracked"
     tradables/symbols and trigger any configured analyses for those
     symbols.
 

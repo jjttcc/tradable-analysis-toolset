@@ -4,7 +4,6 @@ require 'error_log'
 # NOTE: Many of the methods defined here require one or both of the redis
 # client attributes, @redis and @redis_admin, to exist.  This can be
 # accomplished by calling 'init_redis_clients'.
-#!!!!!NOTE: This file might to be moved to somewhere other than .../redis!!!!!
 module TatServicesFacilities
   include Contracts::DSL, RedisFacilities, ServiceTokens
 
@@ -46,6 +45,9 @@ module TatServicesFacilities
   # Number of seconds of "margin" to give the exchange monitor after the
   # next closing time in order to avoid interfering with its operation:
   POST_CLOSE_TIME_MARGIN = 90
+  # Default number of seconds to wait for a message acknowledgement before
+  # giving up:
+  MSG_ACK_TIMEOUT = 60  #!!!!tune!!!!
 
   protected  ### messaging-related constants, settings
 
@@ -276,17 +278,74 @@ module TatServicesFacilities
 
   begin  ## EOD-data-related messaging ##
 
+    EOD_CHECK_QUEUE = 'eod-check-queue'
     EOD_READY_QUEUE = 'eod-data-ready-queue'
 
+    # Add the specified EOD check key-value to the "EOD-check" queue.
+    def enqueue_eod_check_key(key_value)
+puts "#{__method__} - for key #{EOD_CHECK_QUEUE}, adding #{key_value}"
+      queue_messages(EOD_CHECK_QUEUE, key_value, DEFAULT_EXPIRATION_SECONDS)
+    end
+
     # Add the specified EOD data-ready key-value to the "EOD-data-ready" queue.
-    def add_eod_ready_key(key_value)
+    def enqueue_eod_ready_key(key_value)
       queue_messages(EOD_READY_QUEUE, key_value, DEFAULT_EXPIRATION_SECONDS)
     end
 
+    # Remove the head (i.e., next_eod_check_key) of the "EOD-check" queue.
+    # Return the removed-value/former-head.
+    def dequeue_eod_check_key
+      remove_next_from_queue(EOD_CHECK_QUEUE)
+    end
+
+    # Remove the head (i.e., next_eod_ready_key) of the "EOD-data-ready" queue.
+    # Return the removed-value/former-head.
+    def dequeue_eod_ready_key
+      remove_next_from_queue(EOD_READY_QUEUE)
+    end
+
+    # Remove all occurrences of 'value' from the "EOD-check" queue.
+    # Return the number of removed elements.
+    def remove_from_eod_check_queue(value)
+      remove_from_queue(EOD_CHECK_QUEUE, value)
+    end
+
+    # Remove all occurrences of 'value' from the "EOD-data-ready" queue.
+    # Return the number of removed elements.
+    def remove_from_eod_ready_queue(value)
+      remove_from_queue(EOD_READY_QUEUE, value)
+    end
+
+    # The next EOD check key-value - i.e., the value currently at the
+    # head of the "EOD-check" queue.  nil if the queue is empty.
+    def next_eod_check_key
+      queue_head(EOD_CHECK_QUEUE)
+    end
+
     # The next EOD data-ready key-value - i.e., the value currently at the
-    # head of the "EOD-data-ready" queue.
+    # head of the "EOD-data-ready" queue.  nil if the queue is empty.
     def next_eod_ready_key
       queue_head(EOD_READY_QUEUE)
+    end
+
+    # The contents, in order, of the "EOD-check" queue
+    def eod_check_contents
+      queue_contents(EOD_CHECK_QUEUE)
+    end
+
+    # The contents, in order, of the "EOD-data-ready" queue
+    def eod_ready_contents
+      queue_contents(EOD_READY_QUEUE)
+    end
+
+    # Does the "EOD-check" queue contain 'value'?
+    def eod_check_queue_contains(value)
+      queue_contains(EOD_CHECK_QUEUE, value)
+    end
+
+    # Does the "EOD-data-ready" queue contain 'value'?
+    def eod_ready_queue_contains(value)
+      queue_contains(EOD_READY_QUEUE, value)
     end
 
   end
@@ -379,6 +438,56 @@ module TatServicesFacilities
     delete_object(key)
   end
 
+  ### Generic service/process control utilities ###
+
+  begin
+
+    PROCTERM = :terminate
+
+    # Order process termination via key "#{keybase}:#{PROCTERM}".
+    # If acknowledgement_timeout > 0, wait (block) until the receiver of the
+    # termination order has acknowledged (by clearing the associated value
+    # [e.g., via clear_order(keybase)]) the termination order, or until
+    # acknowledgement_timeout seconds elapses - whichever happens first.
+    # Otherwise (acknowledgement_timeout <= 0), do not wait for confirmation.
+    def order_termination(keybase, acknowledgement_timeout = MSG_ACK_TIMEOUT)
+      key = "#{keybase}:#{PROCTERM}"
+      send_generic_message(key, true)
+      if acknowledgement_timeout > 0 then
+        sleep 1
+        secs_passed = 1
+        until retrieved_message(key) != true.to_s ||
+                secs_passed >= acknowledgement_timeout
+puts "#{$$} waiting for termination ack... (s_passed: #{secs_passed})"
+          sleep 1
+          secs_passed += 1
+        end
+if secs_passed < acknowledgement_timeout then
+puts "#{$$} received ack... (s_passed: #{secs_passed})"
+end
+      end
+    end
+
+    # Has process termination been ordered via key "#{keybase}:#{PROCTERM}"?
+    # If 'clear', ensure the order is cleared (i.e., the next call to
+    # 'termination_ordered' will return false) before returning.
+    def termination_ordered(keybase, clear = false)
+      value = retrieved_message("#{keybase}:#{PROCTERM}")
+      result = value == 'true'
+      if clear then
+        clear_order(keybase)
+      end
+      result
+    end
+
+    # Clear the last order sent (e.g., by calling 'order_termination') via
+    # key "#{keybase}:#{PROCTERM}"
+    def clear_order(keybase)
+      send_generic_message("#{keybase}:#{PROCTERM}", nil)
+    end
+
+  end
+
   protected  ## Utilities
 
   # Evaluation (Array) of the Hash 'settings_hash'
@@ -409,11 +518,9 @@ module TatServicesFacilities
   def create_status_report_timer(srvc_tag: service_tag,
             period_seconds: RUN_STATE_EXPIRATION_SECONDS - 1)
     @status_report_method = "send_#{srvc_tag}_run_state"
-system("echo '#{__method__}: srm: #{@status_report_method}' >>/tmp/db101a")
     @status_task = Concurrent::TimerTask.new(
           execution_interval: period_seconds) do |task|
       begin
-system("echo '#{__method__}: sending: #{@status_report_method}' >>/tmp/db101b")
         send(@status_report_method)
       rescue StandardError => e
         log.warn("exception in #{__method__}: #{e}")

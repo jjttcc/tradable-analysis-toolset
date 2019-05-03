@@ -48,10 +48,12 @@ STDOUT.flush    # Allow any debugging output to be seen.
               wait_for_resume_command
             end
           end
-          if run_state == SERVICE_TERMINATED then
+          if terminated? then
             @continue_monitoring = false
           else
-            # Send a check-for-EOD-data notification to any subscribers.
+            check(run_state == SERVICE_RUNNING, "#{service_tag} is running")
+            # The service (this process) is running and it is "time-to-send",
+            # so send a check-for-EOD-data notification to any subscribers.
             send_check_notification(
               exchange_clock.symbols_for(@next_close_time), @next_close_time)
           end
@@ -137,12 +139,12 @@ puts "[heu] - ex_updated was true"
   # Retrieve any pending external commands and enforce a response by
   # changing internal state - @run_state.
   post :termination_side_effect do
-    implies(run_state == SERVICE_TERMINATED, ! continue_monitoring) end
+    implies(terminated?, ! continue_monitoring) end
   def process_external_command
     new_state = ordered_eod_exchange_monitoring_run_state
     if new_state != nil && new_state != run_state then
       @run_state = new_state
-      if run_state == SERVICE_TERMINATED then
+      if terminated? then
         @continue_monitoring = false
         # Make sure the order doesn't "linger" after termination.
         delete_exch_mon_order
@@ -169,6 +171,9 @@ puts "[heu] - ex_updated was true"
   def send_check_notification(symbols, closing_date_time)
     eod_check_key = new_eod_check_key
     if symbols.count > 0 then
+      # Insurance - in case subscriber crashes while processing eod_check_key:
+puts "enqueuing check key: #{eod_check_key}"
+      enqueue_eod_check_key eod_check_key
       count = queue_messages(eod_check_key, symbols.map {|s| s.symbol},
                      DEFAULT_EXPIRATION_SECONDS)
       send_close_date(eod_check_key, closing_date_time)

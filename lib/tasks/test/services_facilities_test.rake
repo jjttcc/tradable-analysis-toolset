@@ -72,12 +72,10 @@ def do_db_fork_test(wait)
     no = 'NOT '
     puts "the child is #{command.child_pid}"
     puts "CLOSING DB connection."
-    command.close_connection
   end
   puts "#{no}waiting (I am parent: #{$$})"
   puts "sleeping #{secs}"
   sleep secs
-  command.open_connection
   puts "OPENING DB connection."
   if ! wait then
     puts "sleeping #{secs} (I am parent: #{$$})"

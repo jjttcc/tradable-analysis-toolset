@@ -16,7 +16,7 @@ class ServicesTest < MiniTest::Test
   def teardown
   end
 
-  def hide___test_db_fork_task
+  def test_db_fork_task
     require "rake"
     Rails.application.load_tasks
     Rake::Task['test_db_fork'].invoke
@@ -25,7 +25,7 @@ class ServicesTest < MiniTest::Test
     assert false, "exception caught - db-fork test  failed: #{e}"
   end
 
-  def hide___test_eod_retrieval
+  def test_eod_retrieval
     apple = 'AAPL'; ford = 'F'
     symbols = [apple, ford]
     ModelHelper::track_tradables(symbols) do
@@ -55,12 +55,12 @@ class ServicesTest < MiniTest::Test
     end
   end
 
-  def hide___test_eod_updates
+  def test_eod_updates
     symbols = ['IBM', 'RHT', 'PG']
     ModelHelper::track_tradables(symbols) do
       storage_manager = data_storage_manager
       storage_manager.remove_tail_records(symbols, 1)
-      storage_manager.update_data_stores(symbols)
+      storage_manager.update_data_stores(symbols: symbols)
       symbols.each do |s|
         assert ! storage_manager.last_update_empty_for(s),
           "#{s}: expected > 0 records updated"
@@ -89,7 +89,7 @@ class ServicesTest < MiniTest::Test
     assert false, "exception caught - test_eod failed: #{e}"
   end
 
-  def hide___test_metadata_retrieval
+  def test_metadata_retrieval
     config = data_config
     retriever = config.data_retriever
     apple, ford, ping_an_bank, suning = 'AAPL', 'F', '000001', '002024'

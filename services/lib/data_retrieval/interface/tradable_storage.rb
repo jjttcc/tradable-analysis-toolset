@@ -43,7 +43,6 @@ class TradableStorage
 #!!!!!TO-DO: Document behavior when error/unexpected-problem occurs!!!!
   pre :keyword_hash do |hash| hash != nil end
   pre :syms_exist do |hash| hash[:symbols] != nil end
-#!!!!May not necessarily need an enddate after all - figure it out!!!!!!!!
   def update_data_stores(symbols:, startdate: nil, enddate: nil)
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
