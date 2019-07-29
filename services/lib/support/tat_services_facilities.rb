@@ -1,15 +1,11 @@
 require 'error_log'
+require 'messaging_facilities'
 
 # Constants and other "facilities" used by/for the TAT services
-# NOTE: Many of the methods defined here require one or both of the redis
-# client attributes, @redis and @redis_admin, to exist.  This can be
-# accomplished by calling 'init_redis_clients'.
 module TatServicesFacilities
-  include Contracts::DSL, RedisFacilities, ServiceTokens
+  include Contracts::DSL, MessagingFacilities, ServiceTokens
 
   public
-
-#!!!!!  attr_reader :redis, :redis_admin
 
   # Tag identifying "this" service
   post :result_valid do |result|
@@ -17,21 +13,6 @@ module TatServicesFacilities
   def service_tag
     nil   # Redefine, if appropriate.
   end
-
-  def redis
-    if @redis.nil? then
-      @redis = DataConfig.new(log).redis_application_client
-    end
-    @redis
-  end
-
-  def redis_admin
-    if @redis_admin.nil? then
-      @redis_admin = DataConfig.new(log).redis_administration_client
-    end
-    @redis_admin
-  end
-
 
   protected  ### time-related constants
 
@@ -114,9 +95,11 @@ module TatServicesFacilities
   # Is 'service' alive?
   pre :valid do |service| ServiceTokens::SERVICE_EXISTS[service] end
   def is_alive?(service)
+log.debug("#{self}.is_alive calling #{service}_run_state")
     status = method("#{service}_run_state").call
-    result = status =~ /^#{SERVICE_RUNNING}/ ||
-        status =~ /^#{SERVICE_SUSPENDED}/
+    result = !! (status =~ /^#{SERVICE_RUNNING}/ ||
+                  status =~ /^#{SERVICE_SUSPENDED}/)  # (i.e., as boolean)
+log.debug("#{self}.is_alive - status: '#{status}', result: '#{result}'")
     result
   end
 
@@ -129,7 +112,7 @@ module TatServicesFacilities
   ].each do |symbol|
     method_name = "ordered_#{symbol}_run_state".to_sym
     define_method(method_name) do
-      command = retrieved_message(CONTROL_KEY_FOR[symbol], redis_admin)
+      command = retrieved_message(CONTROL_KEY_FOR[symbol], true)
       STATE_FOR_CMD[command]
     end
   end
@@ -148,7 +131,7 @@ module TatServicesFacilities
     }.each do |command, state|
       define_method("order_#{symbol}_#{command}".to_sym) do
         set_message(CONTROL_KEY_FOR[symbol], state,
-            {EXPIRATION_KEY => DEFAULT_ADMIN_EXPIRATION_SECONDS}, redis_admin)
+            {EXPIRATION_KEY => DEFAULT_ADMIN_EXPIRATION_SECONDS}, true)
       end
     end
   end
@@ -162,7 +145,7 @@ module TatServicesFacilities
   ].each do |symbol|
     method_name = "#{symbol}_run_state".to_sym
     define_method(method_name) do
-      result = retrieved_message(STATUS_KEY_FOR[symbol], redis_admin)
+      result = retrieved_message(STATUS_KEY_FOR[symbol], true)
       result
     end
   # <service>_suspended?, <service>_running?, ... queries
@@ -198,7 +181,7 @@ module TatServicesFacilities
       begin
         expir_arg = {EXPIRATION_KEY => exp}
         value_arg = "#{run_state}@#{Time.now.utc}"
-        set_message(key, value_arg, expir_arg, redis_admin)
+        set_message(key, value_arg, expir_arg, true)
       rescue StandardError => e
         log.warn("exception in #{__method__}: #{e}")
       end
@@ -207,7 +190,7 @@ module TatServicesFacilities
 
   # Delete the last exchange-monitoring-service control order.
   def delete_exch_mon_order
-    delete_object(EXCHANGE_MONITOR_CONTROL_KEY, redis_admin)
+    delete_object(EXCHANGE_MONITOR_CONTROL_KEY, true)
   end
 
   protected  ######## generated constant-based key values ########
@@ -352,7 +335,7 @@ puts "#{__method__} - for key #{EOD_CHECK_QUEUE}, adding #{key_value}"
 
   ### Service status/info reports ###
 
-  # Send the next exchange closing time (to the redis server).
+  # Send the next exchange closing time (to the message broker).
   def send_next_close_time(time)
     args = eval_settings(EXCH_MONITOR_NEXT_CLOSE_SETTINGS, time)
     set_message(args[0], *args[1..-1])
@@ -366,7 +349,7 @@ puts "#{__method__} - for key #{EOD_CHECK_QUEUE}, adding #{key_value}"
                 {EXPIRATION_KEY => DEFAULT_EXPIRATION_SECONDS})
   end
 
-  # Send the specified list of open exchanges (to the redis server).
+  # Send the specified list of open exchanges (to the message broker).
   pre :markets_exist do |open_markets| open_markets != nil end
   def send_open_market_info(open_markets)
     args = eval_settings(EXCH_MONITOR_OPEN_MARKET_SETTINGS,
@@ -525,18 +508,6 @@ end
       rescue StandardError => e
         log.warn("exception in #{__method__}: #{e}")
       end
-    end
-  end
-
-  protected  ###  Initialization
-
-  post :clients_set do @redis != nil && @redis_admin != nil end
-  def init_redis_clients
-    config = DataConfig.new(log)
-    @redis = config.redis_application_client
-    @redis_admin = config.redis_administration_client
-    if config.debugging? then
-      @@redis_debug = true
     end
   end
 

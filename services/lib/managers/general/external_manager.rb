@@ -1,6 +1,4 @@
 require 'service_manager'
-require 'error_log'
-require 'redis_error_log'
 
 # ServiceManagers responsible for managing an external, non-rails-dependent
 # process.
@@ -37,7 +35,7 @@ class ExternalManager < ServiceManager
   private  ###  Initialization
 
   def initialize(tag:)
-    @log = RedisErrorLog.new(redis_port: DataConfig::REDIS_APP_PORT)
+    @log = MessageBrokerConfiguration::message_based_error_log
     super(tag: tag)
   end
 

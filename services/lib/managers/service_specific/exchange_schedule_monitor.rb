@@ -37,8 +37,8 @@ STDOUT.flush    # Allow any debugging output to be seen.
 #!!!!Consider sending (queue_messages) the list of symbols and the
 #!!!close-date (send_close_date) ahead of time for robustness -
 #!!!If the process dies and is not restarted until after 'next_close_time'
-#!!!occurs, then (on startup) retrieve the key (from where? - redis?) and
-#!!!do the 'publish eod_check_key' again.
+#!!!occurs, then (on startup) retrieve the key (from where? - the message
+#!!!broker?) and do the 'publish eod_check_key' again.
         time_to_send = deadline_reached(@next_close_time)
 puts "eom - time_to_send: #{time_to_send}"
 STDOUT.flush    # Allow any debugging output to be seen.
@@ -234,7 +234,8 @@ puts "enqueuing check key: #{eod_check_key}"
     @run_state = SERVICE_RUNNING
     @long_term_i_count = -1
     @service_tag = EOD_EXCHANGE_MONITORING
-    init_redis_clients
+    initialize_message_brokers
+    initialize_pubsub_broker
     create_status_report_timer
     super(EOD_CHECK_CHANNEL)
     @status_task.execute

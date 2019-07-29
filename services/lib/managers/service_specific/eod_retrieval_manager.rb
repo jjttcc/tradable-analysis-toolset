@@ -2,7 +2,6 @@ require 'set'
 require 'ruby_contracts'
 require 'data_config'
 require 'subscriber'
-require 'redis_facilities'
 require 'tat_util'
 require 'service_tokens'
 require 'tat_services_facilities'
@@ -105,7 +104,7 @@ class EODRetrievalManager < Subscriber
   def execute
     handle_unfinished_processing
 #!!!template method needed (ordered_eod_data_retrieval_run_state -> xxx):
-    while ordered_eod_data_retrieval_run_state != SERVICE_TERMINATED
+    while ordered_eod_data_retrieval_run_state != SERVICE_TERMINATED do
       wait_for_and_process_eod_event
       sleep MAIN_LOOP_PAUSE_SECONDS
     end
@@ -131,12 +130,14 @@ class EODRetrievalManager < Subscriber
   post :key_set do eod_check_key != nil end
 #!!!!QUESTION: What to do if 'last_message' is nil or empty?!!!!
   def wait_for_notification
-    debug("#{self.class} subscribing to channel: " +
+    debug("[#{self.class}#{__method__}] subscribing to channel: " +
          "#{default_subscription_channel} (#{self.inspect})")
     subscribe_once do
 #!!!!QUESTION: What to do if 'last_message' is nil or empty?!!!!
+puts "(#{__method__}, in block) lastmsg: #{last_message}"
       @eod_check_key = last_message
     end
+debug("[#{self.class}#{__method__}] end of method")
   end
 
   # Check if there are any past "eod-check" notifications whose processing
@@ -170,6 +171,7 @@ break #!!!!!Fix!!!!!
   # complete the processing for those symbols.
   def handle_unfinished_processing
     eod_check_keys = eod_check_contents
+puts "#{self.class}.#{__method__}: eod_check_keys #{eod_check_keys}"
     eod_check_keys.each do |key|
       @eod_check_key = key
 puts "'handle_unfinished_processing': eod-check-key: #{eod_check_key}"
@@ -196,6 +198,7 @@ puts msg
   post :empty_symlist_cleanup do implies(target_symbols_count == 0,
          ! eod_check_queue_contains(eod_check_key)) end
   def handle_data_retrieval
+puts "#{self.class}.#{__method__}: target_symbols_count: #{target_symbols_count}"
     if target_symbols_count > 0 then
       end_date = close_date(eod_check_key)
       handler = DataWranglerHandler.new(service_tag, log)
@@ -207,16 +210,6 @@ puts msg
       # 'eod-check-key', since it has 0 associated symbols.
       remove_from_eod_check_queue(eod_check_key)
     end
-  end
-
-  private  ### Hook method implementations
-
-  # Finish up for 'wait_for_notification'.
-  post :target_syms do
-    target_symbols_count != nil && target_symbols_count >= 0 end
-  def post_process_subscription(channel)
-    @target_symbols_count = queue_count(eod_check_key)
-    log.debug("[ERM] #{__method__} - tgtsymscnt: #{@target_symbols_count}")
   end
 
   private
@@ -235,10 +228,21 @@ puts msg
     data_config = DataConfig.new(log)
     @run_state = SERVICE_RUNNING
     @service_tag = EOD_DATA_RETRIEVAL
-    init_redis_clients
+    initialize_message_brokers
+    initialize_pubsub_broker
+    set_subs_callback_lambdas
     super(EOD_CHECK_CHANNEL)  # i.e., subscribe channel
     create_status_report_timer
     @status_task.execute
+  end
+
+  post :subs_callbacks do subs_callbacks != nil end
+  def set_subs_callback_lambdas
+    @subs_callbacks = {}
+    @subs_callbacks[:postproc] = lambda do
+      @target_symbols_count = queue_count(eod_check_key)
+log.debug("[ERM] #{__method__} - tgtsymscnt: #{@target_symbols_count}")
+    end
   end
 
 end

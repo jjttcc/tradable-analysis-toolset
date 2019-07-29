@@ -305,7 +305,7 @@ end
 
   private
 
-  attr_reader :continue_processing, :redis, :last_update_time,
+  attr_reader :continue_processing, :last_update_time,
     :last_cleanup_time, :exch_monitor_is_ill
   # The last recorded 'next_exch_close_datetime'
   attr_reader :last_recorded_close_time
@@ -315,9 +315,8 @@ end
 
   private    ###  Initialization
 
-  post :redis_set do redis != nil end
   def initialize
-    init_redis_clients
+    initialize_message_brokers
     @last_update_time = nil
     set_message(TTM_LAST_TIME_KEY, nil)
     @last_cleanup_time = nil

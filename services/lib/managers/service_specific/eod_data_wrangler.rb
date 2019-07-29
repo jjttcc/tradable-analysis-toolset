@@ -187,7 +187,6 @@ puts msg  #!!!![tmp/debugging]
   post :good_ready_key do data_ready_key != nil && ! data_ready_key.empty? end
   post :log_set do log != nil end
   post :no_retries_yet do update_retries == 0 end
-  post :redis_init do ! (@redis.nil? || @redis_admin.nil?) end
   post :invariant do invariant end
   def initialize(owner, eod_chkey, enddate)
     @log = owner.log
@@ -197,7 +196,9 @@ puts msg  #!!!![tmp/debugging]
     @update_retries = 0
     # Make 'Publication' module happy:
     @default_publishing_channel = EOD_DATA_CHANNEL
-    init_redis_clients
+    initialize_message_brokers
+    initialize_pubsub_broker
+puts "#{self.class} inited - guts: #{self.inspect}"
   end
 
   # class invariant

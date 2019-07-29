@@ -1,9 +1,9 @@
 =begin
+#!!!!I believe these "require"s can all be deleted - do it soon!!!!!:
 require 'set'
 require 'ruby_contracts'
 require 'data_config'
 require 'subscriber'
-require 'redis_facilities'
 require 'tat_util'
 require 'service_tokens'
 require 'tat_services_facilities'
@@ -75,16 +75,6 @@ class EODEventManager < Subscriber
   def handle_the_work____template_method
   end
 
-  private  ### Hook method implementations
-
-  # Finish up for 'wait_for_notification'.
-  post :target_syms do
-    target_symbols_count != nil && target_symbols_count >= 0 end
-  def post_process_subscription(channel)
-    @target_symbols_count = queue_count(eod_something_or_other_template_key)
-    log.debug("[ERM] #{__method__} - tgtsymscnt: #{@target_symbols_count}")
-  end
-
   private
 
   MAIN_LOOP_PAUSE_SECONDS = 15
@@ -101,10 +91,22 @@ class EODEventManager < Subscriber
     data_config = DataConfig.new(log)
     @run_state = SERVICE_RUNNING
     @service_tag = EOD_EVENT_TRIGGERING
-    init_redis_clients
+    initialize_message_brokers
+    initialize_pubsub_broker
+    set_subs_callback_lambdas
     super(EOD_DATA_CHANNEL)  # i.e., subscribe channel
     create_status_report_timer
     @status_task.execute
+  end
+
+  post :subs_callbacks do subs_callbacks != nil end
+  def set_subs_callback_lambdas
+    @subs_callbacks = {}
+    @subs_callbacks[:postproc] = lambda do
+      #!!!!figure out the right *_key!!!:
+      @target_symbols_count = queue_count(eod_something_or_other_template_key)
+log.debug("[ERM] #{__method__} - tgtsymscnt: #{@target_symbols_count}")
+    end
   end
 
 end

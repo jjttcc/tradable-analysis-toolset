@@ -1,17 +1,14 @@
 require 'ruby_contracts'
 require 'service_tokens'
-require 'redis_facilities'
-require 'tat_services_facilities'
-require 'redis_manager'
 require 'rake_manager'
 require 'external_manager'
+require 'message_broker_manager'
 
 # Top-level supervision and control of the TAT service processes
 # (To-do: implement [or remove, if this class turns out to be unnecessary]
 # top-level control of [threaded?] monitoring/control of service processes)
 class ServicesSupervisor
   include Contracts::DSL, ServiceTokens
-# start/monitor redis
 # start/monitor EODRetrievalManager
 # start/monitor ExchangeScheduleMonitor
 # start/monitor TradableTrackingManager
@@ -25,7 +22,7 @@ class ServicesSupervisor
       sm.monitor
     end
     # Is there any need for this loop?!!!!:
-    while continue_supervising
+    while continue_supervising do
       check_on_managers
       sleep MAIN_PAUSE_SECONDS
     end
@@ -70,7 +67,7 @@ log("#{sm} is NOT healthy!!!! - perhaps I should restart it.")
 
   def initialized_service_managers
     result = []
-    result << RedisManager.new(tag: REDIS)
+    result << MessageBrokerManager.new()
 #!!!!eh?: result << MasServerMonitor.new(tag: MAS_SERVER_MONITOR)
     result << RakeManager.new(tag: EOD_EXCHANGE_MONITORING)
     result << RakeManager.new(tag: MANAGE_TRADABLE_TRACKING)
@@ -94,8 +91,8 @@ log("i: #{i}")
         log("starting #{sm.inspect}")
         sm.block_until_started
       rescue StandardError => e
-        log("#{sm} startup failed for #{sm.inspect}: #{e}")
-        log("stack: #{caller.join("\n")}")
+        log("#{sm} startup failed for #{sm.inspect}: #{e} - stack:")
+        log("#{caller.join("\n")}")
       end
 i += 1
     end

@@ -1,5 +1,5 @@
-require 'redis'
 require 'concurrent-ruby'
+require 'tat_services_facilities'
 require 'data_config'
 
 # Responsible for service management - starting the service and monitoring
@@ -22,7 +22,7 @@ class ServiceManager
       start_service
       tries = 0
       sleep PING_RETRY_PAUSE
-      while ! is_alive?(tag)
+      while ! is_alive?(tag) do
         if tries > LIFE_CHECK_LIMIT then
           raise "#{tag} failed to start"
         end
@@ -30,6 +30,7 @@ class ServiceManager
         tries += 1
       end
     else
+$stderr.puts "[ServiceManager] service #{tag} is alive";$stderr.flush
     end
   end
 
@@ -58,22 +59,21 @@ class ServiceManager
 
   private
 
-  attr_reader :redis, :redis_admin, :config
+  attr_reader :config
 
   alias_method :ensure_service_is_running, :block_until_started
 
   PING_RETRY_PAUSE, LIFE_CHECK_LIMIT = 3, 10
   MONITORING_INTERVAL = 15
 
-  pre  :tag_exists do |t| t != nil && ! t.empty? end
+  pre  :tag_exists do |t| (t != nil && ! t.empty?) ||
+    (default_tag != nil && ! default_tag.empty?) end
   post :tag_initialized do tag != nil && ! tag.empty? end
   post :admin do ! (config.nil? || log.nil?) end
-  def initialize(tag:)
+  def initialize(tag: default_tag)
     @tag = tag
     @config = DataConfig.new(log)
-    @redis_admin = @config.redis_administration_client
-#!!!!Is @redis needed?!!!:
-    @redis = @config.redis_application_client
+    initialize_message_brokers(config)
   end
 
 end

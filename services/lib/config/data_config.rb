@@ -1,5 +1,6 @@
 require 'tiingo_data_retriever'
 require 'file_tradable_storage'
+require 'message_broker_configuration'
 
 class DataConfig
   include Contracts::DSL
@@ -11,8 +12,9 @@ class DataConfig
   #TRACKING_CLEANUP_INTERVAL = 61200
   TRACKING_CLEANUP_INTERVAL = 17200 #!!!!test!!!!
 
-  # redis application and administration ports
-  REDIS_APP_PORT, REDIS_ADMIN_PORT = 16379, 26379
+  public
+
+  attr_reader :log
 
   public
 
@@ -27,12 +29,24 @@ class DataConfig
     FileTradableStorage.new(mas_data_path, data_retriever, log)
   end
 
-  def redis_application_client
-    Redis.new(port: REDIS_APP_PORT)
+  # Broker for regular application-related messaging
+  def application_message_broker
+    MessageBrokerConfiguration::application_message_broker
   end
 
-  def redis_administration_client
-    Redis.new(port: REDIS_ADMIN_PORT)
+  # Broker for administrative-level messaging
+  def administrative_message_broker
+    MessageBrokerConfiguration::administrative_message_broker
+  end
+
+  # Broker application-related publish/subscribe-based messaging
+  def pubsub_broker
+    MessageBrokerConfiguration::pubsub_broker
+  end
+
+  # The error-logging object
+  def error_log
+    MessageBrokerConfiguration::message_based_error_log
   end
 
   # Is debug-logging enabled?
@@ -45,8 +59,6 @@ class DataConfig
   EOD_ENV_VAR = 'TIINGO_TOKEN'
   DATA_PATH_ENV_VAR = 'MAS_RUNDIR'
   DEBUG_ENV_VAR = 'TAT_DEBUG'
-
-  attr_reader :log
 
   def data_retrieval_token
     result = ENV[EOD_ENV_VAR]
@@ -66,11 +78,14 @@ class DataConfig
 
   private  ###  Initialization
 
-  def initialize(the_log)
-    if the_log.nil? then
-      raise "#{self.class}.new: invalid argument - 'the_log' is nil"
-    end
+  # Initialize 'log' to the_log if ! the_log.nil?.  If the_log is nil,
+  # initialize 'log' to MessageBrokerConfiguration::message_based_error_log.
+  post :log_set do log != nil end
+  def initialize(the_log = nil)
     @log = the_log
+    if the_log.nil? then
+      @log = MessageBrokerConfiguration::message_based_error_log
+    end
   end
 
 end
