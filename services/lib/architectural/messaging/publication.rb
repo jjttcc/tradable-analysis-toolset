@@ -14,7 +14,7 @@ module Publication
   pre :pubsub_broker do invariant end
   pre :pub_msg do |message| ! message.nil? end
   def publish(message, channel = default_publishing_channel)
-puts "[#{self.class}] publishing on #{channel}, '#{message}' - stack:"
+puts "[#{self.class}] publishing on #{channel}, '#{message}' - stack:" #!!!!!
 puts "#{__FILE__}:#{__LINE__}"
 puts caller
     pubsub_broker.publish channel, message

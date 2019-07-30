@@ -4,9 +4,6 @@ require_relative 'subscription'
 class PublisherSubscriber
   include Contracts::DSL, Publication, Subscription
 
-#!!!!Next: sadd, srem, smembers, ...
-#!!!!And finish/use the constants!!!!!
-
   private
 
   post :channels_set do
