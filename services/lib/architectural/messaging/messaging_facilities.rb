@@ -101,12 +101,16 @@ module MessagingFacilities
 
   public  ###  Element change
 
-  # Set (insert) a keyed message
-  def set_message(key, msg, options = {}, admin = false)
+  # Set (insert) a keyed message.
+  # If 'expire_secs' is not nil and if expiration is supported by the
+  # message broker, set the time-to-live for 'key' to 'expire_secs' seconds.
+  pre :sane_expire do |k, m, exp|
+    implies(exp != nil, exp.is_a?(Numeric) && exp >= 0) end
+  def set_message(key, msg, expire_secs = nil, admin = false)
     if admin then
-      admin_broker.set_message key, msg, options
+      admin_broker.set_message key, msg, expire_secs
     else
-      broker.set_message key, msg, options
+      broker.set_message key, msg, expire_secs
     end
   end
 

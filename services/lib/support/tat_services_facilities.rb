@@ -32,8 +32,7 @@ module TatServicesFacilities
 
   protected  ### messaging-related constants, settings
 
-  STATUS_KEY, STATUS_VALUE, STATUS_EXPIRE, EXPIRATION_KEY =
-    :status, :value, :expire, :ex
+  STATUS_KEY, STATUS_VALUE, STATUS_EXPIRE = :status, :value, :expire
 
   EOD_CHECK_KEY_BASE            = 'eod-check-symbols'
   EOD_DATA_KEY_BASE             = 'eod-ready-symbols'
@@ -53,7 +52,7 @@ module TatServicesFacilities
     STATUS_KEY    => EXCHANGE_CLOSE_TIME_KEY,
     # default:
     STATUS_VALUE  => 'no markets open today',
-    STATUS_EXPIRE => {EXPIRATION_KEY => EXMON_PAUSE_SECONDS + 1}
+    STATUS_EXPIRE => EXMON_PAUSE_SECONDS + 1
   }
   EXCH_MONITOR_OPEN_MARKET_SETTINGS = {
     STATUS_KEY    => OPEN_EXCHANGES_KEY,
@@ -131,7 +130,7 @@ log.debug("#{self}.is_alive - status: '#{status}', result: '#{result}'")
     }.each do |command, state|
       define_method("order_#{symbol}_#{command}".to_sym) do
         set_message(CONTROL_KEY_FOR[symbol], state,
-            {EXPIRATION_KEY => DEFAULT_ADMIN_EXPIRATION_SECONDS}, true)
+            DEFAULT_ADMIN_EXPIRATION_SECONDS, true)
       end
     end
   end
@@ -179,9 +178,8 @@ log.debug("#{self}.is_alive - status: '#{status}', result: '#{result}'")
     key = STATUS_KEY_FOR[symbol]
     define_method(m_name) do |exp = RUN_STATE_EXPIRATION_SECONDS|
       begin
-        expir_arg = {EXPIRATION_KEY => exp}
         value_arg = "#{run_state}@#{Time.now.utc}"
-        set_message(key, value_arg, expir_arg, true)
+        set_message(key, value_arg, exp, true)
       rescue StandardError => e
         log.warn("exception in #{__method__}: #{e}")
       end
@@ -346,14 +344,13 @@ puts "#{__method__} - for key #{EOD_CHECK_QUEUE}, adding #{key_value}"
   # The key value used will be "#{key}:close-date"
   def send_close_date(key, datetime)
     set_message("#{key}:#{CLOSE_DATE_SUFFIX}", datetime.to_date,
-                {EXPIRATION_KEY => DEFAULT_EXPIRATION_SECONDS})
+                DEFAULT_EXPIRATION_SECONDS)
   end
 
   # Send the specified list of open exchanges (to the message broker).
   pre :markets_exist do |open_markets| open_markets != nil end
   def send_open_market_info(open_markets)
-    args = eval_settings(EXCH_MONITOR_OPEN_MARKET_SETTINGS,
-                                     open_markets)
+    args = eval_settings(EXCH_MONITOR_OPEN_MARKET_SETTINGS, open_markets)
     key = args.first
     if open_markets.nil? || open_markets.empty? then
       # No open markets, so simply delete the set:
@@ -413,7 +410,7 @@ puts "#{__method__} - for key #{EOD_CHECK_QUEUE}, adding #{key_value}"
   # Send a "generic" application message ('msg'), using 'key', with
   # default expiration TTL.
   def send_generic_message(key, msg, exp = DEFAULT_APP_EXPIRATION_SECONDS)
-    set_message(key, msg, {EXPIRATION_KEY => exp})
+    set_message(key, msg, exp)
   end
 
   # Delete the message with the specified key.
@@ -483,7 +480,7 @@ end
       result[value] = replacement_value
     end
     if replacement_expiration_seconds != nil then
-      result[expire] = {EXPIRATION_KEY => replacement_expiration_seconds}
+      result[expire] = replacement_expiration_seconds
     end
     # If the 'value' is a lambda/Proc, use its result:
     if result[value].respond_to?(:call) then

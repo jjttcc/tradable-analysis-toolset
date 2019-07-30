@@ -82,10 +82,18 @@ class RedisMessageBroker
   public  ###  Element change
 
   # Set (insert) a keyed message
-  def set_message(key, msg, options = {})
+  # If 'expire_secs' is not nil, set the time-to-live for 'key' to
+  # expire_secs seconds.
+  pre :sane_expire do |k, m, exp|
+    implies(exp != nil, exp.is_a?(Numeric) && exp >= 0) end
+  def set_message(key, msg, expire_secs = nil)
+    options = {}
     if @@redis_debug then
       puts "set_message - calling redis.set with #{key}, " +
-        "#{msg}, #{options}, redis: #{redis}"
+        "#{msg}, #{expire_secs}, redis: #{redis}"
+    end
+    if expire_secs != nil then
+      options = {EXP_KEY => expire_secs}
     end
     redis.set key, msg, options
     if @@redis_debug then
@@ -175,5 +183,7 @@ puts "mhtt - ttl: #{ttl.inspect}"
   protected
 
   @@redis_debug = false
+
+  EXP_KEY = :ex
 
 end
