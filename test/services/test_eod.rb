@@ -1,4 +1,3 @@
-require 'redis'
 
 class TestEOD
   include TatServicesFacilities
@@ -15,10 +14,11 @@ class TestEOD
 
   def run_the_test(symbols)
     config = DataConfig.new($log)
-    redis = config.redis_application_client
-    redis.sadd @sym_key, symbols
+    message_broker = config.application_message_broker
+    pubsub_broker = config.pubsub_broker
+    message_broker.add_set @sym_key, symbols
 puts "publishing #{@eod_test_channel}, #{@sym_key}"
-    redis.publish @eod_test_channel, @sym_key
+    pubsub_broker.publish @eod_test_channel, @sym_key
     look_for_completion
   end
 

@@ -116,14 +116,16 @@ module MessagingFacilities
 
   # Add 'msgs' (a String, if 1 message, or an array of Strings) to the end of
   # the queue (implemented as a list) with key 'key'.
-  # If 'expiration' is not nil, set the time-to-live for the set to
-  # 'expiration' seconds.
+  # If 'expire_secs' is not nil and if expiration is supported by the
+  # message broker, set the time-to-live for 'key' to 'expire_secs' seconds.
   # Return the resulting size of the queue.
-  def queue_messages(key, msgs, expiration, admin = false)
+  pre :sane_expire do |k, m, exp|
+    implies(exp != nil, exp.is_a?(Numeric) && exp >= 0) end
+  def queue_messages(key, msgs, expire_secs = nil, admin = false)
     if admin then
-      admin_broker.queue_messages key, msgs, expiration
+      admin_broker.queue_messages key, msgs, expire_secs
     else
-      broker.queue_messages key, msgs, expiration
+      broker.queue_messages key, msgs, expire_secs
     end
   end
 
@@ -151,13 +153,15 @@ module MessagingFacilities
   # Add, with 'key', the specified set with items 'args'.  If the set
   # (with 'key') already exists, simply add to the set any items from 'args'
   # that aren't already in the set.
-  # If 'expiration' is not nil, set the time-to-live for the set to
-  # 'expiration' seconds.
-  def add_set(key, args, expiration, admin = false)
+  # If 'expire_secs' is not nil and if expiration is supported by the
+  # message broker, set the time-to-live for 'key' to 'expire_secs' seconds.
+  pre :sane_expire do |k, a, exp|
+    implies(exp != nil, exp.is_a?(Numeric) && exp >= 0) end
+  def add_set(key, args, expire_secs = nil, admin = false)
     if admin then
-      admin_broker.add_set key, args, expiration
+      admin_broker.add_set key, args, expire_secs
     else
-      broker.add_set key, args, expiration
+      broker.add_set key, args, expire_secs
     end
   end
 
