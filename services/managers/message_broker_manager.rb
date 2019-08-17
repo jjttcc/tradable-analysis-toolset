@@ -8,9 +8,7 @@ class MessageBrokerManager < ServiceManager
   private  ### Hook method implementations
 
   def is_alive?(tag)
-$stderr.puts "[MessageBrokerManager] calling ...is_alive...";$stderr.flush
     result = broker.is_alive? && admin_broker.is_alive?
-$stderr.puts "[MessageBrokerManager] = RESULT: #{result}";$stderr.flush
     result
   rescue
     false

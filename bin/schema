@@ -2,15 +2,15 @@
 # display schema for the specified tables.
 # vim: expandtab
 
-alltables=false
 istest=false
 db=tat_development
 user=tat
 tbcmd='\dt'
 desc='\d'
-if [ "$ALL" ]; then
-    alltables=true
-fi
+all=false
+schema=$0
+line='======================================================================'
+line="$line$line"
 
 ruby_to_table() {
   table=$1
@@ -33,6 +33,7 @@ filter() {
 case $1 in
     -t*) istest=true;shift
         ;;
+    -a*) all=true;shift
 esac
 
 if [ "$DB" ]; then
@@ -42,19 +43,30 @@ if eval $istest; then
     db=tat_test
 fi
 if [ $# -eq 0 ]; then
-    echo "$tbcmd"|
-        PGPASSWORD=$DB_PASSWORD psql -U $user -d $db|
-        filter|awk '{print "[" NR "] " $0}'
-fi
-
-export PGPASSWORD=$DB_PASSWORD
-args=$*
-for t in $args; do
-    if expr $t : '^[0-9][0-9]*$' >/dev/null; then
-        table=$(echo "$tbcmd"|psql -U $user -d $db|filter|sed -n "${t}p")
+    if eval $all; then
+        set $(echo "$tbcmd"|
+            PGPASSWORD=$DB_PASSWORD psql -U $user -d $db|filter)
+        eval $schema $1
+        shift
+        for t; do
+            echo "$line"
+            eval $schema $t
+        done
     else
-        table=$(ruby_to_table $t)
+        echo "$tbcmd"|
+            PGPASSWORD=$DB_PASSWORD psql -U $user -d $db|
+            filter|awk '{print "[" NR "] " $0}'
     fi
-    echo "$desc $table"|psql -U $user -d $db|sed 's@, *@\
-@g'
-done
+else
+    export PGPASSWORD=$DB_PASSWORD
+    args=$*
+    for t in $args; do
+        if expr $t : '^[0-9][0-9]*$' >/dev/null; then
+            table=$(echo "$tbcmd"|psql -U $user -d $db|filter|sed -n "${t}p")
+        else
+            table=$(ruby_to_table $t)
+        fi
+        echo "$desc $table"|psql -U $user -d $db|
+            sed 's@^ *\(Table\) *"public\.\([^"]*\)"@\1 \2:\n@'
+    done
+fi

@@ -1,4 +1,4 @@
-Services[1] required by the TAT system:
+SERVICES[1] REQUIRED BY THE TAT SYSTEM
 
   - Send configured analysis requests to the MAS server and record the
     results.
@@ -7,6 +7,29 @@ Services[1] required by the TAT system:
     the results.  A main component of this post-processing, obviously, is
     sending out notifications.
   - Cleanup required after post-processing, such as deleting expired data.
+
+
+DIRECTORIES UNDER SERVICES
+
+Code not dependent on rails or ActiveRecord:
+
+support
+managers
+non_rails
+non_rails/top_level
+non_rails/service_specific_managers
+
+Code that is dependent on rails and/or ActiveRecord:
+
+rails_dependent
+rails_dependent/service_specific_managers
+
+Code that is in-flux/to-be-categorized:
+
+new_or_obsolete
+on_hold
+
+
 
 [1] These services can be called "background" services, in the sense that
 each service is managed by a process that runs in the background.  They are

@@ -130,7 +130,7 @@ class EODRetrievalManager < Subscriber
   post :key_set do eod_check_key != nil end
 #!!!!QUESTION: What to do if 'last_message' is nil or empty?!!!!
   def wait_for_notification
-    debug("[#{self.class}#{__method__}] subscribing to channel: " +
+    debug("[#{self.class}.#{__method__}] subscribing to channel: " +
          "#{default_subscription_channel} (#{self.inspect})")
     subscribe_once do
 #!!!!QUESTION: What to do if 'last_message' is nil or empty?!!!!

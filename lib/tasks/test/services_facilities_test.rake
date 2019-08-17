@@ -1,4 +1,4 @@
-SRVC_AR_PATH = '../../../services/lib/architectural/active_record'
+SRVC_AR_PATH = '../../../app/model_facilities'
 require_relative "#{SRVC_AR_PATH}/forked_database_execution"
 
 class DBForkTest

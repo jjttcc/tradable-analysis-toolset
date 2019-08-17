@@ -15,7 +15,6 @@ class RedisPubSubBroker
   pre :redis_exists do ! redis.nil? end
   pre :ch_and_msg   do |ch, msg| ! (ch.nil? || msg.nil?) end
   def publish(channel, message)
-puts "publishing on #{channel}, '#{message}'"
     redis.publish channel, message
   end
 

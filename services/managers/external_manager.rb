@@ -19,7 +19,7 @@ class ExternalManager < ServiceManager
 #    START_ANALYSIS_SERVICE   => 'analysis_startup:start_analysis_service',
 #    START_POST_PROCESSING_SERVICE =>
 #      'analysis_startup:start_post_processing_service',
-    EOD_DATA_RETRIEVAL       => 'services/non_rails//eod_data_retrieval.rb'
+    EOD_DATA_RETRIEVAL => 'services/non_rails/top_level/eod_data_retrieval.rb'
   }
 
   def start_service

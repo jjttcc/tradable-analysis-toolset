@@ -94,11 +94,12 @@ module TatServicesFacilities
   # Is 'service' alive?
   pre :valid do |service| ServiceTokens::SERVICE_EXISTS[service] end
   def is_alive?(service)
-log.debug("#{self}.is_alive calling #{service}_run_state")
-    status = method("#{service}_run_state").call
+    method_name = "#{service}_run_state"
+    status = method(method_name).call
     result = !! (status =~ /^#{SERVICE_RUNNING}/ ||
                   status =~ /^#{SERVICE_SUSPENDED}/)  # (i.e., as boolean)
-log.debug("#{self}.is_alive - status: '#{status}', result: '#{result}'")
+log.debug("#{self}.#{__method__} - status from #{method_name}: " +
+"'#{status}', result: '#{result}'")
     result
   end
 

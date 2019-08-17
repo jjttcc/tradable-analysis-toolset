@@ -1,3 +1,0 @@
-Classes that directly use one or more models to provide auxiliary
-functionality - for example, implementations of the decorator or facade
-patterns that wrap model (ActiveRecord::Base descendants) classes.

@@ -1,6 +1,6 @@
 task_title = 'EOD_MON_SETUP'
 if ENV[task_title] then
-  require "#{Rails.root}/services/test/eod_monitoring_setup"
+  require "#{Rails.root}/test/helpers/eod_monitoring_setup"
 
   desc 'Set up for an EOD-exchange-monitoring test'
   task eod_mon_setup: :environment do

@@ -1,0 +1,3 @@
+Classes that provide support for ActiveRecord model classes - for example,
+implementations of the decorator or facade patterns that wrap model
+(ActiveRecord::Base descendants) classes

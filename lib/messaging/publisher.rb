@@ -8,7 +8,6 @@ class Publisher
 
   def initialize(pubchan = 'default-channel')
     @default_publishing_channel = pubchan
-puts "(#{self.class}) default - pubch: #{default_publishing_channel}, "
   end
 
 end

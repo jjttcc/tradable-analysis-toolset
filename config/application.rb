@@ -66,7 +66,31 @@ module TradableAnalysisToolset
     Dir.glob(Rails.root.join('app/mas_bridge/**/')) do |f|
       config.eager_load_paths << f
     end
-    Dir.glob(Rails.root.join('services/**/')) do |f|
+    Dir.glob(Rails.root.join('app/models/analysis')) do |f|
+      config.eager_load_paths << f
+    end
+    ['config/non_rails', 'external/**/', 'services/**/'].each do |path_ptrn|
+      Dir.glob(Rails.root.join(path_ptrn)) do |f|
+        config.eager_load_paths << f
+      end
+    end
+    # (paths within lib directory:)
+    ['messaging', 'data_retrieval/**/', 'util'].each do |path_ptrn|
+      Dir.glob(Rails.root.join("lib/#{path_ptrn}")) do |f|
+        config.eager_load_paths << f
+      end
+    end
+=begin
+#!!!!old - remove!!!!!:
+    # (paths within domain directory:)
+    ['data_retrieval/**/', 'triggers'].each do |path_ptrn|
+      Dir.glob(Rails.root.join("domain/#{path_ptrn}")) do |f|
+        config.eager_load_paths << f
+      end
+    end
+./domain/reports_and_formatting/analysis_reporter.rb
+=end
+    Dir.glob(Rails.root.join("domain/**/")) do |f|
       config.eager_load_paths << f
     end
 
