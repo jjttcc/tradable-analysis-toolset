@@ -228,14 +228,16 @@ puts "enqueuing check key: #{eod_check_key}"
   # update related to an Exchange:
   CHECK_FOR_UPDATES_THRESHOLD = 15
 
-  def initialize
+  pre  :config_exists do |config| config != nil end
+  post :ex_clock_type do exchange_clock.is_a?(TAT::ExchangeClock) end
+  def initialize(config)
     @refresh_requested = false
-    @exchange_clock = ExchangeClock.new
+    @exchange_clock = config.database::exchange_clock
     @run_state = SERVICE_RUNNING
     @long_term_i_count = -1
     @service_tag = EOD_EXCHANGE_MONITORING
-    initialize_message_brokers
-    initialize_pubsub_broker
+    initialize_message_brokers(config)
+    initialize_pubsub_broker(config)
     create_status_report_timer
     super(EOD_CHECK_CHANNEL)
     @status_task.execute

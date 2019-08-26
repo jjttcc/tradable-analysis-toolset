@@ -1,8 +1,7 @@
-# Abstraction for time-based monitoring of exchanges (such as: When is the
-# earliest upcoming market-closing time and which exchanges will close at
-# that time?)
+# ActiveRecord-based implementation of TAT::ExchangeClock
 class ExchangeClock
-  include Contracts::DSL, TatUtil
+  include Contracts::DSL, TatUtil, TAT::ExchangeClock
+#!!!  include Contracts::DSL, TatUtil
 
   public  ###  Access
 

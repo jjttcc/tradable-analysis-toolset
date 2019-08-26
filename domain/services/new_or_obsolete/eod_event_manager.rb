@@ -2,7 +2,6 @@
 #!!!!I believe these "require"s can all be deleted - do it soon!!!!!:
 require 'set'
 require 'ruby_contracts'
-require 'data_config'
 require 'subscriber'
 require 'tat_util'
 require 'service_tokens'
@@ -81,18 +80,18 @@ class EODEventManager < Subscriber
 
   require 'logger'
 
+  pre :config_exists do |config| config != nil end
   post :log do log != nil end
-  def initialize(the_log = nil)
+  def initialize(config, the_log = nil)
     @log = the_log
     if @log.nil? then
       @log = Logger.new(STDOUT)
     end
     $log = @log
-    data_config = DataConfig.new(log)
     @run_state = SERVICE_RUNNING
     @service_tag = EOD_EVENT_TRIGGERING
-    initialize_message_brokers
-    initialize_pubsub_broker
+    initialize_message_brokers(config)
+    initialize_pubsub_broker(config)
     set_subs_callback_lambdas
     super(EOD_DATA_CHANNEL)  # i.e., subscribe channel
     create_status_report_timer

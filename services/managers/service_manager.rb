@@ -1,6 +1,5 @@
 require 'concurrent-ruby'
 require 'tat_services_facilities'
-require 'data_config'
 
 # Responsible for service management - starting the service and monitoring
 # it to ensure that it is always running, restarting if necessary.
@@ -66,13 +65,15 @@ $stderr.puts "[ServiceManager] service #{tag} is alive";$stderr.flush
   PING_RETRY_PAUSE, LIFE_CHECK_LIMIT = 3, 10
   MONITORING_INTERVAL = 15
 
-  pre  :tag_exists do |t| (t != nil && ! t.empty?) ||
+  pre  :config_exists do |config| config != nil end
+  pre  :tag_exists do |c, t| (t != nil && ! t.empty?) ||
     (default_tag != nil && ! default_tag.empty?) end
   post :tag_initialized do tag != nil && ! tag.empty? end
   post :admin do ! (config.nil? || log.nil?) end
-  def initialize(tag: default_tag)
+  def initialize(config, tag = default_tag)
+#$stderr.puts "def tag: #{default_tag}"  #!!!!!
     @tag = tag
-    @config = DataConfig.new(log)
+    @config = config
     initialize_message_brokers(config)
   end
 

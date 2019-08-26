@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# Check for unwanted code dependencies within the TAT source directory
+# structure.
+# vim: expandtab
+
+progname=$(basename $0)
+verbose=false
+classmod_command='classes-and-modules'
+ruby_dep_script='ruby-dependencies'
+dep_spec=$TATDIR/admin/dependency_specs
+FALSE=1; TRUE=0
+
+check_config() {
+    if [ ! -d "$TATDIR" ]; then
+        echo "Env. var. TATDIR is not set correctly." >&2
+        exit 41
+    fi
+    if ! type $classmod_command >/dev/null 2>&1; then
+        echo "Fatal error: $classmod_command not in path" >&2
+        exit 42
+    fi
+    if ! type $ruby_dep_script >/dev/null 2>&1; then
+        echo "Fatal error: $ruby_dep_script not in path" >&2
+        exit 43
+    fi
+    if [ ! -f "$dep_spec" -o ! -r "$dep_spec" ]; then
+        echo "$dep_spec does not exist or is not readable." >&2
+        exit 44
+    fi
+}
+
+process_args() {
+    if [ $# -eq 0 ]; then return; fi
+    case $1 in
+        -v*) verbose=true
+    esac
+}
+
+check_config
+process_args $@
+taboo_dependencies=$(
+    cat $dep_spec|awk -F ':' '
+        /^[^#]*:.*:NO/ {print $1 "" $2}
+    '
+)
+
+status=0
+for dep in $taboo_dependencies; do
+    set $(echo "$dep" | sed  's@\([^]*\)\(.*\)@\1 \2@')
+    if eval $verbose; then
+        $ruby_dep_script $1 $2
+        if [ $? -ne 0 ]; then
+            echo "VIOLATION: $1 depends on $2."
+            printf '=%.0s' {1..75}; printf "\n"
+            ((++status))
+        fi
+    else
+        if ! $ruby_dep_script $1 $2 >/dev/null 2>/dev/null; then
+            echo "VIOLATION: $1 depends on $2."
+            ((++status))
+        fi
+    fi
+done
+
+exit $status

@@ -49,8 +49,9 @@ puts "Subscription received message: '#{last_message}'"
 
   protected   ###  Initialization
 
+  pre  :config_exists do |configuration| configuration != nil end
   post :broker_set do pubsub_broker != nil end
-  def initialize_pubsub_broker(configuration = DataConfig.new)
+  def initialize_pubsub_broker(configuration)
     @pubsub_broker = configuration.pubsub_broker
   end
 

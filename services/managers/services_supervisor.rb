@@ -15,7 +15,7 @@ class ServicesSupervisor
 
   private
 
-  attr_reader :continue_supervising, :service_managers
+  attr_reader :continue_supervising, :service_managers, :config
 
   def supervise
     service_managers.each do |sm|
@@ -65,21 +65,24 @@ log("#{sm} is NOT healthy!!!! - perhaps I should restart it.")
 
   private  ###  Initialization
 
+  pre :config_exists do config != nil end
   def initialized_service_managers
     result = []
-    result << MessageBrokerManager.new()
-#!!!!eh?: result << MasServerMonitor.new(tag: MAS_SERVER_MONITOR)
-    result << RakeManager.new(tag: EOD_EXCHANGE_MONITORING)
-    result << RakeManager.new(tag: MANAGE_TRADABLE_TRACKING)
-    result << ExternalManager.new(tag: EOD_DATA_RETRIEVAL)
-    result << RakeManager.new(tag: EOD_EVENT_TRIGGERING)
-#result << RakeManager.new(tag: TRIGGER_PROCESSING)
-#result << RakeManager.new(tag: NOTIFICATION_PROCESSING)
+    result << MessageBrokerManager.new(config)
+#!!!eh?: result << MasServerMonitor.new(config, MAS_SERVER_MONITOR)
+    result << RakeManager.new(config, EOD_EXCHANGE_MONITORING)
+    result << RakeManager.new(config, MANAGE_TRADABLE_TRACKING)
+    result << ExternalManager.new(config, EOD_DATA_RETRIEVAL)
+    result << RakeManager.new(config, EOD_EVENT_TRIGGERING)
+#result << RakeManager.new(config, TRIGGER_PROCESSING)
+#result << RakeManager.new(config, NOTIFICATION_PROCESSING)
   end
 
-  def initialize
+  pre :config_exists do |config| config != nil end
+  def initialize(config)
     @iteration_cycle = 0
     @continue_supervising = true
+    @config = config
     # (Array of service managers ordered according to which service should
     # be started when relative to the other services)
     @service_managers = initialized_service_managers

@@ -1,5 +1,3 @@
-require 'yahoo-finance'
-
 class ChartsController < ApplicationController
   include ControllerFacilities
   include Contracts::DSL
@@ -168,19 +166,21 @@ $log.debug("sd hash: #{start_date_hash.inspect}") #!!!!!!
       TradableEntity.find_by_symbol(sym)
     end
     if t.nil? then
+      result = ""
       # Record for 'symbol' is not yet in the table - look for it.
       begin
-        name = $external_tradable_info.name_for(sym)
-        TradableEntity.create(name: name, symbol: sym)
+        if $external_tradable_info != nil then
+          result = $external_tradable_info.name_for(sym)
+          TradableEntity.create(name: result, symbol: sym)
+        end
       rescue => e
-        $log.debug("[#{__FILE__},#{__LINE__}] TradableTools.new or " +
-                   "name_for failed [#{e}]")
-        name = ""
+        $log.debug("[#{__FILE__},#{__LINE__}] tradable name retrieval failed")
+        result = ""
       end
     else
-      name = t.name
+      result = t.name
     end
-    name
+    result
   end
 
 end

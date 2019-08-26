@@ -69,6 +69,8 @@ class TradableDataRetriever
     end
     symbols.each do |s|
       @start_date_for[s] = start_date
+      #!!!!!stodo: use abstract-behavior/refactoring to move this
+      #!!!!HTTP-specific logic into the infrastructure subsystem:
       query = query_from_symbol(s, start_date, end_date)
 puts "rod - query: #{query}"
       uri = URI(query)
@@ -95,6 +97,8 @@ puts "rod - dsf: #{@data_set_for.inspect}"
   # Metadata (e.g.: name, exchange, ...) for the tradable with 'symbol'
   def retrieve_metadata_for(symbol)
     query = metadata_query(symbol)
+    #!!!!!stodo: use abstract-behavior/refactoring to move this
+    #!!!!HTTP-specific logic into the infrastructure subsystem:
     uri = URI(query)
     response = Net::HTTP.get(uri)
     @metadata_for[symbol] = parsed_metadata(response)

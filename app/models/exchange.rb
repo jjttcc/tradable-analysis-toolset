@@ -6,7 +6,7 @@
 =end
 
 class Exchange < ApplicationRecord
-  include Contracts::DSL, TatUtil
+  include Contracts::DSL, TatUtil, TAT::Exchange
 
   public  ###  Access
 

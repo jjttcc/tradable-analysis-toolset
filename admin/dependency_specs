@@ -1,0 +1,69 @@
+# Specifications for TAT root-directory source-code dependencies - format:
+# <sourcedir>:<targetdir>:YES|NO
+# semantics: Is code within <sourcedir> allowed to depend on <targetdir>? -
+#   (yes or no) - e.g., the following two lines:
+#   external:config:NO
+#   app:lib:YES
+# mean that code within $TATDIR/external is not allowed to depend on any
+# code within $TATDIR/config; and code within $TATDIR/app is allowed to
+# depend on code within $TATDIR/lib.
+
+app:config:NO
+app:domain:YES
+app:external:NO
+app:lib:YES
+app:library:YES
+app:services:NO
+config:app:YES
+domain:app:NO
+external:app:NO
+lib:app:NO
+library/mas_client:app:NO
+library/utility:app:NO
+services:app:NO
+config:domain:YES
+config:external:YES
+config:lib:NO
+config:library/mas_client:NO
+config:library/utility:NO
+config:services:NO
+domain:config:NO
+external:config:NO
+lib:config:NO
+library/mas_client:config:NO
+library/utility:config:NO
+services:config:NO
+domain:external:NO
+domain:lib:YES
+domain:library/mas_client:NO
+domain:library/utility:NO
+domain:services:NO
+external:domain:YES
+lib:domain:NO
+library/mas_client:domain:NO
+library/utility:domain:NO
+services:domain:YES
+external:lib:YES
+external:library/mas_client:NO
+external:library/utility:NO
+external:services:NO
+lib:external:NO
+library/mas_client:external:NO
+library/utility:external:NO
+services:external:NO
+lib:library/mas_client:NO
+lib:library/utility:NO
+lib:services:NO
+library/mas_client:lib:NO
+library/utility:lib:NO
+services:lib:YES
+library/mas_client:services:NO
+library/utility:services:NO
+services:library:YES
+app:top_level:NO
+config:top_level:NO
+domain:top_level:NO
+external:top_level:NO
+lib:top_level:NO
+library:top_level:NO
+services:top_level:NO

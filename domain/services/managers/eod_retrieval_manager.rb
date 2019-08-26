@@ -1,6 +1,5 @@
 require 'set'
 require 'ruby_contracts'
-require 'data_config'
 require 'subscriber'
 require 'tat_util'
 require 'service_tokens'
@@ -98,6 +97,7 @@ class EODRetrievalManager < Subscriber
   attr_reader :service_tag, :eod_check_key, :log
   # List of symbols found to be "ready" upon EOD_CHECK_CHANNEL notice:
   attr_reader :target_symbols_count
+  attr_reader :config
 
   public  ###  Basic operations
 
@@ -218,18 +218,19 @@ puts "#{self.class}.#{__method__}: target_symbols_count: #{target_symbols_count}
 
   require 'logger'
 
+  pre  :config_exists do |config| config != nil end
   post :log do log != nil end
-  def initialize(the_log = nil)
+  def initialize(config, the_log = nil)
     @log = the_log
     if @log.nil? then
       @log = Logger.new(STDOUT)
     end
     $log = @log
-    data_config = DataConfig.new(log)
+    @config = config
     @run_state = SERVICE_RUNNING
     @service_tag = EOD_DATA_RETRIEVAL
-    initialize_message_brokers
-    initialize_pubsub_broker
+    initialize_message_brokers(@config)
+    initialize_pubsub_broker(@config)
     set_subs_callback_lambdas
     super(EOD_CHECK_CHANNEL)  # i.e., subscribe channel
     create_status_report_timer

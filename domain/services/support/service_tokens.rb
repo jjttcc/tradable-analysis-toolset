@@ -30,7 +30,7 @@ module ServiceTokens
     end
   ]
 
-  # Mapping of the rake-task symbol-tags to status keys
+  # Mapping of the task symbol-tags to status keys
   STATUS_KEY_FOR = {
     CREATE_NOTIFICATIONS          => "#{CREATE_NOTIFICATIONS}_status",
     FINISH_NOTIFICATIONS          => "#{FINISH_NOTIFICATIONS}_status",
@@ -46,7 +46,7 @@ module ServiceTokens
     NOTIFICATION_PROCESSING       => "#{NOTIFICATION_PROCESSING}_status",
   }
 
-  # Mapping of the rake-task symbol-tags to control keys
+  # Mapping of the task symbol-tags to control keys
   CONTROL_KEY_FOR = {
     CREATE_NOTIFICATIONS          => "#{CREATE_NOTIFICATIONS}_control",
     FINISH_NOTIFICATIONS          => "#{FINISH_NOTIFICATIONS}_control",

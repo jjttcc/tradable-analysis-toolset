@@ -69,7 +69,7 @@ module TradableAnalysisToolset
     Dir.glob(Rails.root.join('app/models/analysis')) do |f|
       config.eager_load_paths << f
     end
-    ['config/non_rails', 'external/**/', 'services/**/'].each do |path_ptrn|
+    ['config/tat', 'external/**/', 'services/**/'].each do |path_ptrn|
       Dir.glob(Rails.root.join(path_ptrn)) do |f|
         config.eager_load_paths << f
       end
@@ -80,16 +80,6 @@ module TradableAnalysisToolset
         config.eager_load_paths << f
       end
     end
-=begin
-#!!!!old - remove!!!!!:
-    # (paths within domain directory:)
-    ['data_retrieval/**/', 'triggers'].each do |path_ptrn|
-      Dir.glob(Rails.root.join("domain/#{path_ptrn}")) do |f|
-        config.eager_load_paths << f
-      end
-    end
-./domain/reports_and_formatting/analysis_reporter.rb
-=end
     Dir.glob(Rails.root.join("domain/**/")) do |f|
       config.eager_load_paths << f
     end
@@ -97,12 +87,8 @@ module TradableAnalysisToolset
     config.after_initialize do
       begin
         # Create global object used to retrieve company names.
-        #!!!Note: This stuff might be obsolete/no-longer-used:
-        $external_tradable_info = TradableTools.new
-        $log.debug("[#{__FILE__}] external_tradable_info: " +
-                   "#{$external_tradable_info}")
-      rescue => e
-        $log.debug("TradableTools.new failed [#{e}]")
+        # (Note: Replace with a useful object, if needed.)
+        $external_tradable_info = nil
       end
     end
 

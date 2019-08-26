@@ -1,6 +1,5 @@
 require 'set'
 require 'ruby_contracts'
-require 'data_config'
 require 'publication'
 require 'tat_util'
 require 'tat_services_facilities'
@@ -43,8 +42,7 @@ class EODDataWrangler
     @error_msg_key = err_tag
     @retry_tag = retrytag
     @update_retries = 0
-    data_config = DataConfig.new(log)
-    @storage_manager = data_config.data_storage_manager
+    @storage_manager = owner.config.data_storage_manager
     loop do
       @terminated = termination_ordered(eod_check_key, true)
       if terminated then
@@ -173,7 +171,7 @@ puts msg  #!!!![tmp/debugging]
 
   private
 
-  attr_reader :storage_manager, :update_retries
+  attr_reader :storage_manager, :update_retries, :owner
   # The ending date to use for data retrieval
   attr_reader :end_date
 
@@ -190,14 +188,15 @@ puts msg  #!!!![tmp/debugging]
   post :invariant do invariant end
   def initialize(owner, eod_chkey, enddate)
     @log = owner.log
+    @owner = owner
     @data_ready_key = new_eod_data_ready_key
     @eod_check_key = eod_chkey
     @end_date = enddate
     @update_retries = 0
     # Make 'Publication' module happy:
     @default_publishing_channel = EOD_DATA_CHANNEL
-    initialize_message_brokers
-    initialize_pubsub_broker
+    initialize_message_brokers(owner.config)
+    initialize_pubsub_broker(owner.config)
 puts "#{self.class} inited - guts: #{self.inspect}"
   end
 

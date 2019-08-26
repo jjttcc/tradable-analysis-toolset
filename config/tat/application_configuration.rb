@@ -1,8 +1,12 @@
+require 'service_configuration'
 require 'tiingo_data_retriever'
 require 'file_tradable_storage'
 require 'message_broker_configuration'
+require 'conventional_database_configuration'
+require 'in_memory_database_configuration'
 
-class DataConfig
+# Application-level/plug-in configuration
+class ApplicationConfiguration
   include Contracts::DSL
 
   public  ###  Constants
@@ -12,11 +16,20 @@ class DataConfig
   #TRACKING_CLEANUP_INTERVAL = 61200
   TRACKING_CLEANUP_INTERVAL = 17200 #!!!!test!!!!
 
-  public
+  public  ###  Constant - instance access
 
-  attr_reader :log
+  def tracking_cleanup_interval
+    TRACKING_CLEANUP_INTERVAL
+  end
 
-  public
+  public  ###  Access
+
+  attr_reader :log, :database_type
+
+  ## database types:
+  CONVENTIONAL_DB, IN_MEMORY_DB = :conventional, :in_memory
+
+  public  ###  Access
 
   # New instance of the EOD data-retrieval object
   def data_retriever
@@ -44,14 +57,40 @@ class DataConfig
     MessageBrokerConfiguration::pubsub_broker
   end
 
+  # Database configuration/factory (class)
+  def database
+    if database_type == CONVENTIONAL_DB then
+      result = ConventionalDatabaseConfiguration
+    elsif database_type == IN_MEMORY_DB then
+      result = InMemoryDatabaseConfiguration
+    else
+      raise "Code defect: Invalid 'database_type'"
+    end
+    result
+  end
+
+  # Service-management configuration
+  post :is_class do |result| result.is_a?(Class) end
+  post :is_srvc_conf do |result| result == ServiceConfiguration end
+  def service_management
+    ServiceConfiguration
+  end
+
   # The error-logging object
   def error_log
     MessageBrokerConfiguration::message_based_error_log
   end
 
+  public  ###  Status report
+
   # Is debug-logging enabled?
   def debugging?
     ENV.has_key?(DEBUG_ENV_VAR)
+  end
+
+  def valid_database_type?(type)
+puts "vdt - type: #{type.inspect}"
+    type != nil && @@database_types[type]
   end
 
   private
@@ -59,6 +98,7 @@ class DataConfig
   EOD_ENV_VAR = 'TIINGO_TOKEN'
   DATA_PATH_ENV_VAR = 'MAS_RUNDIR'
   DEBUG_ENV_VAR = 'TAT_DEBUG'
+  @@database_types = { CONVENTIONAL_DB => true, IN_MEMORY_DB => true}
 
   def data_retrieval_token
     result = ENV[EOD_ENV_VAR]
@@ -80,12 +120,25 @@ class DataConfig
 
   # Initialize 'log' to the_log if ! the_log.nil?.  If the_log is nil,
   # initialize 'log' to MessageBrokerConfiguration::message_based_error_log.
+  pre  :db_type_valid_or_nil do |log, db_type|
+    implies(db_type != nil, valid_database_type?(db_type)) end
   post :log_set do log != nil end
-  def initialize(the_log = nil)
+  post :db_type do |result, log, db_type|
+    implies(db_type != nil, database_type == db_type) end
+  post :db_type_valid do valid_database_type?(database_type) end
+  post :default_conventional do |result, log, db_type|
+    implies(db_type.nil?, database_type == CONVENTIONAL_DB) end
+  def initialize(the_log = nil, db_type = nil)
     @log = the_log
     if the_log.nil? then
       @log = MessageBrokerConfiguration::message_based_error_log
     end
+    if db_type.nil? then
+      @database_type = CONVENTIONAL_DB
+    else
+      @database_type = db_type
+    end
+$stderr.puts "db_type, database_type: #{db_type.inspect}, #{database_type.inspect}"
   end
 
 end

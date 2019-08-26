@@ -12,5 +12,5 @@ Rails.configuration.earliest_year = 1950
 Rails.configuration.latest_year = DateTime.now.year + 10
 
 Rails.configuration.data_setup = lambda do
-  DataConfig.new($log)
+  ApplicationConfiguration.new($log)
 end

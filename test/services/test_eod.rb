@@ -13,7 +13,7 @@ class TestEOD
   end
 
   def run_the_test(symbols)
-    config = DataConfig.new($log)
+    config = ApplicationConfiguration.new($log)
     message_broker = config.application_message_broker
     pubsub_broker = config.pubsub_broker
     message_broker.add_set @sym_key, symbols

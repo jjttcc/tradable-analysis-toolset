@@ -6,7 +6,9 @@
 # the ExchangeScheduleMonitor to avoid conflicts and, when finished, tells
 # it to resume its operation/monitoring.
 class TradableTrackingManager
-  include Contracts::DSL, TatServicesFacilities, TatUtil
+  include Contracts::DSL, TatServicesFacilities, TatUtil,
+    TAT::TradableTrackingManager
+
   # Use this module to allow RAM-hungry database operations to be
   # performed in a child process and thus released (RAM) when completed:
   include ForkedDatabaseExecution
@@ -126,7 +128,7 @@ STDOUT.flush
     # I.e.: (secs-since-epoch - secs-since-epoch-of:last-cleanup-time) <
     #          allocated-tracking-cleanup-interval[in-seconds]
     result = DateTime.current.to_i - last_cleanup_time.to_i >
-      DataConfig::TRACKING_CLEANUP_INTERVAL
+      config.tracking_cleanup_interval
     result
   end
 
@@ -309,14 +311,17 @@ end
     :last_cleanup_time, :exch_monitor_is_ill
   # The last recorded 'next_exch_close_datetime'
   attr_reader :last_recorded_close_time
+  attr_reader :config
 
   SHORT_PAUSE_SECONDS, MODERATE_PAUSE_SECONDS = 2, 30
   TTM_LAST_TIME_KEY = 'ttm-last-update-time'
 
   private    ###  Initialization
 
-  def initialize
-    initialize_message_brokers
+  pre :config_exists do |config| config != nil end
+  def initialize(config)
+    initialize_message_brokers(config)
+    @config = config
     @last_update_time = nil
     set_message(TTM_LAST_TIME_KEY, nil)
     @last_cleanup_time = nil

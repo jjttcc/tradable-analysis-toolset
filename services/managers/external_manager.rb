@@ -19,7 +19,7 @@ class ExternalManager < ServiceManager
 #    START_ANALYSIS_SERVICE   => 'analysis_startup:start_analysis_service',
 #    START_POST_PROCESSING_SERVICE =>
 #      'analysis_startup:start_post_processing_service',
-    EOD_DATA_RETRIEVAL => 'services/non_rails/top_level/eod_data_retrieval.rb'
+    EOD_DATA_RETRIEVAL => 'top_level/eod_data_retrieval.rb'
   }
 
   def start_service
@@ -34,9 +34,10 @@ class ExternalManager < ServiceManager
 
   private  ###  Initialization
 
-  def initialize(tag:)
-    @log = MessageBrokerConfiguration::message_based_error_log
-    super(tag: tag)
+  pre :config_exists do |config| config != nil end
+  def initialize(config, tag)
+    @log = config.error_log
+    super(config, tag)
   end
 
 end

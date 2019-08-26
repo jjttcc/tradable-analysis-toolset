@@ -7,9 +7,8 @@ if TATDIR.nil? then
 end
 
 # Add directories under ./ to LOAD_PATH:
-%w{. lib/util config/non_rails lib/messaging external/data_retrieval
-  external/messaging domain/data_retrieval/interface
-  domain/data_retrieval/implementation
+%w{. lib/util config/tat lib/messaging external/data_retrieval
+  external/messaging domain/data_retrieval domain/services/support
 }.each do |path|
   $LOAD_PATH << "#{TATDIR}/#{path}"
 end
@@ -22,6 +21,6 @@ end
 
 require 'ruby_contracts'
 require 'services_supervisor'
+require 'application_configuration'
 
-r = ServicesSupervisor.new
-
+r = ServicesSupervisor.new(ApplicationConfiguration.new)

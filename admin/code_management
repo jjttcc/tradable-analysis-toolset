@@ -1,0 +1,5 @@
+# root directories (directly under $TATDIR) that contain, or - recursively -
+# contain directories that contain, source code that implements or is used
+# by the Tradable Analysis Toolset
+export TAT_SOURCE_TREES='app config domain external lib library services'
+TAT_SOURCE_TREES="$TAT_SOURCE_TREES top_level"
