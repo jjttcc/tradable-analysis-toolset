@@ -14,19 +14,15 @@ class Exchange < ApplicationRecord
   has_many   :market_close_dates, through: :close_date_links
   has_many   :market_schedules, as: :market
 
-  attr_reader :current_local_time
-
   public  ###  Access
 
-  # The MarketSchedule for today (in zone 'timezone')
   post :cached_schedule_set do ! @cached_current_schedule.nil? end
-  post :current_time_set do ! @current_local_time.nil? end
   def schedule_for_today
-    if @current_local_time.nil? then
+    if current_local_time.nil? then
       update_current_local_time
     end
     if @cached_current_schedule.nil? then
-      @cached_current_schedule = schedule_for_date(@current_local_time)
+      @cached_current_schedule = schedule_for_date(current_local_time)
     end
     @cached_current_schedule
   end
@@ -64,12 +60,9 @@ class Exchange < ApplicationRecord
     result
   end
 
-  # The time at which the exchange closes today
-  pre :is_trading_day do is_trading_day? end
-  post :valid do |result| result != nil && result.respond_to?(:strftime) end
   def closing_time
     schedule = schedule_for_today
-    _, result = schedule.core_hours(@current_local_time)
+    _, result = schedule.core_hours(current_local_time)
     result
   end
 
@@ -79,13 +72,13 @@ class Exchange < ApplicationRecord
   post :current_time_set do ! current_local_time.nil? end
   post :nil_schedule do @cached_current_schedule.nil? end
   def update_current_local_time
-    @current_local_time = local_time(timezone)
+    self.current_local_time = local_time(timezone)
     @cached_current_schedule = nil
   end
 
   def reload
     super
-    @current_local_time = nil
+    self.current_local_time = nil
     @cached_current_schedule = nil
   end
 
@@ -112,39 +105,20 @@ class Exchange < ApplicationRecord
     result
   end
 
-  # Is today a "market-closed" date (where today's date is the date
-  # part of 'local_time(timezone)') - i.e., is specified as a close-date by
-  # 'market_close_dates'?
-  post :current_time_set do @current_local_time != nil end
   def is_market_close_date?
-    if @current_local_time.nil? then
+    if current_local_time.nil? then
       update_current_local_time
     end
-    year, month, day = @current_local_time.year.to_i,
-      @current_local_time.month.to_i, @current_local_time.day.to_i
+    year, month, day = current_local_time.year.to_i,
+      current_local_time.month.to_i, current_local_time.day.to_i
     closed_today = MarketCloseDate::close_date_for_exchange_id(
       year, month, day, id)
     ! closed_today.empty?
   end
 
-  # Will 'self' (this exchange) be open for trading today?
   def is_trading_day?
     schedule = schedule_for_today
-    ! is_market_close_date? && schedule.is_trading_day?(@current_local_time)
-  end
-
-  # Is the exchange open - i.e., is today a trading day for the exchange
-  # ('is_trading_day?') and is the current time within the exchange's core
-  # trading hours (ignoring possible break periods, such as for lunch)?
-  def is_open?
-    result = false
-    if ! is_market_close_date? then
-      schedule = schedule_for_today
-      if schedule.is_trading_day?(@current_local_time) then
-        result = schedule.in_core_hours?(@current_local_time)
-      end
-    end
-    result
+    ! is_market_close_date? && schedule.is_trading_day?(current_local_time)
   end
 
   private

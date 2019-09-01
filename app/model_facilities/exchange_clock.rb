@@ -1,18 +1,9 @@
 # ActiveRecord-based implementation of TAT::ExchangeClock
 class ExchangeClock
   include Contracts::DSL, TatUtil, TAT::ExchangeClock
-#!!!  include Contracts::DSL, TatUtil
 
   public  ###  Access
 
-  # All exchanges in the database
-  attr_reader :exchanges
-
-  # The date/time at which 'exchanges' was last initialized
-  attr_reader :initialization_time
-
-  # The exchanges associated with 'close_time' (datetime returned by
-  # 'next_close_time')
   def exchanges_for(close_time)
     result = @exchanges_for_unix_time[close_time.to_i]
     result

@@ -6,8 +6,7 @@
 # the ExchangeScheduleMonitor to avoid conflicts and, when finished, tells
 # it to resume its operation/monitoring.
 class TradableTrackingManager
-  include Contracts::DSL, TatServicesFacilities, TatUtil,
-    TAT::TradableTrackingManager
+  include Contracts::DSL, TAT::TradableTrackingManager
 
   # Use this module to allow RAM-hungry database operations to be
   # performed in a child process and thus released (RAM) when completed:

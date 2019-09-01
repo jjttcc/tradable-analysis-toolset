@@ -10,11 +10,7 @@ require 'tat_services_facilities'
 # actions - E.g., publishing an EOD-check-data message associated with
 # tradables for exchange 'X', where 'X' has just closed
 class ExchangeScheduleMonitor < Publisher
-  include Contracts::DSL, TatServicesFacilities, TatUtil
-
-  public  ###  Access
-
-  attr_reader :service_tag
+  include Service
 
   public  ###  Basic operations
 
@@ -31,7 +27,10 @@ class ExchangeScheduleMonitor < Publisher
         long_pause
       else
         check(@next_close_time != nil)
-puts "eom - @next_close_time: #{@next_close_time}"
+puts "eom - @next_close_time: #{@next_close_time} (for " +
+"#{exchange_clock.exchanges_for(@next_close_time).map do |e|
+  "#{e.name.inspect}/#{e.timezone.inspect}"
+end.join(", ")})"
 STDOUT.flush    # Allow any debugging output to be seen.
         # (Wait until it's '@next_close_time'.)
 #!!!!Consider sending (queue_messages) the list of symbols and the
@@ -40,7 +39,7 @@ STDOUT.flush    # Allow any debugging output to be seen.
 #!!!occurs, then (on startup) retrieve the key (from where? - the message
 #!!!broker?) and do the 'publish eod_check_key' again.
         time_to_send = deadline_reached(@next_close_time)
-puts "eom - time_to_send: #{time_to_send}"
+puts "eom: time_to_send: #{time_to_send}"
 STDOUT.flush    # Allow any debugging output to be seen.
         if time_to_send then
           if run_state != SERVICE_RUNNING then
@@ -75,7 +74,7 @@ STDOUT.flush    # Allow any debugging output to be seen.
   def deadline_reached(utc_time)
     cancel_wait = false
     pause_counter = 0
-    while ! terminated? && ! cancel_wait && Time.current < utc_time
+    while ! terminated? && ! cancel_wait && Time.current < utc_time do
       pause
       if pause_counter > CHECK_FOR_UPDATES_THRESHOLD then
 puts "It's #{Time.current} and I'm waiting for a deadline of #{utc_time}."
@@ -86,7 +85,7 @@ puts "It's #{Time.current} and I'm waiting for a deadline of #{utc_time}."
       end
       if
         @exchange_was_updated &&
-        utc_time - Time.current >= EXCH_THRESHOLD_INTERVAL
+        utc_time.to_i - Time.current.to_i >= EXCH_THRESHOLD_INTERVAL
       then
         cancel_wait = true
 puts "On #{Time.current} the database was changed, so I'm ending my loop."
