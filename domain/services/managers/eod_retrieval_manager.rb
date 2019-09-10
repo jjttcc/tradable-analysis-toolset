@@ -1,11 +1,11 @@
 require 'set'
 require 'ruby_contracts'
+require 'concurrent-ruby'
 require 'subscriber'
-require 'tat_util'
+require 'service'
 require 'service_tokens'
 require 'tat_services_facilities'
 require 'eod_data_wrangler'
-require 'concurrent-ruby'
 
 # Managers of EODDataWrangler object, allowing EOD data retrieval to occur
 # in a separate child process - Example:
@@ -90,7 +90,7 @@ end
 # messaging system and publishes the key for that list to the
 # EOD_DATA_CHANNEL.
 class EODRetrievalManager < Subscriber
-  include Contracts::DSL, TatServicesFacilities
+  include Service
 
   public  ###  Access
 

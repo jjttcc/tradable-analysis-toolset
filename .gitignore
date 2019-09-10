@@ -26,6 +26,15 @@ library
 
 *files
 tags
+.ctags
+.[a-z]*rc
+.*env
+.*smtp
+.*token*
+Gemfile.lock.*
+bin/
+doc/
+vim*
 
 /bin/runtest_tee
 artifacts/

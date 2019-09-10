@@ -5,6 +5,15 @@
  full_name         | character varying
 =end
 
+# !!!!!!TO-DO[2019-september-iteration]: Move this to the appropriate place:
+module TimeUtil
+
+  def self.current_date_time
+    DateTime.current
+  end
+
+end
+
 class Exchange < ApplicationRecord
   include Contracts::DSL, TatUtil, TAT::Exchange
 
@@ -16,23 +25,7 @@ class Exchange < ApplicationRecord
 
   public  ###  Access
 
-  post :cached_schedule_set do ! @cached_current_schedule.nil? end
-  def schedule_for_today
-    if current_local_time.nil? then
-      update_current_local_time
-    end
-    if @cached_current_schedule.nil? then
-      @cached_current_schedule = schedule_for_date(current_local_time)
-    end
-    @cached_current_schedule
-  end
-
-  # The MarketSchedule for 'self' for the specified date (in self's local time)
-  # nil if the date is not in the database - e.g., a far-future date
-  # If 'date' is not provided, DateTime.current is used.
-  pre :date_type do |date| date != nil && date.respond_to?(:strftime) end
-  post :nil_iff_non_holiday do |res| res.date.nil? == ! res.holiday? end
-  def schedule_for_date(date = DateTime.current)
+  def schedule_for_date(date = current_date_time)
     result = nil
     localtime = local_time(timezone, date)
     localdate_str = localtime.strftime("%Y-%m-%d")
@@ -60,30 +53,6 @@ class Exchange < ApplicationRecord
     result
   end
 
-  def closing_time
-    schedule = schedule_for_today
-    _, result = schedule.core_hours(current_local_time)
-    result
-  end
-
-  public  ###  Basic operations
-
-  # Update 'current_local_time' to the current time in zone 'timezone'.
-  post :current_time_set do ! current_local_time.nil? end
-  post :nil_schedule do @cached_current_schedule.nil? end
-  def update_current_local_time
-    self.current_local_time = local_time(timezone)
-    @cached_current_schedule = nil
-  end
-
-  def reload
-    super
-    self.current_local_time = nil
-    @cached_current_schedule = nil
-  end
-
-  public  ###  Status report
-
   # A list of all components of 'self' (i.e.: self, market_schedules,
   # market_close_dates) that have an updated_at time later than 'datetime'
   post :result_exists do |result| result != nil end
@@ -105,6 +74,8 @@ class Exchange < ApplicationRecord
     result
   end
 
+  public  ###  Status report
+
   def is_market_close_date?
     if current_local_time.nil? then
       update_current_local_time
@@ -116,9 +87,12 @@ class Exchange < ApplicationRecord
     ! closed_today.empty?
   end
 
-  def is_trading_day?
-    schedule = schedule_for_today
-    ! is_market_close_date? && schedule.is_trading_day?(current_local_time)
+  public  ###  Basic operations
+
+  def reload
+    super
+    self.current_local_time = nil
+    cached_current_schedule = nil
   end
 
   private

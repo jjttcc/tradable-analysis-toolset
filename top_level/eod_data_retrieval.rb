@@ -15,7 +15,9 @@ end
 end
 
 # Add directories under domain/ to LOAD_PATH:
-%w{services/managers data_retrieval services/support}.each do |path|
+%w{services/managers data_retrieval services/support support
+  services/service_coordination
+}.each do |path|
   $LOAD_PATH << "#{TATDIR}/#{DOMDIR}/#{path}"
 end
 

@@ -1,0 +1,2 @@
+Code whose job it is to encapsulate and communicate with external services,
+such as the data-provider or the message broker

@@ -7,7 +7,7 @@
 # it to resume its operation/monitoring.
 module TAT
   module TradableTrackingManager
-    include Contracts::DSL, TatServicesFacilities, TatUtil
+    include Service
 
 =begin
 #    # Use this module to allow RAM-hungry database operations to be

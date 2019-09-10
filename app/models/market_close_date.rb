@@ -6,7 +6,7 @@
 =end
 
 class MarketCloseDate < ApplicationRecord
-  include Contracts::DSL
+  include Contracts::DSL, TAT::MarketCloseDate
 
   public
 

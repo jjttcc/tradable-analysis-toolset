@@ -24,7 +24,7 @@ require 'concurrent-ruby'
 # i.e., some code/attributes are leftover from EODRetrievalManager - still
 # need to be changed re. EODEventManager (e.g., eod_check_key)!!!!!]
 class EODEventManager < Subscriber
-  include Contracts::DSL, TatServicesFacilities
+  include Service
 
   public  ###  Access
 

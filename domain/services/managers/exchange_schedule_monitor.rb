@@ -14,7 +14,7 @@ class ExchangeScheduleMonitor < Publisher
 
   public  ###  Basic operations
 
-  def execute_eod_monitoring
+  def execute
     @continue_monitoring = true
     send_status_info
     while continue_monitoring

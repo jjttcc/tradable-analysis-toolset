@@ -1,5 +1,6 @@
 require 'error_log'
 require 'messaging_facilities'
+require 'service_tokens'
 
 # Constants and other "facilities" used by/for the TAT services
 module TatServicesFacilities
