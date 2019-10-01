@@ -8,10 +8,12 @@ module ForkedDatabaseExecution
 
   public
 
+  #####  Access
+
   # child process id - available in the parent process
   attr_reader :child_pid
 
-  public  ###  Basic operations
+  #####  State-changing operations
 
   # Fork a child process and execute the specified block in the child
   # process.  In the parent, 'wait' for the child to terminate.
@@ -39,7 +41,7 @@ module ForkedDatabaseExecution
     perform_execution(false, sig_handlers, block)
   end
 
-  protected
+  protected ### Implementation
 
   pre :exists do |sig_handlers| ! sig_handlers.nil? end
   type in: Hash
@@ -51,7 +53,7 @@ module ForkedDatabaseExecution
     end
   end
 
-  private
+  private   ### Implementation
 
   def perform_execution(wait, sig_handlers = nil, block)
     @db_config = ActiveRecord::Base.remove_connection

@@ -12,21 +12,26 @@ require 'tat_services_facilities'
 class ExchangeScheduleMonitor < Publisher
   include Service
 
-  public  ###  Basic operations
+  private
 
-  def execute
+  ##### Hook method implementations
+
+  # Perform any needed pre-processing.
+  def pre_process(args = nil)
     @continue_monitoring = true
     send_status_info
-    while continue_monitoring
-      @exchange_was_updated = false
-      @next_close_time = exchange_clock.next_close_time
-      if @next_close_time.nil? then
-        # No markets are open today - pause for a "long" time before
-        # checking again whether any markets have entered a new day within
-        # their timezones.
-        long_pause
-      else
-        check(@next_close_time != nil)
+  end
+
+  def process(args = nil)
+    @exchange_was_updated = false
+    @next_close_time = exchange_clock.next_close_time
+    if @next_close_time.nil? then
+      # No markets are open today - pause for a "long" time before
+      # checking again whether any markets have entered a new day within
+      # their timezones.
+      long_pause
+    else
+      check(@next_close_time != nil)
 puts "eom - @next_close_time: #{@next_close_time} (for " +
 "#{exchange_clock.exchanges_for(@next_close_time).map do |e|
   "#{e.name.inspect}/#{e.timezone.inspect}"
@@ -38,30 +43,29 @@ STDOUT.flush    # Allow any debugging output to be seen.
 #!!!If the process dies and is not restarted until after 'next_close_time'
 #!!!occurs, then (on startup) retrieve the key (from where? - the message
 #!!!broker?) and do the 'publish eod_check_key' again.
-        time_to_send = deadline_reached(@next_close_time)
+      time_to_send = deadline_reached(@next_close_time)
 puts "eom: time_to_send: #{time_to_send}"
 STDOUT.flush    # Allow any debugging output to be seen.
-        if time_to_send then
-          if run_state != SERVICE_RUNNING then
-            if run_state == SERVICE_SUSPENDED then
-              wait_for_resume_command
-            end
+      if time_to_send then
+        if run_state != SERVICE_RUNNING then
+          if run_state == SERVICE_SUSPENDED then
+            wait_for_resume_command
           end
-          if terminated? then
-            @continue_monitoring = false
-          else
-            check(run_state == SERVICE_RUNNING, "#{service_tag} is running")
-            # The service (this process) is running and it is "time-to-send",
-            # so send a check-for-EOD-data notification to any subscribers.
-            send_check_notification(
-              exchange_clock.symbols_for(@next_close_time), @next_close_time)
-          end
+        end
+        if terminated? then
+          @continue_monitoring = false
+        else
+          check(run_state == SERVICE_RUNNING, "#{service_tag} is running")
+          # The service (this process) is running and it is "time-to-send",
+          # so send a check-for-EOD-data notification to any subscribers.
+          send_check_notification(
+            exchange_clock.symbols_for(@next_close_time), @next_close_time)
         end
       end
     end
   end
 
-  private  ###  Implementation
+  #####  Implementation
 
   # Wait for the specified UTC-time/deadline to occur.  If it does occur,
   # return true.  "Wait" means to loop while the deadline has not yet
@@ -216,7 +220,6 @@ puts "enqueuing check key: #{eod_check_key}"
     end
   end
 
-  private
 
   attr_reader :continue_monitoring, :exchange_clock, :refresh_requested
 
@@ -228,15 +231,19 @@ puts "enqueuing check key: #{eod_check_key}"
   CHECK_FOR_UPDATES_THRESHOLD = 15
 
   pre  :config_exists do |config| config != nil end
+  post :log_config_etc_set do invariant end
   post :ex_clock_type do exchange_clock.is_a?(TAT::ExchangeClock) end
   def initialize(config)
+    @config = config
+    @log = self.config.message_log
+    @error_log = self.config.error_log
     @refresh_requested = false
     @exchange_clock = config.database::exchange_clock
     @run_state = SERVICE_RUNNING
     @long_term_i_count = -1
     @service_tag = EOD_EXCHANGE_MONITORING
-    initialize_message_brokers(config)
-    initialize_pubsub_broker(config)
+    initialize_message_brokers(self.config)
+    initialize_pubsub_broker(self.config)
     create_status_report_timer
     super(EOD_CHECK_CHANNEL)
     @status_task.execute

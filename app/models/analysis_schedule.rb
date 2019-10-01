@@ -16,6 +16,8 @@ class AnalysisSchedule < ApplicationRecord
 
   public
 
+  #####  Access
+
   belongs_to :trigger, polymorphic: true
   belongs_to :user
   has_many   :analysis_profiles, as: :analysis_client, dependent: :destroy
@@ -25,7 +27,7 @@ class AnalysisSchedule < ApplicationRecord
   has_many   :address_assignments, as: :address_user
   has_many   :notification_addresses, :through => :address_assignments
 
-  public  ###  Status report
+  #####  Boolean queries
 
   # Is this schedule currently in use - i.e., active?
   def active?

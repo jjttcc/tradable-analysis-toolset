@@ -4,32 +4,33 @@ require 'file_tradable_storage'
 require 'message_broker_configuration'
 require 'conventional_database_configuration'
 require 'in_memory_database_configuration'
+require 'time_util'
 
 # Application-level/plug-in configuration
 class ApplicationConfiguration
   include Contracts::DSL
 
-  public  ###  Constants
+  public
+
+  #####  Constants
 
   # Number of seconds until the next "tradable-tracking cleanup" needs to
   # be performed:
   #TRACKING_CLEANUP_INTERVAL = 61200
   TRACKING_CLEANUP_INTERVAL = 17200 #!!!!test!!!!
 
-  public  ###  Constant - instance access
+  #####  Constants - instance access
 
   def tracking_cleanup_interval
     TRACKING_CLEANUP_INTERVAL
   end
 
-  public  ###  Access
+  #####  Access - objects
 
   attr_reader :log, :database_type
 
   ## database types:
   CONVENTIONAL_DB, IN_MEMORY_DB = :conventional, :in_memory
-
-  public  ###  Access
 
   # New instance of the EOD data-retrieval object
   def data_retriever
@@ -57,7 +58,30 @@ class ApplicationConfiguration
     MessageBrokerConfiguration::pubsub_broker
   end
 
+  # General message-logging object
+  def message_log(key = nil)
+    MessageBrokerConfiguration::message_log(key)
+  end
+
+  # Administrative message-logging object
+  def admin_message_log(key = nil)
+    MessageBrokerConfiguration::admin_message_log(key)
+  end
+
+  # The error-logging object
+  def error_log
+    MessageBrokerConfiguration::message_based_error_log
+  end
+
+  # The error-logging object
+  def log_reader
+    MessageBrokerConfiguration::log_reader
+  end
+
+  #####  Access - classes or modules
+
   # Database configuration/factory (class)
+  post :is_class do |result| result.is_a?(Class) end
   def database
     if database_type == CONVENTIONAL_DB then
       result = ConventionalDatabaseConfiguration
@@ -76,24 +100,27 @@ class ApplicationConfiguration
     ServiceConfiguration
   end
 
-  # The error-logging object
-  def error_log
-    MessageBrokerConfiguration::message_based_error_log
+  # Service-management configuration
+  post :is_module do |result| result.is_a?(Module) end
+  def time_utilities
+    TimeUtil
   end
 
-  public  ###  Status report
-
-  # Is debug-logging enabled?
-  def debugging?
-    ENV.has_key?(DEBUG_ENV_VAR)
-  end
+  #####  Basic queries
 
   def valid_database_type?(type)
 puts "vdt - type: #{type.inspect}"
     type != nil && @@database_types[type]
   end
 
-  private
+  #####  Boolean queries
+
+  # Is debug-logging enabled?
+  def debugging?
+    ENV.has_key?(DEBUG_ENV_VAR)
+  end
+
+  private #####  Implementation
 
   EOD_ENV_VAR = 'TIINGO_TOKEN'
   DATA_PATH_ENV_VAR = 'MAS_RUNDIR'

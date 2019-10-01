@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
 TATDIR = ENV['TATDIR']
-#!!!!remove: SVCDIR = 'services'
 DOMDIR = 'domain'
 if TATDIR.nil? then
   raise "Environment variable TATDIR is not set."

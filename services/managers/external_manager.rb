@@ -19,7 +19,8 @@ class ExternalManager < ServiceManager
 #    START_ANALYSIS_SERVICE   => 'analysis_startup:start_analysis_service',
 #    START_POST_PROCESSING_SERVICE =>
 #      'analysis_startup:start_post_processing_service',
-    EOD_DATA_RETRIEVAL => 'top_level/eod_data_retrieval.rb'
+    EOD_DATA_RETRIEVAL => 'top_level/eod_data_retrieval.rb',
+    STATUS_REPORTING   => 'top_level/status_reporter.rb'
   }
 
   def start_service

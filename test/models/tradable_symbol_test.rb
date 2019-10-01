@@ -12,7 +12,7 @@ end
 class TradableSymbolTest < ActiveSupport::TestCase
 
   def test_tracked
-    symbols = ['IBM', 'F', 'RHT']
+    symbols = ['IBM', 'F', 'GOOG']
     new_tracked_count = 0
     symbols.each do |s|
       # Make sure these 3 are untracked.
@@ -49,6 +49,21 @@ class TradableSymbolTest < ActiveSupport::TestCase
     assert new_tracked_count > 0, 'new count > 0'
     assert new_tracked_count > orig_tracked_count, 'track count changed'
     assert new_tracked_count > newest_tracked_count
+  end
+
+  # Test a TradableSymbol as a Tradable.
+  def test_tradable
+    symbols = ['IBM', 'F', 'GOOG']
+    names = ["Business\s*Machines", "Ford\s*Motor", "Alphabet"]
+    (0..symbols.count-1).each do |i|
+      ts = TradableSymbol.find_by_symbol(symbols[i])
+      assert ! ts.nil? && ts.is_a?(TAT::Tradable),
+        "#{ts} should be a tradable but is not (#{ts.inspect})"
+      assert ! ts.symbol.nil? && ts.symbol == symbols[i],
+        "#{ts.symbol.inspect} should have a valid symbol value (#{ts.inspect})"
+      assert ! ts.name.nil? && ts.name =~ /#{names[i]}/,
+        "#{ts} should have a valid name (#{ts.name}) [#{names[i]}]"
+    end
   end
 
 end

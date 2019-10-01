@@ -14,20 +14,28 @@ module Publication
   pre :pubsub_broker do invariant end
   pre :pub_msg do |message| ! message.nil? end
   def publish(message, channel = default_publishing_channel)
-puts "[#{self.class}] publishing on #{channel}, '#{message}' - stack:" #!!!!!
-puts "#{__FILE__}:#{__LINE__}"
-puts caller
+    msg = "#{self.class}] published '#{message}' (stack:\n" +
+      caller.join("\n") + ")"
     pubsub_broker.publish channel, message
+    log_messages(channel: msg)
   end
 
-  public  ### class invariant
+  ##### class invariant
 
   # pubsub_broker exists.
   def invariant
     pubsub_broker != nil
   end
 
-  protected   ###  Initialization
+  protected
+
+  ##### Hook methods
+
+  def log_messages(messages_hash)
+    ## Redefine for debug/info logging.
+  end
+
+  #####  Initialization
 
   pre  :config_exists do |configuration| configuration != nil end
   post :broker_set do pubsub_broker != nil end

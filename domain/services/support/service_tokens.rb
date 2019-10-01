@@ -19,15 +19,24 @@ module ServiceTokens
   EOD_EVENT_TRIGGERING          = :eod_event_triggering
   TRIGGER_PROCESSING            = :trigger_processing
   NOTIFICATION_PROCESSING       = :notification_processing
+  STATUS_REPORTING              = :status_reporting
 
   SERVICE_EXISTS = Hash[
     [MESSAGE_BROKER, CREATE_NOTIFICATIONS, FINISH_NOTIFICATIONS,
      PERFORM_NOTIFICATIONS, PERFORM_ANALYSIS, START_ANALYSIS_SERVICE,
      START_POST_PROCESSING_SERVICE, EOD_DATA_RETRIEVAL,
      EOD_EXCHANGE_MONITORING, MANAGE_TRADABLE_TRACKING,
-     EOD_EVENT_TRIGGERING].map do |s|
+     EOD_EVENT_TRIGGERING, STATUS_REPORTING].map do |s|
       [s, true]
     end
+  ]
+
+  MANAGED_SERVICES = [
+    EOD_DATA_RETRIEVAL,
+    EOD_EXCHANGE_MONITORING,
+    MANAGE_TRADABLE_TRACKING,
+    EOD_EVENT_TRIGGERING,
+    STATUS_REPORTING,
   ]
 
   # Mapping of the task symbol-tags to status keys
@@ -44,6 +53,7 @@ module ServiceTokens
     EOD_EVENT_TRIGGERING          => "#{EOD_EVENT_TRIGGERING}_status",
     TRIGGER_PROCESSING            => "#{TRIGGER_PROCESSING}_status",
     NOTIFICATION_PROCESSING       => "#{NOTIFICATION_PROCESSING}_status",
+    STATUS_REPORTING              => "#{STATUS_REPORTING}_status",
   }
 
   # Mapping of the task symbol-tags to control keys
@@ -60,6 +70,7 @@ module ServiceTokens
     EOD_EVENT_TRIGGERING          => "#{EOD_EVENT_TRIGGERING}_control",
     TRIGGER_PROCESSING            => "#{TRIGGER_PROCESSING}_control",
     NOTIFICATION_PROCESSING       => "#{NOTIFICATION_PROCESSING}_control",
+    STATUS_REPORTING              => "#{STATUS_REPORTING}_control",
   }
 
 end

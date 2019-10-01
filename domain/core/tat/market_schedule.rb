@@ -5,7 +5,7 @@
 # in the US).
 module TAT
   module MarketSchedule
-    include Contracts::DSL, Persistent
+    include Contracts::DSL, Persistent, TatUtil, TimeUtilities
 
     public
 
@@ -24,7 +24,7 @@ module TAT
     # mnemonic constants for 'schedule_type':
     MON_FRI, SEVEN_DAY, SUN_THU, SAT_WED, HOLIDAY = 1, 2, 3, 4, 5
 
-    public  ###  Access
+    #####  Access
 
     # Core start and end times, if is_trading_day?
     pre  :good_time do |ltime| ltime != nil && ltime.respond_to?(:wday) end
@@ -32,7 +32,15 @@ module TAT
       ! is_trading_day?(ltime.wday) == result.nil? end
     post :invariant do invariant end
     def core_hours(localtime)
-      raise "Fatal: abstract method: #{self.class} #{__method__}"
+      result = nil
+      start_time = new_time_from_h_m(localtime, core_start_time[0..1].to_i,
+                                     core_start_time[3..4].to_i)
+      end_time = new_time_from_h_m(localtime, core_end_time[0..1].to_i,
+                                   core_end_time[3..4].to_i)
+      if ! (start_time.nil? || end_time.nil?) then
+        result = [start_time, end_time]
+      end
+      result
     end
 
     # integer value of 'schedule_type'
@@ -40,7 +48,7 @@ module TAT
       raise "Fatal: abstract method: #{self.class} #{__method__}"
     end
 
-    public  ###  Status report
+    #####  Boolean queries
 
     # Is the specified day-of-the-week (0 -> Sunday, ..., 6 -> Saturday) a
     # trading day according to self's # schedule?
@@ -89,9 +97,7 @@ module TAT
       result
     end
 
-    public  ###  Status report - Hook methods
-
-    # schedule-type queries - auto-constructed:
+    ### Schedule-type queries - auto-constructed abstract methods:
     [
       # Is "self" a Monday-through-Friday schedule?
       'mon_fri?',
@@ -109,7 +115,7 @@ module TAT
       end
     end
 
-    public  ### Class invariant
+    ##### Class invariant
 
     def invariant
       super && implies(schedule_type != nil, [MON_FRI, SEVEN_DAY, SUN_THU,

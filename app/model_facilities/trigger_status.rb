@@ -8,7 +8,9 @@
 module TriggerStatus
   include Contracts::DSL
 
-  public  ###  Status setting
+  public
+
+  #####  State-changing operations
 
   # Claim ownership of 'self' and set 'status' to 'available'.
   # Should be called within a transaction.

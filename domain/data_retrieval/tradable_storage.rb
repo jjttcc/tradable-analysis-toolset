@@ -2,19 +2,23 @@
 class TradableStorage
   include Contracts::DSL
 
-  public  ###  Status report
+  public
 
-  # Did the last call to 'update_data_stores' retrieve no data for 'symbol'?
-  # (true if the last call to 'update_data_stores' did not include 'symbol')
-  pre :symbol_exists do |symbol| symbol != nil && ! symbol.empty? end
-  def last_update_empty_for(symbol)
-    raise "Fatal: abstract method: #{self.class} #{__method__}"
-  end
+  #####  Basic queries
 
   # Number of records obtained for 'symbol' in the last call to
   # 'update_data_stores'
   pre :symbol_exists do |symbol| symbol != nil && ! symbol.empty? end
   def last_update_count_for(symbol)
+    raise "Fatal: abstract method: #{self.class} #{__method__}"
+  end
+
+  #####  Boolean queries
+
+  # Did the last call to 'update_data_stores' retrieve no data for 'symbol'?
+  # (true if the last call to 'update_data_stores' did not include 'symbol')
+  pre :symbol_exists do |symbol| symbol != nil && ! symbol.empty? end
+  def last_update_empty_for(symbol)
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
 
@@ -27,7 +31,7 @@ class TradableStorage
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
 
-  public  ###  Basic operations
+  #####  State-changing operations
 
   # Update the persistent data store with specified data for the specified
   # 'symbols'.

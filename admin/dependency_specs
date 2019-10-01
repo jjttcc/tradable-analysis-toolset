@@ -23,7 +23,7 @@ library/utility:app:NO
 services:app:NO
 config:domain:YES
 config:external:YES
-config:lib:NO
+config:lib:YES
 config:library/mas_client:NO
 config:library/utility:NO
 config:services:NO

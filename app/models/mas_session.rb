@@ -17,12 +17,12 @@ class MasSession < ApplicationRecord
 
   public
 
+  #####  Access
+
   validates :mas_session_key, :presence => true
   validates :user_id, :presence => true
 
   belongs_to :user
-
-  public ###  Access
 
   def tradable_analyzers
     if @tradable_analyzers.nil? then
@@ -62,7 +62,7 @@ class MasSession < ApplicationRecord
     result
   end
 
-  public ###  Element change
+  #####  State-changing operations
 
   type :in => String
   pre :arg_exists do |t| t != nil end

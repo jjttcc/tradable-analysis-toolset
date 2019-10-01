@@ -1,4 +1,5 @@
 require "test_helper"
+require "tradable"
 
 describe TradableEntity do
   let(:tradable_entity) { TradableEntity.new }

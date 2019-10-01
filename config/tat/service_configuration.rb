@@ -29,4 +29,16 @@ class ServiceConfiguration
     EODRetrievalManager
   end
 
+  post :is_class do |result| result.is_a?(Class) end
+  post :is_srvc_conf do |result| result == StatusReporting end
+  def self.status_reporting_manager
+    StatusReporting
+  end
+
+  post :is_class do |result| result.is_a?(Class) end
+  post :is_srvc_conf do |result| result == ReportManager end
+  def self.reporting_administrator
+    ReportManager
+  end
+
 end

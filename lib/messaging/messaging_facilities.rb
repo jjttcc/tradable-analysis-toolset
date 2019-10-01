@@ -6,11 +6,13 @@
 module MessagingFacilities
   include Contracts::DSL
 
-  public  ###  Access
+  public
+
+  #####  Access
 
   attr_accessor :broker, :admin_broker
 
-  public  ###  Access
+  #####  Message query/retrieval
 
   # The message previously added via 'set_message(key, msg)'
   # If 'admin', use the administrative message broker instead of the
@@ -68,7 +70,7 @@ module MessagingFacilities
     end
   end
 
-  public  ###  Status report
+  #####  Message status queries
 
   # The number of members in the set identified by 'key'
   post :result_existsC do |result| ! result.nil? && result >= 0 end
@@ -89,6 +91,8 @@ module MessagingFacilities
     end
   end
 
+  #####  Boolean queries
+
   # Does the queue with key 'key' contain at least one instance of 'value'?
   # Note: This query is relatively expensive.
   def queue_contains(key, value, admin = false)
@@ -99,7 +103,7 @@ module MessagingFacilities
     end
   end
 
-  public  ###  Element change
+  #####  Message sending, manipulation
 
   # Set (insert) a keyed message.
   # If 'expire_secs' is not nil and if expiration is supported by the
@@ -176,7 +180,7 @@ module MessagingFacilities
     end
   end
 
-  public  ###  Removal
+  #####  Message-removal operations
 
   # Remove members 'args' from the set specified by 'key'.
   def remove_from_set(key, args, admin = false)
@@ -220,7 +224,7 @@ module MessagingFacilities
     end
   end
 
-  public  ###  Initialization
+  #####  Initialization
 
   pre  :config_exists do |configuration| configuration != nil end
   post :brokers_set do broker != nil && admin_broker != nil end

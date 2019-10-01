@@ -18,11 +18,13 @@ class EODDataWrangler
 
   public
 
-  attr_reader :eod_check_key, :data_ready_key, :terminated, :log
+  #####  Access
+
+  attr_reader :eod_check_key, :data_ready_key, :terminated
 
   PROC_NAME = "EOD Retrieval"
 
-  public  ###  Basic operations
+  #####  State-changing operations
 
   # For each symbol, s, in the set of symbols associated with 'eod_check_key'
   # (i.e., queue_contents(eod_check_key)), poll the data provider for the
@@ -59,7 +61,7 @@ class EODDataWrangler
     if terminated then
       msg = "Termination ordered for process #{$$} " +
         "(#{self.class}:#{__method__})"
-      log.info(msg)
+      error_log.info(msg)
 puts msg  #!!!![tmp/debugging]
       # (Since 'terminated' implies that the data-retrieval has not
       # completed, the queue is left intact ['remove_from_eod_check_queue' is
@@ -72,13 +74,13 @@ puts msg  #!!!![tmp/debugging]
               'update_retries == limit')
         msg = "#{PROC_NAME}: Time limit reached - failed to bring the " +
           "following symbols up to date:\n" + remaining_symbols.join(",")
-        log.warn(msg)
+        error_log.warn(msg)
         check(remaining_symbols.count > 0, 'updates not completed')
         send_eod_retrieval_timed_out(data_ready_key, msg)
       else
         check(remaining_symbols.count == 0, 'updates completed')
         send_eod_retrieval_completed(data_ready_key)
-        log.info("process #{$$}: EOD retrieval completed.")
+        error_log.info("process #{$$}: EOD retrieval completed.")
       end
       # Clean up (not 'terminated'). (!!!reusable/refactorable logic!!!?):
       remove_from_eod_check_queue(eod_check_key)
@@ -88,7 +90,7 @@ puts msg  #!!!![tmp/debugging]
     exit 0
   end
 
-  public  ###  Status report
+  #####  Boolean queries
 
   # Have all tradables assigned to this object been updated and their
   # symbol removed from the 'eod_check_key' queue?
@@ -97,7 +99,23 @@ puts msg  #!!!![tmp/debugging]
     result
   end
 
-  private
+  #####  Post-'initialize' configuration
+  attr_accessor :error_log, :config
+  attr_writer   :log
+
+  # Set self's 'log', 'error_log', and 'config' attributes.
+  pre  :good_hash do |hash| hash != nil && hash.count >= 3 end
+  pre  :good_args do |hash|
+    ! (hash[:log].nil? || hash[:elog].nil? || hash[:config].nil?) end
+  post :configured do |r, hash| self.log == hash[:log] &&
+    self.error_log == hash[:elog] && self.config == hash[:config] end
+  def configure(log:, elog:, config:)
+    self.log = log
+    self.error_log = elog
+    self.config = config
+  end
+
+  private   ##### Implementation
 
   pre  :within_retry_limit do update_retries < UPDATE_RETRY_LIMIT end
   pre  :storage_mgr_set do ! storage_manager.nil? end
@@ -119,7 +137,7 @@ puts msg  #!!!![tmp/debugging]
     end
   rescue StandardError => e
     msg = "#{self.class}.#{__method__} caught #{e}"
-    log.debug(msg)
+    error_log.debug(msg)
     send_generic_message(@error_msg_key, msg)   # (no retry)
     exit 1
   end
@@ -135,13 +153,13 @@ puts msg  #!!!![tmp/debugging]
       head = queue_head(eod_check_key)
       check(head == queue_contents(eod_check_key).first, 'head is first')
       if ! storage_manager.data_up_to_date_for(head, end_date) then
-        log.debug("(data not yet up to date for #{head})")
+        error_log.debug("(data not yet up to date for #{head})")
         # (Move the head of the 'eod_check_key' queue to the tail.)
         rotate_queue(eod_check_key)
         # Comment out (for efficiency) after enough testing!!!!:
         check(queue_tail(eod_check_key) == head, 'qtail == head')
       else
-        log.debug("(data UP TO DATE for #{head})")
+        error_log.debug("(data UP TO DATE for #{head})")
         # Update for 'head' was successful, so remove 'head' from the
         # "check-for-eod" queue and add it to the "eod-data-ready" queue.
         move_head_to_tail(eod_check_key, data_ready_key)
@@ -164,14 +182,14 @@ puts msg  #!!!![tmp/debugging]
       exit 3
     end
   rescue Exception => e
-    log.debug("#{self}.#{__method__} caught #{e}")
+    error_log.debug("#{self}.#{__method__} caught #{e}")
     send_generic_message(@error_msg_key, msg)   # (no retry)
     exit 4
   end
 
   private
 
-  attr_reader :storage_manager, :update_retries, :owner
+  attr_reader   :storage_manager, :update_retries, :owner
   # The ending date to use for data retrieval
   attr_reader :end_date
 
@@ -187,8 +205,8 @@ puts msg  #!!!![tmp/debugging]
   post :no_retries_yet do update_retries == 0 end
   post :invariant do invariant end
   def initialize(owner, eod_chkey, enddate)
-    @log = owner.log
     @owner = owner
+    @owner.configure_wrangler(self)
     @data_ready_key = new_eod_data_ready_key
     @eod_check_key = eod_chkey
     @end_date = enddate

@@ -1,50 +1,11 @@
-# !!!!!!!!!TO-DO[2019-september-iteration]: Move this to the appropriate place:
-# Objects that are persistent - e.g., are saved to a database
-module Persistent
-  include Contracts::DSL, TatUtil
-
-  public  ###  Access
-
-  # The object's persistent fields
-  post :exists do |result| result != nil end
-  post :enumerable do |result| result.is_a?(Enumerable) end
-  def fields
-    raise "Fatal: abstract method: #{self.class} #{__method__}"
-  end
-
-  # The object's associations to other objects.
-  post :exists do |result| result != nil end
-  post :enumerable do |result| result.is_a?(Enumerable) end
-  def associations
-    raise "Fatal: abstract method: #{self.class} #{__method__}"
-  end
-
-  public  ###  Status report
-
-  def fields_exist
-    fields.all? do |f|
-      self.respond_to? f
-    end
-  end
-
-  def associations_exist
-    associations.all? do |a|
-      self.respond_to? a
-    end
-  end
-
-  def invariant
-    fields_exist && associations_exist
-  end
-
-end
-
 # Exchanges for tradables (such as a stock-market exchange - e.g.: NYSE)
 module TAT
   module Exchange
-    include Persistent, Contracts::DSL
+    include Persistent, Contracts::DSL, TatUtil, TimeUtilities
 
-    public  ###  Access
+    public
+
+    #####  Access
 
     STOCK, ECN, COMMODITY, CURRENCY = "stock", "ecn", "commodity", "currency"
 
@@ -86,7 +47,7 @@ module TAT
       result
     end
 
-    public  ###  Status report
+    #####  Boolean queries
 
     # Will 'self' (this exchange) be open for trading today?
     post :invariant do invariant end
@@ -101,7 +62,13 @@ module TAT
     # 'market_close_dates'?
     post :current_time_set do current_local_time != nil end
     def is_market_close_date?
-      raise "Fatal: abstract method: #{self.class} #{__method__}"
+      if current_local_time.nil? then
+        update_current_local_time
+      end
+      year, month, day = current_local_time.year.to_i,
+        current_local_time.month.to_i, current_local_time.day.to_i
+      closed_today_dates = closed_dates(year, month, day)
+      closed_today_dates.count > 0
     end
 
     # Is the exchange open - i.e., is today a trading day for the exchange
@@ -119,7 +86,7 @@ module TAT
       result
     end
 
-    public  ###  Basic operations
+    #####  State-changing operations
 
     # Update 'current_local_time' to the current time in zone 'timezone'.
     post :current_time_set do ! current_local_time.nil? end
@@ -129,19 +96,44 @@ module TAT
       self.cached_current_schedule = nil
     end
 
-    public  ### Hook methods
-
     # The MarketSchedule for 'self' for the specified date (in self's
     # local time)
     # nil if the date is not in the database - e.g., a far-future date
     # If 'date' is not provided, DateTime.current is used.
     pre :date_type do |date| date != nil && date.respond_to?(:strftime) end
-    post :nil_iff_non_holiday do |res| res.date.nil? == ! res.holiday? end
+    post :nil_date_iff_non_holiday do |res|
+      implies(res != nil, res.date.nil? == ! res.holiday?) end
+    post :is_market_schedule do |res|
+      implies(res != nil, res.is_a?(TAT::MarketSchedule)) end
     def schedule_for_date(date = current_date_time)
-      raise "Fatal: abstract method: #{self.class} #{__method__}"
+      result = nil
+      localtime = local_time(timezone, date)
+      localdate_str = localtime.strftime("%Y-%m-%d")
+      # Since today is not a holiday, check for day before or after holiday:
+      near_holidays = market_schedules.select do |s|
+        # (Note: 'holiday?' actually means bordering a holiday.)
+        s.holiday? && s.date == localdate_str
+      end
+      if ! near_holidays.empty? then
+        check(near_holidays.count == 1,
+              "invalid data: duplicate market schedules for the same date:" +
+              " #{near_holidays.inspect} (for exchange #{self.inspect})")
+        result = near_holidays.first
+        check(result.holiday? && result.date == localdate_str)
+      else  # (near_holidays.empty?)
+        regular_days = market_schedules.select do |s|
+          s.date == nil
+        end
+        check(! regular_days.empty?, "invalid data: no regular schedules " +
+          "configured for exchange #{self.inspect}")
+        check(regular_days.count == 1, "invalid data: duplicate regular " +
+          "schedules: #{regular_days.inspect} (for exchange #{self.inspect})")
+        result = regular_days.first
+      end
+      result
     end
 
-    public  ### Class invariant
+    ##### Class invariant
 
     def invariant
       super &&
@@ -153,6 +145,14 @@ module TAT
     protected
 
     attr_accessor :current_local_time, :cached_current_schedule
+
+    ##### Hook methods
+
+    # Query: Date[s] for which this exchange is closed on the specified day
+    post :exists do |result| result != nil end
+    def closed_dates(year, month, day)
+      raise "Fatal: abstract method: #{self.class} #{__method__}"
+    end
 
   end
 end

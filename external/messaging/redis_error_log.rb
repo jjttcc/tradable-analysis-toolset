@@ -1,20 +1,19 @@
 require 'error_log'
-require 'redis'
+require 'redis_log'
 
-class RedisErrorLog < ErrorLog
+class RedisErrorLog < RedisLog
+  include ErrorLog
 
-  protected
+  public
 
-  def send(tag, msg)
-    @redis_log.xadd(ERROR_LOG_STREAM, {tag => msg})
-  end
-
-  private
+  alias_method :send, :send_message
 
   ERROR_LOG_STREAM = 'logging-stream'
 
-  def initialize(redis_port:)
-    @redis_log = Redis.new(port: redis_port)
+  pre :port_exists do |hash| hash[:redis_port] != nil end
+  def initialize(redis_port:, key: ERROR_LOG_STREAM,
+                 expire_secs: DEFAULT_EXPIRATION_SECS)
+    super(redis_port: redis_port, key: key, expire_secs: expire_secs)
   end
 
 end

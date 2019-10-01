@@ -1,4 +1,4 @@
-require 'error_log'
+require 'stderr_error_log'
 require 'messaging_facilities'
 require 'service_tokens'
 
@@ -15,7 +15,13 @@ module TatServicesFacilities
     nil   # Redefine, if appropriate.
   end
 
-  protected  ### time-related constants
+  protected
+
+  ##### internal attributes/queries
+
+  attr_reader :run_state, :log
+
+  ##### time-related constants
 
   EXMON_PAUSE_SECONDS, EXMON_LONG_PAUSE_ITERATIONS = 3, 35
   RUN_STATE_EXPIRATION_SECONDS, DEFAULT_EXPIRATION_SECONDS,
@@ -31,7 +37,7 @@ module TatServicesFacilities
   # giving up:
   MSG_ACK_TIMEOUT = 60  #!!!!tune!!!!
 
-  protected  ### messaging-related constants, settings
+  ##### messaging-related constants, settings
 
   STATUS_KEY, STATUS_VALUE, STATUS_EXPIRE = :status, :value, :expire
 
@@ -46,6 +52,7 @@ module TatServicesFacilities
   TRIGGERED_RESPONSE_CHANNEL    = 'trigger-response'
   NOTIFICATION_CREATION_CHANNEL = 'notification-creation-requests'
   NOTIFICATION_DISPATCH_CHANNEL = 'notification-dispatch-requests'
+  STATUS_REPORTING_CHANNEL      = 'status-reporting'
 
   CLOSE_DATE_SUFFIX             = 'close-date'
 
@@ -61,7 +68,7 @@ module TatServicesFacilities
     STATUS_EXPIRE => nil
   }
 
-  protected  ######## Service-control commands, states, and utilities ########
+  ######## Service-control commands, states, and utilities ########
 
   SERVICE_SUSPEND               = 'suspend'
   SERVICE_TERMINATE             = 'terminate'
@@ -74,8 +81,6 @@ module TatServicesFacilities
     SERVICE_TERMINATE       => SERVICE_TERMINATED,
     SERVICE_RESUME          => SERVICE_RUNNING,
   }
-
-  attr_reader :run_state
 
   # Is the service suspended?
   def suspended?
@@ -99,18 +104,14 @@ module TatServicesFacilities
     status = method(method_name).call
     result = !! (status =~ /^#{SERVICE_RUNNING}/ ||
                   status =~ /^#{SERVICE_SUSPENDED}/)  # (i.e., as boolean)
-log.debug("#{self}.#{__method__} - status from #{method_name}: " +
+#!!!!![2019-september-iteration]!!!!:
+error_log.debug("#{self}.#{__method__} - status from #{method_name}: " +
 "'#{status}', result: '#{result}'")
     result
   end
 
   # query: ordered_<service>_run_state (last ordered run-state for <service>)
-  [
-    EOD_DATA_RETRIEVAL,
-    EOD_EXCHANGE_MONITORING,
-    MANAGE_TRADABLE_TRACKING,
-    EOD_EVENT_TRIGGERING,
-  ].each do |symbol|
+  MANAGED_SERVICES.each do |symbol|
     method_name = "ordered_#{symbol}_run_state".to_sym
     define_method(method_name) do
       command = retrieved_message(CONTROL_KEY_FOR[symbol], true)
@@ -119,12 +120,7 @@ log.debug("#{self}.#{__method__} - status from #{method_name}: " +
   end
 
   # "order_<service>_run_state" commands
-  [
-    EOD_DATA_RETRIEVAL,
-    EOD_EXCHANGE_MONITORING,
-    MANAGE_TRADABLE_TRACKING,
-    EOD_EVENT_TRIGGERING,
-  ].each do |symbol|
+  MANAGED_SERVICES.each do |symbol|
     {
       :suspension  => SERVICE_SUSPEND,
       :resumption  => SERVICE_RESUME,
@@ -138,18 +134,13 @@ log.debug("#{self}.#{__method__} - status from #{method_name}: " +
   end
 
   # "<service>_run_state" queries
-  [
-    EOD_DATA_RETRIEVAL,
-    EOD_EXCHANGE_MONITORING,
-    MANAGE_TRADABLE_TRACKING,
-    EOD_EVENT_TRIGGERING,
-  ].each do |symbol|
+  MANAGED_SERVICES.each do |symbol|
     method_name = "#{symbol}_run_state".to_sym
     define_method(method_name) do
       result = retrieved_message(STATUS_KEY_FOR[symbol], true)
       result
     end
-  # <service>_suspended?, <service>_running?, ... queries
+    # <service>_suspended?, <service>_running?, ... queries
     [
       SERVICE_SUSPENDED, SERVICE_RUNNING, :unresponsive, SERVICE_TERMINATED
     ].each do |state|
@@ -170,12 +161,7 @@ log.debug("#{self}.#{__method__} - status from #{method_name}: " +
   end
 
   # send_<service>_run_state reporting
-  [
-    EOD_DATA_RETRIEVAL,
-    EOD_EXCHANGE_MONITORING,
-    MANAGE_TRADABLE_TRACKING,
-    EOD_EVENT_TRIGGERING,
-  ].each do |symbol|
+  MANAGED_SERVICES.each do |symbol|
     m_name = "send_#{symbol}_run_state".to_sym
     key = STATUS_KEY_FOR[symbol]
     define_method(m_name) do |exp = RUN_STATE_EXPIRATION_SECONDS|
@@ -183,7 +169,8 @@ log.debug("#{self}.#{__method__} - status from #{method_name}: " +
         value_arg = "#{run_state}@#{Time.now.utc}"
         set_message(key, value_arg, exp, true)
       rescue StandardError => e
-        log.warn("exception in #{__method__}: #{e}")
+puts "[rescue] errlog: #{error_log.inspect}"
+        error_log.warn("exception in #{__method__}: #{e}")
       end
     end
   end
@@ -193,7 +180,7 @@ log.debug("#{self}.#{__method__} - status from #{method_name}: " +
     delete_object(EXCHANGE_MONITOR_CONTROL_KEY, true)
   end
 
-  protected  ######## generated constant-based key values ########
+  ######## generated constant-based key values ########
 
   begin
 
@@ -225,9 +212,9 @@ log.debug("#{self}.#{__method__} - status from #{method_name}: " +
 
   end
 
-  protected  ######## Application-related messaging ########
+  ######## Application-related messaging ########
 
-  ### Service status/info queries messaging ###
+  ##### Service status/info queries messaging #####
 
   # The next exchange closing time
   def next_exch_close_time
@@ -333,7 +320,7 @@ puts "#{__method__} - for key #{EOD_CHECK_QUEUE}, adding #{key_value}"
 
   end
 
-  ### Service status/info reports ###
+  ##### Service status/info reports #####
 
   # Send the next exchange closing time (to the message broker).
   def send_next_close_time(time)
@@ -362,7 +349,7 @@ puts "#{__method__} - for key #{EOD_CHECK_QUEUE}, adding #{key_value}"
     end
   end
 
-  ### EOD data retrieval -> triggering services communication ###
+  ##### EOD data retrieval -> triggering services communication #####
 
   begin
 
@@ -407,7 +394,7 @@ puts "#{__method__} - for key #{EOD_CHECK_QUEUE}, adding #{key_value}"
 
   end
 
-  ### General messaging utilities ###
+  ##### General messaging utilities #####
 
   # Send a "generic" application message ('msg'), using 'key', with
   # default expiration TTL.
@@ -420,7 +407,7 @@ puts "#{__method__} - for key #{EOD_CHECK_QUEUE}, adding #{key_value}"
     delete_object(key)
   end
 
-  ### Generic service/process control utilities ###
+  ##### Generic service/process control utilities #####
 
   begin
 
@@ -470,7 +457,7 @@ end
 
   end
 
-  protected  ## Utilities
+  ######## Utilities
 
   # Evaluation (Array) of the Hash 'settings_hash'
   def eval_settings(settings_hash, replacement_value = nil,
@@ -505,32 +492,34 @@ end
       begin
         send(@status_report_method)
       rescue StandardError => e
-        log.warn("exception in #{__method__}: #{e}")
+puts "[rescue2] errlog: #{error_log.inspect}"
+        error_log.warn("exception in #{__method__}: #{e}")
       end
     end
   end
 
-  protected  ## Logging
+  ######## Logging
 
-  # The 'log' object
-  def log
-    if $log.nil? then
-      $log = ErrorLog.new
-    end
-    $log
+  # Object used for error logging
+  def error_log
+    # (Default to self.log - redefine if separate 'log' and 'error_log'
+    # objects are needed.)
+    self.log
   end
 
+  # Log the specified error (or warning, info, ...) message.
   pre :level_valid do |_, level|
     [:info, :debug, :warn, :error, :fatal, :unknown].include?(level.to_sym) end
   pre :msg_exists do |msg| msg != nil end
-  def log_message(msg, level = 'warn')
-    $log.method(level.to_sym).call(msg)
+  def log_error(msg, level = 'warn')
+puts "[log_error] errlog: #{error_log.inspect}"
+    error_log.method(level.to_sym).call(msg)
   end
 
   # Logging with category: info, debug, warn, error, fatal, unknown:
   [ :info, :debug, :warn, :error, :fatal, :unknown].each do |m_name|
     define_method(m_name) do |msg|
-      log_message(msg, m_name)
+      log_error(msg, m_name)
     end
   end
 

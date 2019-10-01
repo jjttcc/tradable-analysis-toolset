@@ -6,18 +6,27 @@ require 'tat_services_facilities'
 class ServiceManager
   include Contracts::DSL, TatServicesFacilities
 
-  public  ###  Access
+  public
+
+  #####  Access
 
   attr_reader :tag
 
-  public  ###  Basic operations
+  #####  Boolean queries
+
+  # Is 'self' "alive" and running properly?
+  def healthy?
+    @monitoring_task.running?
+  end
+
+  #####  State-changing operations
 
   # Ensure the service is started, blocking until it has been verified to
   # be running.
   post :started do is_alive?(tag) end
   def block_until_started
     if ! is_alive?(tag) then
-      log.warn("#{tag} is NOT running - starting it up...")
+      error_log.warn("#{tag} is NOT running - starting it up...")
       start_service
       tries = 0
       sleep PING_RETRY_PAUSE
@@ -43,22 +52,15 @@ $stderr.puts "[ServiceManager] service #{tag} is alive";$stderr.flush
 #!!!!Add some method to shut this timer down on command!!!!
       rescue StandardError => e
         msg = "#{tag} service - failed while monitoring: #{e}"
-        log.warn(msg)
+        error_log.warn(msg)
       end
     end
     @monitoring_task.execute
   end
 
-  ###  Status report
+  private   ##### Implementation
 
-  # Is 'self' "alive" and running properly?
-  def healthy?
-    @monitoring_task.running?
-  end
-
-  private
-
-  attr_reader :config
+  attr_reader :config, :error_log
 
   alias_method :ensure_service_is_running, :block_until_started
 
@@ -69,11 +71,12 @@ $stderr.puts "[ServiceManager] service #{tag} is alive";$stderr.flush
   pre  :tag_exists do |c, t| (t != nil && ! t.empty?) ||
     (default_tag != nil && ! default_tag.empty?) end
   post :tag_initialized do tag != nil && ! tag.empty? end
-  post :admin do ! (config.nil? || log.nil?) end
+  post :admin do ! (config.nil? || log.nil? || error_log.nil?) end
   def initialize(config, tag = default_tag)
-#$stderr.puts "def tag: #{default_tag}"  #!!!!!
     @tag = tag
     @config = config
+    @log = @config.message_log
+    @error_log = @config.error_log
     initialize_message_brokers(config)
   end
 

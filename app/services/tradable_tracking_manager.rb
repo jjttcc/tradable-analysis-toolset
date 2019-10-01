@@ -12,20 +12,13 @@ class TradableTrackingManager
   # performed in a child process and thus released (RAM) when completed:
   include ForkedDatabaseExecution
 
-  public  ###  Access
-
-  attr_reader :service_tag
-
-  public     ###  Basic operations
-
+#!!!!!obsolete - remove:
   # Execute an infinite loop in which the needed actions are periodically
   # performed.
-  def execute
-    while continue_processing
+  def old__execute
+    while continue_processing do
       if cleanup_needed then
         execute_complete_cycle
-puts "finished CLEANING up #{DateTime.current}."
-STDOUT.flush
       else
         process_tracking_changes
       end
@@ -44,10 +37,15 @@ STDOUT.flush
   post :update_time_set do last_update_time != nil end
   post :cleanup_time_set do last_cleanup_time != nil end
   def execute_complete_cycle
-puts "CLEANING UP - #{__method__} #{DateTime.current}."
-STDOUT.flush
+    if verbose then
+      log_verbose_messages(debug: "[#{__method__}] CLEANING UP - " +
+                           "#{DateTime.current}.", lvma2test: "(useless goo)")
+    end
+    log_verbose_messages(debug: "waiting for Godot")
     wait_until_exch_monitor_ready
+    log_verbose_messages(debug: "suspending Godot")
     suspend_exch_monitor
+    log_verbose_messages(debug: "executing with 'wait'")
     execute_with_wait do
       ActiveRecord::Base.transaction do
 puts "untracking all symbols...#{DateTime.current}"
@@ -62,6 +60,7 @@ STDOUT.flush
     end
     @last_update_time = DateTime.current
     @last_cleanup_time = @last_update_time
+    log_verbose_messages(debug: "waking Godot")
     wake_exch_monitor
   end
 
@@ -79,6 +78,7 @@ STDOUT.flush
           suspend_exch_monitor
           track(updated_symbol_ids)
           set_message(TTM_LAST_TIME_KEY, DateTime.current.to_s)
+#!!!rm:          log_messages([TTM_LAST_TIME_KEY, DateTime.current.to_s])
           wake_exch_monitor
         end
       end
@@ -312,23 +312,42 @@ end
   attr_reader :last_recorded_close_time
   attr_reader :config
 
-  SHORT_PAUSE_SECONDS, MODERATE_PAUSE_SECONDS = 2, 30
   TTM_LAST_TIME_KEY = 'ttm-last-update-time'
 
   private    ###  Initialization
 
-  pre :config_exists do |config| config != nil end
+include LoggingFacilities
+
+def db_key_report
+  puts "all keys:", all_logging_keys.join(",")
+  print "ALL KEYS: <", LoggingFacilities::all_logging_keys.join(">, <"), ">\n"
+  print "MY KEY: '", logging_key_for(service_tag), "'\n"
+end
+
+  pre  :config_exists do |config| config != nil end
+  post :log_config_etc_set do invariant end
+  post :logging_off do ! logging_on end
   def initialize(config)
+    turn_off_logging
     initialize_message_brokers(config)
     @config = config
+    @log = config.message_log
+    @error_log = config.error_log
     @last_update_time = nil
+    @run_state = SERVICE_RUNNING
+    @service_tag = MANAGE_TRADABLE_TRACKING
+db_key_report
+    @log = config.message_log
+puts "TTM log is a #{@log.class} [#{@log.inspect}]"
+puts "TTM self.log is a #{self.log.class} [#{self.log.inspect}]"
+    self.log.change_key(service_tag)
+puts "TTM init - log: #{log.inspect}"
     set_message(TTM_LAST_TIME_KEY, nil)
+#!!!rm:    log_messages({TTM_LAST_TIME_KEY => nil})
     @last_cleanup_time = nil
     @last_recorded_close_time = next_exch_close_datetime
     @continue_processing = true
     @exch_monitor_is_ill = false
-    @run_state = SERVICE_RUNNING
-    @service_tag = MANAGE_TRADABLE_TRACKING
     @do_not_re_establish_connection = true
     # Explicitly close the database connection so that the parent process
     # does not hold onto the database. (See ForkedDatabaseExecution .)

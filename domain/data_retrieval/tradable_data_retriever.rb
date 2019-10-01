@@ -4,7 +4,9 @@ require 'ruby_contracts'
 class TradableDataRetriever
   include Contracts::DSL
 
-  public  ###  Access
+  public
+
+  #####  Access
 
   # hash-table of data sets (keyed by 'symbol') from the last retrieval -
   # i.e.: data-set for: symbol
@@ -43,7 +45,7 @@ class TradableDataRetriever
     metadata_for[symbol][@desc_key]
   end
 
-  public  ###  Basic operations
+  #####  State-changing operations
 
   # Retrieve historical data for the tradables identified by 'symbols', with
   # the specified start_date and end_date - If end_date is nil, an end-date

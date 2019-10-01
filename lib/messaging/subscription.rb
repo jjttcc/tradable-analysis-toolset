@@ -3,7 +3,9 @@ require 'ruby_contracts'
 module Subscription
   include Contracts::DSL
 
-  public  ###  Access
+  public
+
+  #####  Access
 
   # The default 'channel' on which to publish
   attr_reader :default_subscription_channel
@@ -14,7 +16,7 @@ module Subscription
   # Publish/Subscribe broker
   attr_reader :pubsub_broker
 
-  public  ###  Basic operations
+  #####  State-changing operations
 
   # Subscribe to 'channel' until the first message is received, calling the
   # block (if it is provided) after setting 'last_message' to the message.
@@ -22,19 +24,18 @@ module Subscription
   pre  :pubsub_broker do invariant end
   post :last_message  do ! last_message.nil? end
   def subscribe_once(channel = default_subscription_channel, &block)
-#!!!!!for debugging - remove soon:!!!!!
-puts "#{self.class}.#{__method__}: for #{channel} - stack:"
-puts caller
     pubsub_broker.subscribe_once(channel, subs_callbacks) do
       @last_message = pubsub_broker.last_message
-puts "Subscription received message: '#{last_message}'"
-        if block != nil then
-          block.call
-        end
+      msg = "#{self.class}] received '#{@last_message}' (stack:\n" +
+        caller.join("\n") + ")"
+      log_messages(channel: msg)
+      if block != nil then
+        block.call
+      end
     end
   end
 
-  public  ### class invariant
+  #####  Class invariant
 
   # pubsub_broker exists.
   def invariant
@@ -47,7 +48,13 @@ puts "Subscription received message: '#{last_message}'"
   # object creation if needed:
   attr_reader :subs_callbacks
 
-  protected   ###  Initialization
+  ##### Hook methods
+
+  def log_messages(messages_hash)
+    ## Redefine for debug/info logging.
+  end
+
+  #####  Initialization
 
   pre  :config_exists do |configuration| configuration != nil end
   post :broker_set do pubsub_broker != nil end

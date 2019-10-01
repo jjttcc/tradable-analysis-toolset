@@ -10,7 +10,7 @@
 =end
 
 class MarketSchedule < ApplicationRecord
-  include Contracts::DSL, TatUtil, TAT::MarketSchedule
+  include Contracts::DSL, TAT::MarketSchedule
 
   public
 
@@ -26,20 +26,15 @@ class MarketSchedule < ApplicationRecord
 
   public  ###  Access
 
-  def core_hours(localtime)
-    result = nil
-    start_time = localtime.change(hour: core_start_time[0..1].to_i,
-                                  min: core_start_time[3..4].to_i)
-    end_time = localtime.change(hour: core_end_time[0..1].to_i,
-                                  min: core_end_time[3..4].to_i)
-    if ! (start_time.nil? || end_time.nil?) then
-      result = [start_time, end_time]
-    end
-    result
-  end
-
   def schedule_type_as_integer
     MarketSchedule.schedule_types[schedule_type]
+  end
+
+  private ##### Initialization
+
+  # Ensure that the invariant of TimeUtilities is fulfilled.
+  after_initialize do |current|
+    current.time_utilities_implementation = TimeUtil
   end
 
 end

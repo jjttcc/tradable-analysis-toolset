@@ -5,15 +5,22 @@
 =end
 
 class TradableSymbol < ApplicationRecord
-  include Contracts::DSL
+  include Contracts::DSL, TAT::Tradable
 
   public
+
+  #####  Access
 
   belongs_to :exchange
 
   scope :tracked_tradables, -> { where('tracked = ?', true) }
 
-  public ###  Status report
+  def name
+    record = TradableEntity.find_by_symbol(symbol)
+    record.name
+  end
+
+  #####  Boolean queries
 
   # Is this tradable being tracked - i.e., used - by someone?
   # (Alias for 'tracked' - i.e., with '?' added)
@@ -25,10 +32,8 @@ class TradableSymbol < ApplicationRecord
     tr.tracked
   end
 
-  public  ###  Basic operations
+  #####  State-changing operations
 
-  # Set as 'tracked'.
-  post :tracked do tracked? end
   def track!
     ts = self
     if tracked.nil? then
@@ -39,7 +44,6 @@ class TradableSymbol < ApplicationRecord
     end
   end
 
-  # Set as not 'tracked'.
   def untrack!
     ts = self
     if tracked.nil? then

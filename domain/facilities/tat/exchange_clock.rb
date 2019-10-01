@@ -3,20 +3,18 @@
 # that time?)
 module TAT
   module ExchangeClock
-    include Contracts::DSL, TatUtil
+    include Contracts::DSL
 
-#!!!!!!!TTTOOOO-DDDOOOOO: Look for methods in Exchange that should be
-#!!!!!!!defined, or specified, in TAT::Exchange!!!!!!!!!! - e.g., this
-#!!!!!!!call, below - needs an 'updated_components':
-#changed_components = e.updated_components(initialization_time)
+    public
 
-    public  ###  Access
+    #####  Access
 
     # All exchanges in the database
     attr_reader :exchanges
 
     # The date/time at which 'exchanges' was last initialized
     attr_reader :initialization_time
+
 
     # The earliest (future) closing time among 'exchanges'
     # nil if today is not a trading day for any of 'exchanges'
@@ -95,7 +93,7 @@ module TAT
       result
     end
 
-    public  ###  Status report
+    #####  Boolean queries
 
     # Have any exchanges been updated, or new ones added, based on to the
     # last time 'exchanges' were initialized or the last time this method was
@@ -135,7 +133,7 @@ module TAT
       result
     end
 
-    public  ###  Basic operations - hook methods
+    #####  State-changing operations
 
     # Reload 'exchanges' from the database.
     post :closing_ux_times_nil do closing_unix_times.nil? end
