@@ -21,6 +21,13 @@ module LoggingFacilities
     LoggingFacilities::master_logging_key
   end
 
+  # Array: key for each service
+  def all_service_keys
+    MANAGED_SERVICES
+  end
+
+  # The "key" for each service - i.e., '<service>_key' (e.g.:
+  #  manage_tradable_tracking_key)
   @@KEY_FOR = {}
   MANAGED_SERVICES.each do |symbol|
     method_name = "#{symbol}_key".to_sym
@@ -37,8 +44,6 @@ module LoggingFacilities
   post :string_if_exists do |res| implies(res != nil, res.is_a?(String)) end
   def self.logging_key_for(symbol)
     result = @@KEY_FOR[symbol]
-puts "[LF] KEY_FOR: #{@@KEY_FOR.inspect}"
-puts "[LF] KEY_FOR[#{symbol}]: #{result}"
     result
   end
 

@@ -17,10 +17,7 @@ module Service
   attr_reader :logging_on
 
   # Is verbose logging enabled?
-  def verbose
-    false   # (Redefine as needed.)
-true  #!!!!!![2019-september-iteration]!!! - temporary/debugging!!!!
-  end
+  attr_accessor :verbose
 
   #####  State-changing operations
 
@@ -57,7 +54,7 @@ true  #!!!!!![2019-september-iteration]!!! - temporary/debugging!!!!
   def set_message(key, msg, expire_secs = nil, admin = false)
     super(key, msg, expire_secs, admin)
     if logging_on then
-      log.send_message(key, msg)
+      log.send_message(tag: key, msg: msg)
     end
   end
 
@@ -66,7 +63,7 @@ true  #!!!!!![2019-september-iteration]!!! - temporary/debugging!!!!
   pre :mhash do |mhash| mhash != nil && mhash.is_a?(Hash) end
   def log_messages(messages_hash)
     if logging_on then
-      log.send_messages(messages_hash)
+      log.send_messages(messages_hash: messages_hash)
     end
   end
 
@@ -75,7 +72,7 @@ true  #!!!!!![2019-september-iteration]!!! - temporary/debugging!!!!
   pre :mhash do |mhash| mhash != nil && mhash.is_a?(Hash) end
   def log_verbose_messages(messages_hash)
     if verbose && logging_on then
-      log.send_messages(messages_hash)
+      log.send_messages(messages_hash: messages_hash)
     end
   end
 

@@ -1,4 +1,5 @@
 require 'service_configuration'
+require 'utility_configuration'
 require 'tiingo_data_retriever'
 require 'file_tradable_storage'
 require 'message_broker_configuration'
@@ -78,7 +79,27 @@ class ApplicationConfiguration
     MessageBrokerConfiguration::log_reader
   end
 
+  # ReportRequestHandler descendant object, according to 'specs.type'
+  def report_handler_for(specs)
+    UtilityConfiguration::report_handler_for(specs: specs, config: self)
+  end
+
   #####  Access - classes or modules
+
+  # StatusReport descendant of the appropriate class for the application
+  def status_report
+    UtilityConfiguration::status_report
+  end
+
+  # data serializer
+  def serializer
+    UtilityConfiguration::serializer
+  end
+
+  # data de-serializer
+  def de_serializer
+    UtilityConfiguration::de_serializer
+  end
 
   # Database configuration/factory (class)
   post :is_class do |result| result.is_a?(Class) end
@@ -109,7 +130,6 @@ class ApplicationConfiguration
   #####  Basic queries
 
   def valid_database_type?(type)
-puts "vdt - type: #{type.inspect}"
     type != nil && @@database_types[type]
   end
 

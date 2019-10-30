@@ -1,8 +1,18 @@
+require 'ruby_contracts'
+
 # Utility functionality for the TAT application
 module TatUtil
   include Contracts::DSL
 
   public
+
+  #####  Boolean queries
+
+  # Is the specified string 's' a valid integer?
+  post :false_if_empty do |result, s| implies(s.nil? || s.empty?, ! result) end
+  def is_i?(s)
+    s != nil && s.is_a?(String) && /\A[-+]?\d+\z/ === s
+  end
 
   #####  Basic operations
 

@@ -11,16 +11,28 @@ class ReportSpecification
   #####  Constants
 
   # Values of keys used for reporting
-  REPORT_KEY_KEY, KEYS_KEY, BLOCK_KEY, NEW_KEY =
-    :response_key, :key_list, :block_msecs, :new_only
+  REPORT_TYPE_KEY, REPORT_KEY_KEY, KEYS_KEY, BLOCK_KEY, NEW_KEY, COUNT_KEY =
+    :type, :response_key, :key_list, :block_msecs, :new_only, :count
+  START_TIME_KEY, END_TIME_KEY = :start_time, :end_time
+
+  CREATE_TYPE, CLEANUP_TYPE = :create, :cleanup
+  REPORT_TYPES = {CREATE_TYPE => true, CLEANUP_TYPE => true}
 
   BLOCK_MSECS_DEFAULT = 2000
 
-  QUERY_KEYS = [REPORT_KEY_KEY, KEYS_KEY, BLOCK_KEY, NEW_KEY]
+  QUERY_KEYS = [REPORT_TYPE_KEY, REPORT_KEY_KEY, KEYS_KEY, BLOCK_KEY, NEW_KEY,
+                COUNT_KEY, START_TIME_KEY, END_TIME_KEY]
 
   QUERY_KEY_MAP = Hash[QUERY_KEYS.map {|e| [e, true]}]
 
   #####  Access
+#!!!!Possible to-do: ReportRequestHandler class: descendants (e.g.,
+#!!!!ReportCleanupHandler [delete old reports], ReportCreationHandler
+#!!!![create requested StatusReport]), which implies another attribute for
+#!!!!this class: :report_type (:cleanup, :creation, ...)
+
+  # The type of report-related action being requested
+  attr_reader :type
 
   # The key with which the StatusReporting object is expected to log its
   # response - the report results
@@ -29,13 +41,27 @@ class ReportSpecification
   # The list of keys for which log entries are to be retrieved
   attr_reader :key_list
 
+  # Count of entries involved in the report/operation, if needed
+  attr_reader :count
+
+  # Starting and ending date/time for the report: String: seconds since
+  # the "epoch" (UNIX timestamp) - nil means no (start/end) restriction
+  attr_reader :start_time, :end_time
+
   attr_reader :block_msecs, :new_only
 
   # The hash-table/arguments needed to retrieve the ordered report
+  post :is_hash do |result| result != nil && result.is_a?(Hash) end
   def retrieval_args
-    result = to_hash.select do |k, v|
-      k != :response_key
-    end
+    self.to_hash
+=begin
+#old!!!!!!!!:
+    {
+      :key_list => self.key_list,
+      :block_msecs => self.block_msecs,
+      :new_only => self.new_only,
+    }
+=end
   end
 
   pre :is_key do |k| k.is_a?(Symbol) || k.is_a?(String) end
@@ -62,9 +88,10 @@ class ReportSpecification
 
   # (To provide arguments to LogReader.contents_for)
   def to_hash
-    h = Hash[ QUERY_KEY_MAP.keys.map do |e|
+    result = Hash[ QUERY_KEY_MAP.keys.map do |e|
       [e, self[e]]
     end]
+    result
   end
 
   def to_str
@@ -78,17 +105,26 @@ class ReportSpecification
   private
 
   pre  :contents do |contents| contents != nil end
+  pre  :valid_type do |contents| ! contents.is_a?(Hash) ||
+    contents[:type] != nil && REPORT_TYPES[contents[:type]] end
   post :new_only_boolean do |result|
     new_only.is_a?(TrueClass) || new_only.is_a?(FalseClass) end
+  post :type_valid do self.type != nil && REPORT_TYPES[self.type] end
   def initialize(contents)
     if contents.is_a?(String) then
+puts "[A]cnts: '#{contents}'"
       contents = JSON.parse(contents.to_str, symbolize_names: true)
     elsif contents.is_a?(ReportSpecification)
+puts "[B]contents: #{contents.inspect}"
       contents = contents.to_hash
+else
+puts "[C]cnts[:type]: #{contents[:type].inspect}"
     end
     if ! contents.is_a?(Hash) then
       raise "Invalid argument to 'new': #{contents}"
     end
+    @type = contents[:type].to_sym
+puts "[D]type: #{@type_key.inspect}"
     @response_key = contents[:response_key].to_sym
     if contents[:key_list].is_a?(Enumerable) then
       @key_list = contents[:key_list].map {|e| e.to_sym}
@@ -100,6 +136,15 @@ class ReportSpecification
       @new_only = false
     else
       @new_only = !! contents[:new_only]
+    end
+    if contents.has_key?(:count) then
+      @count = contents[:count]
+    end
+    if contents.has_key?(:start_time) then
+      @start_time = contents[:start_time]
+    end
+    if contents.has_key?(:end_time) then
+      @end_time = contents[:end_time]
     end
   end
 

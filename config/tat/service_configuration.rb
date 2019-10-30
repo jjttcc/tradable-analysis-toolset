@@ -1,9 +1,12 @@
+require 'report_manager'
 
 # Services-management configuration
 class ServiceConfiguration
   include Contracts::DSL
 
-  public  ###  Access
+  public
+
+  #####  Access - classes or modules
 
   post :is_class do |result| result.is_a?(Class) end
   post :is_srvc_conf do |result| result == TradableTrackingManager end

@@ -37,15 +37,13 @@ class TradableTrackingManager
   post :update_time_set do last_update_time != nil end
   post :cleanup_time_set do last_cleanup_time != nil end
   def execute_complete_cycle
-    if verbose then
-      log_verbose_messages(debug: "[#{__method__}] CLEANING UP - " +
-                           "#{DateTime.current}.", lvma2test: "(useless goo)")
-    end
-    log_verbose_messages(debug: "waiting for Godot")
+    log_verbose_messages(debug1: "[#{__method__}] CLEANING UP - " +
+                         "#{DateTime.current}.", lvma2test: "(useless goo)")
+    log_verbose_messages(debug2: "waiting for Godot")
     wait_until_exch_monitor_ready
-    log_verbose_messages(debug: "suspending Godot")
+    log_verbose_messages(debug3: "suspending Godot")
     suspend_exch_monitor
-    log_verbose_messages(debug: "executing with 'wait'")
+    log_verbose_messages(debug4: "executing with 'wait'")
     execute_with_wait do
       ActiveRecord::Base.transaction do
 puts "untracking all symbols...#{DateTime.current}"
@@ -60,7 +58,8 @@ STDOUT.flush
     end
     @last_update_time = DateTime.current
     @last_cleanup_time = @last_update_time
-    log_verbose_messages(debug: "waking Godot")
+    log_verbose_messages(debug5: "waking Godot", debug6: "Who is Godot?",
+                        debug7: "Where is Godot?", debug8: "What is Godot?")
     wake_exch_monitor
   end
 
@@ -78,7 +77,7 @@ STDOUT.flush
           suspend_exch_monitor
           track(updated_symbol_ids)
           set_message(TTM_LAST_TIME_KEY, DateTime.current.to_s)
-#!!!rm:          log_messages([TTM_LAST_TIME_KEY, DateTime.current.to_s])
+log_messages([TTM_LAST_TIME_KEY, DateTime.current.to_s])  #!!!!!??
           wake_exch_monitor
         end
       end
@@ -340,10 +339,11 @@ db_key_report
     @log = config.message_log
 puts "TTM log is a #{@log.class} [#{@log.inspect}]"
 puts "TTM self.log is a #{self.log.class} [#{self.log.inspect}]"
+    # Set up to log with the key 'service_tag'.
     self.log.change_key(service_tag)
 puts "TTM init - log: #{log.inspect}"
     set_message(TTM_LAST_TIME_KEY, nil)
-#!!!rm:    log_messages({TTM_LAST_TIME_KEY => nil})
+log_messages({TTM_LAST_TIME_KEY => nil})  #!!!!!??
     @last_cleanup_time = nil
     @last_recorded_close_time = next_exch_close_datetime
     @continue_processing = true

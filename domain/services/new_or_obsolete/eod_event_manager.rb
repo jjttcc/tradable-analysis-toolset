@@ -95,6 +95,8 @@ class EODEventManager < Subscriber
 #!!!!This is ugly! - Can we get rid of it?: $log = @log
     @run_state = SERVICE_RUNNING
     @service_tag = EOD_EVENT_TRIGGERING
+    # Set up to log with the key 'service_tag'.
+    self.log.change_key(service_tag)
     initialize_message_brokers(config)
     initialize_pubsub_broker(config)
     set_subscription_callback_lambdas

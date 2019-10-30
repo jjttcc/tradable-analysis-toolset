@@ -1,14 +1,19 @@
 #!/usr/bin/env ruby
+# Script providing report-analysis services
 
+require 'ruby_contracts'
+
+program_name = 'report_analysis'
+#!!!!Consider requiring some of this setup stuff from another file.
 TATDIR = ENV['TATDIR']
 DOMDIR = 'domain'
 if TATDIR.nil? then
   raise "Environment variable TATDIR is not set."
 end
-
 # Add directories under ./ to LOAD_PATH:
 %w{. lib/util config/tat lib/messaging external/data_retrieval
-  external/messaging external/utility
+  external/messaging app/model_facilities external/utility
+  top_level/admin
 }.each do |path|
   $LOAD_PATH << "#{TATDIR}/#{path}"
 end
@@ -20,12 +25,15 @@ end
   $LOAD_PATH << "#{TATDIR}/#{DOMDIR}/#{path}"
 end
 
-
-require 'eod_retrieval_manager'
 require 'application_configuration'
-require 'tat_logging'
+require 'report_argv_processor'
+require 'report_tools'
+require 'report_analysis_prompt'
+require 'time_util'
+require 'local_time'
 
 config = ApplicationConfiguration.new
-r = config.service_management.eod_retrieval_manager.new(config)
-configure_logging(r)
-r.execute
+options = ReportArgvProcessor.new(config, program_name)
+infile = options.input_file
+prompt = ReportAnalysisPrompt.new(infile, config)
+prompt.start_status

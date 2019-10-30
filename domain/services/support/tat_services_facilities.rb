@@ -53,6 +53,7 @@ module TatServicesFacilities
   NOTIFICATION_CREATION_CHANNEL = 'notification-creation-requests'
   NOTIFICATION_DISPATCH_CHANNEL = 'notification-dispatch-requests'
   STATUS_REPORTING_CHANNEL      = 'status-reporting'
+  REPORT_RESPONSE_CHANNEL       = 'status-reporting-response'
 
   CLOSE_DATE_SUFFIX             = 'close-date'
 
@@ -502,6 +503,7 @@ puts "[rescue2] errlog: #{error_log.inspect}"
 
   # Object used for error logging
   def error_log
+puts "(TSF.error_log) returning #{self.log.inspect}"
     # (Default to self.log - redefine if separate 'log' and 'error_log'
     # objects are needed.)
     self.log
@@ -519,6 +521,7 @@ puts "[log_error] errlog: #{error_log.inspect}"
   # Logging with category: info, debug, warn, error, fatal, unknown:
   [ :info, :debug, :warn, :error, :fatal, :unknown].each do |m_name|
     define_method(m_name) do |msg|
+puts "error_log: #{error_log.inspect}"
       log_error(msg, m_name)
     end
   end

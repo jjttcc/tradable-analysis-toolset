@@ -1,4 +1,5 @@
 require 'redis_broker'
+require 'oj'
 
 # Message-broker interface to Redis
 class RedisMessageBroker
@@ -51,6 +52,16 @@ class RedisMessageBroker
     redis.lrange(key, 0, -1).reverse
   end
 
+  # The object stored with 'key' - nil if there is no object at 'key'
+  def object(key, admin = false)
+    result = nil
+    guts = retrieved_message(key)
+    if guts != nil then
+      result = Oj.load(guts)
+    end
+    result
+  end
+
   public  ###  Status report
 
   # Is the server alive?
@@ -101,6 +112,18 @@ class RedisMessageBroker
     end
   end
 
+  # Set (insert) 'object' with 'key'
+  # If 'expire_secs' is not nil, set the time-to-live for 'key' to
+  # expire_secs seconds.
+  pre :sane_expire do |k, m, exp|
+    implies(exp != nil, exp.is_a?(Numeric) && exp >= 0) end
+  # post :object_stored do |result, key, o|
+  #   object(key) != nil && object(key) === o end
+  def set_object(key, object, expire_secs = nil)
+    serialized_object = Oj.dump(object)
+    set_message(key, serialized_object, expire_secs)
+  end
+
   # Add 'msgs' (a String, if 1 message, or an array of Strings) to the end of
   # the queue (implemented as a list) with key 'key'.
   # If 'expire_secs' is not nil, set the time-to-live for the set to
@@ -126,7 +149,6 @@ class RedisMessageBroker
       ttl = redis.ttl(key1)
     end
     redis.rpoplpush(key1, key2)
-puts "mhtt - ttl: #{ttl.inspect}"
     if ttl > 0 then
       # queue @ key2 is new - set its time-to-live to that of key1.
       redis.expire(key2, ttl)

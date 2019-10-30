@@ -32,10 +32,10 @@ class ExchangeScheduleMonitor < Publisher
       long_pause
     else
       check(@next_close_time != nil)
-puts "eom - @next_close_time: #{@next_close_time} (for " +
+log_messages(debug: "eom - @next_close_time: #{@next_close_time} (for " +
 "#{exchange_clock.exchanges_for(@next_close_time).map do |e|
   "#{e.name.inspect}/#{e.timezone.inspect}"
-end.join(", ")})"
+end.join(", ")})")
 STDOUT.flush    # Allow any debugging output to be seen.
         # (Wait until it's '@next_close_time'.)
 #!!!!Consider sending (queue_messages) the list of symbols and the
@@ -44,8 +44,7 @@ STDOUT.flush    # Allow any debugging output to be seen.
 #!!!occurs, then (on startup) retrieve the key (from where? - the message
 #!!!broker?) and do the 'publish eod_check_key' again.
       time_to_send = deadline_reached(@next_close_time)
-puts "eom: time_to_send: #{time_to_send}"
-STDOUT.flush    # Allow any debugging output to be seen.
+log_messages(debug: "eom: time_to_send: #{time_to_send}")
       if time_to_send then
         if run_state != SERVICE_RUNNING then
           if run_state == SERVICE_SUSPENDED then
@@ -81,7 +80,8 @@ STDOUT.flush    # Allow any debugging output to be seen.
     while ! terminated? && ! cancel_wait && Time.current < utc_time do
       pause
       if pause_counter > CHECK_FOR_UPDATES_THRESHOLD then
-puts "It's #{Time.current} and I'm waiting for a deadline of #{utc_time}."
+log_messages(debug:
+"It's #{Time.current} and I'm waiting for a deadline of #{utc_time}.")
         handle_exchange_updates
         pause_counter = 0
       else
@@ -92,7 +92,7 @@ puts "It's #{Time.current} and I'm waiting for a deadline of #{utc_time}."
         utc_time.to_i - Time.current.to_i >= EXCH_THRESHOLD_INTERVAL
       then
         cancel_wait = true
-puts "On #{Time.current} the database was changed, so I'm ending my loop."
+log_messages(debug: "On #{Time.current} the database was changed, so I'm ending my loop.")
       end
     end
     ! cancel_wait
@@ -103,7 +103,7 @@ puts "On #{Time.current} the database was changed, so I'm ending my loop."
   #   exchange_clock.refresh_exchanges
   def handle_exchange_updates
     if run_state == SERVICE_RUNNING && exchange_clock.exchanges_updated?  then
-puts "[heu] - ex_updated was true"
+log_messages(debug: "[heu] - ex_updated was true")
       @exchange_was_updated = true
       exchange_clock.refresh_exchanges
     end
@@ -175,7 +175,7 @@ puts "[heu] - ex_updated was true"
     eod_check_key = new_eod_check_key
     if symbols.count > 0 then
       # Insurance - in case subscriber crashes while processing eod_check_key:
-puts "enqueuing check key: #{eod_check_key}"
+log_messages(debug: "enqueuing check key: #{eod_check_key}")
       enqueue_eod_check_key eod_check_key
       count = queue_messages(eod_check_key, symbols.map {|s| s.symbol},
                      DEFAULT_EXPIRATION_SECONDS)
@@ -242,6 +242,8 @@ puts "enqueuing check key: #{eod_check_key}"
     @run_state = SERVICE_RUNNING
     @long_term_i_count = -1
     @service_tag = EOD_EXCHANGE_MONITORING
+    # Set up to log with the key 'service_tag'.
+    self.log.change_key(service_tag)
     initialize_message_brokers(self.config)
     initialize_pubsub_broker(self.config)
     create_status_report_timer

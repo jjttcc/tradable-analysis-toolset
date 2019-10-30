@@ -19,6 +19,7 @@ gem 'sprockets', '3.7.2'
 gem 'loofah', '2.2.3'
 gem "passenger", ">= 5.0.25", require: "phusion_passenger/rack_handler"
 gem "nokogiri", ">= 1.10.4"
+gem 'oj'
 
 gem 'sass-rails'
 gem 'coffee-rails'
@@ -27,9 +28,11 @@ gem 'coffee-rails'
 gem 'uglifier'
 
 gem 'jquery-rails'
-gem 'whenever', require: false
 # For design-by-contract support:
 gem 'ruby_contracts'
+gem 'whenever',   require: false
+gem 'tty-prompt', require: false
+gem 'tty-pager',  require: false
 
 group :development, :test do
   gem 'minitest'

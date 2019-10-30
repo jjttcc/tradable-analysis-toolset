@@ -16,10 +16,10 @@ module TAT
     def process(args = nil)
       if cleanup_needed then
         execute_complete_cycle
-        puts "finished CLEANING up #{DateTime.current}."
-        STDOUT.flush
+log_messages(debug: "finished CLEANING up #{DateTime.current}.")
       else
         process_tracking_changes
+#!!!WIP: log_messages([TTM_LAST_TIME_KEY, DateTime.current.to_s])  #!!!!!??
       end
       check_and_respond_to_sick_exchmon
       sleep MODERATE_PAUSE_SECONDS

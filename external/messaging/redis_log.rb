@@ -1,8 +1,9 @@
-require 'message_log'
 require 'redis'
+require 'redis_stream_facilities'
+require 'message_log'
 
 class RedisLog
-  include Contracts::DSL, MessageLog
+  include Contracts::DSL, RedisStreamFacilities, MessageLog
 
   public
 
@@ -26,29 +27,17 @@ class RedisLog
 
   #####  Basic operations
 
-  def send_message(tag, msg)
-    redis_log.xadd(key, {tag => msg})
-    redis_log.expire(key, expiration_secs)
+  def send_message(log_key: key, tag:, msg:)
+    redis_log.xadd(log_key, {tag => msg})
+    redis_log.expire(log_key, expiration_secs)
   end
 
-  def send_messages(messages_hash)
-puts "#{self.class}.#{__method__} logging this hash:\n#{messages_hash.inspect}"
-puts "(#{__method__}) type of args to xadd: #{key.class}, #{messages_hash.class}"
-puts "(#{__method__}) args to xadd: #{key}, #{messages_hash}"
+  def send_messages(log_key: key, messages_hash:)
+#!!!!!!!!!!!![FOR DEBUG - REMOVE ASAP(2019-september-iteration)]:
 puts "<<<START xadd:>>> (No '<<<END xadd>>>' below means exception thrown.)"
-#!!!!!!!!!!!![FOR DEBUG - REMOVE ASAP(2019-september-iteration)]!!!!!!!!!!!!!
-redis_log.del(key)
-#!!!!!!!!!!!![end: FOR DEBUG]!!!!!!!!!!!!!!!!!!!!!!
-    redis_log.xadd(key, messages_hash)
-puts "<<<END xadd>>>"
-    redis_log.expire(key, expiration_secs)
-  end
-
-  def send_messages_with_key(a_key, messages_hash)
-puts "<<<START xadd[2]:>>> (No '<<<END xadd>>>' below means exception thrown.)"
-    redis_log.xadd(a_key, messages_hash)
-puts "<<<END xadd[2]>>>"
-    redis_log.expire(a_key, expiration_secs)
+    redis_log.xadd(log_key, messages_hash)
+puts "<<<END xadd>>>" #!!!!!!!!!!!
+    redis_log.expire(log_key, expiration_secs)
   end
 
   #####  State-changing operations
@@ -72,10 +61,9 @@ puts "<<<END xadd[2]>>>"
   pre :key_exists  do |hash| hash[:key] != nil end
   post :redis_lg  do self.redis_log != nil end
   def initialize(redis_port:, key:, expire_secs: DEFAULT_EXPIRATION_SECS)
-    self.redis_log = Redis.new(port: redis_port)
+    init_facilities(redis_port)
     self.key = key
     self.expiration_secs = expire_secs
-puts "RedisLog.initialize called - redis_log, key: #{redis_log}, #{key}"
   end
 
 end

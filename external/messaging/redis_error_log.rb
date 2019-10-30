@@ -6,7 +6,9 @@ class RedisErrorLog < RedisLog
 
   public
 
-  alias_method :send, :send_message
+  def send(tag, msg)
+    send_message(tag: tag, msg: msg)
+  end
 
   ERROR_LOG_STREAM = 'logging-stream'
 

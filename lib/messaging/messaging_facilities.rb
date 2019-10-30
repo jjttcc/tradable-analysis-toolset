@@ -10,7 +10,9 @@ module MessagingFacilities
 
   #####  Access
 
-  attr_accessor :broker, :admin_broker
+  DEFAULT_OBJECT_EXPIRATION = 24 * 3600
+
+  attr_accessor :broker, :admin_broker, :object_expiration_seconds
 
   #####  Message query/retrieval
 
@@ -70,6 +72,16 @@ module MessagingFacilities
     end
   end
 
+  # The object stored with 'key' - nil if there is no object at 'key'
+  pre  :key_exists do |key| key != nil end
+  def object(key, admin = false)
+    if admin then
+      admin_broker.object key
+    else
+      broker.object key
+    end
+  end
+
   #####  Message status queries
 
   # The number of members in the set identified by 'key'
@@ -115,6 +127,18 @@ module MessagingFacilities
       admin_broker.set_message key, msg, expire_secs
     else
       broker.set_message key, msg, expire_secs
+    end
+  end
+
+  # Set (insert) 'object' with 'key' with the specified expiration time.
+  pre :sane_expire do |k, m, exp|
+    implies(exp != nil, exp.is_a?(Numeric) && exp >= 0) end
+  def set_object(key, object, expire_secs = self.object_expiration_seconds,
+                admin = false)
+    if admin then
+      admin_broker.set_object key, object, expire_secs
+    else
+      broker.set_object key, object, expire_secs
     end
   end
 
@@ -232,6 +256,7 @@ module MessagingFacilities
 #!!!!configuration - do we need to set 'log'?!!!!!!!
     @broker = configuration.application_message_broker
     @admin_broker = configuration.administrative_message_broker
+    @object_expiration_seconds = DEFAULT_OBJECT_EXPIRATION
   end
 
 end
