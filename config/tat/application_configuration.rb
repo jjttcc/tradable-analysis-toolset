@@ -185,7 +185,6 @@ class ApplicationConfiguration
     else
       @database_type = db_type
     end
-$stderr.puts "db_type, database_type: #{db_type.inspect}, #{database_type.inspect}"
   end
 
 end

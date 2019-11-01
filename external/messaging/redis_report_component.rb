@@ -28,6 +28,20 @@ class RedisReportComponent < ReportComponent
     contents.values
   end
 
+  def message_for(label)
+    contents[label]
+  end
+
+  def matches_for(pattern, use_keys: true, use_values: true)
+    matches = {}
+    contents.each do |key, value|
+      if (use_keys && key =~ pattern) || (use_values && value =~ pattern) then
+        matches[key] = value
+      end
+    end
+    ReportMatchResult.new(matches, self)
+  end
+
   #####  Boolean queries
 
   def ===(other)
@@ -43,7 +57,7 @@ class RedisReportComponent < ReportComponent
   pre  :guts do |hash| hash[:guts] != nil && hash[:guts].is_a?(Hash) end
   post :id do |res, hash| self.id != nil && self.id == hash[:id] end
   post :timestamp do timestamp != nil end
-  post :contents do contents != nil end
+  post :contents do contents != nil && contents.is_a?(Hash) end
   def initialize(id:, guts:)
     @id = id
     @contents = guts

@@ -115,7 +115,6 @@ class RedisLogReader
   post :redis_lg  do self.redis_log != nil end
   def initialize(redis_port:)
     init_facilities(redis_port)
-puts "RedisLogReader.initialize called - redis_log: #{redis_log}"
   end
 
 end

@@ -40,22 +40,12 @@ module LogReader
   # Trim contents associated with the specified keys (args_hash[:key_list]),
   # according to the other options/arguments contained in 'args_hash' and
   # the semantics implemented via the run-time type of 'self'.
-  pre :args_hash do |args_hash| args_hash != nil && args_hash.is_a?(Hash) end
-  pre :has_keylist do |args_hash| args_hash.has_key?(:key_list) end
-  pre :valid_keys do |args_hash| args_hash[:key_list].is_a?(Enumerable) ||
-    args_hash[:key_list].respond_to?(:to_sym) end
+  pre :args_hash do |args| args != nil && args.respond_to?(:to_hash) end
+  pre :has_keylist do |args| args.has_key?(:key_list) end
+  pre :valid_keys do |args| args[:key_list].is_a?(Enumerable) ||
+    args[:key_list].respond_to?(:to_sym) end
   def trim_contents(args_hash)
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
-
-=begin
-####!!!!!obsolete - remove this:
-  # The object stored with 'key' - nil if there is not object at 'key'
-  pre  :args_hash  do |hash| hash.respond_to?(:to_hash) end
-  pre  :key_exists do |hash| hash.has_key?(:key) && hash[:key] != nil end
-  def object(key:)
-    raise "Fatal: abstract method: #{self.class} #{__method__}"
-  end
-=end
 
 end

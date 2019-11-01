@@ -26,10 +26,6 @@ class ReportSpecification
   QUERY_KEY_MAP = Hash[QUERY_KEYS.map {|e| [e, true]}]
 
   #####  Access
-#!!!!Possible to-do: ReportRequestHandler class: descendants (e.g.,
-#!!!!ReportCleanupHandler [delete old reports], ReportCreationHandler
-#!!!![create requested StatusReport]), which implies another attribute for
-#!!!!this class: :report_type (:cleanup, :creation, ...)
 
   # The type of report-related action being requested
   attr_reader :type
@@ -54,14 +50,6 @@ class ReportSpecification
   post :is_hash do |result| result != nil && result.is_a?(Hash) end
   def retrieval_args
     self.to_hash
-=begin
-#old!!!!!!!!:
-    {
-      :key_list => self.key_list,
-      :block_msecs => self.block_msecs,
-      :new_only => self.new_only,
-    }
-=end
   end
 
   pre :is_key do |k| k.is_a?(Symbol) || k.is_a?(String) end
@@ -112,19 +100,14 @@ class ReportSpecification
   post :type_valid do self.type != nil && REPORT_TYPES[self.type] end
   def initialize(contents)
     if contents.is_a?(String) then
-puts "[A]cnts: '#{contents}'"
       contents = JSON.parse(contents.to_str, symbolize_names: true)
     elsif contents.is_a?(ReportSpecification)
-puts "[B]contents: #{contents.inspect}"
       contents = contents.to_hash
-else
-puts "[C]cnts[:type]: #{contents[:type].inspect}"
     end
     if ! contents.is_a?(Hash) then
       raise "Invalid argument to 'new': #{contents}"
     end
     @type = contents[:type].to_sym
-puts "[D]type: #{@type_key.inspect}"
     @response_key = contents[:response_key].to_sym
     if contents[:key_list].is_a?(Enumerable) then
       @key_list = contents[:key_list].map {|e| e.to_sym}

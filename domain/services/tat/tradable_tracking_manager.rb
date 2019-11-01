@@ -7,7 +7,7 @@
 # it to resume its operation/monitoring.
 module TAT
   module TradableTrackingManager
-    include Service
+    include Contracts::DSL, Service
 
     private
 
@@ -16,18 +16,30 @@ module TAT
     def process(args = nil)
       if cleanup_needed then
         execute_complete_cycle
-log_messages(debug: "finished CLEANING up #{DateTime.current}.")
+log_messages(debug: "finished 'execute_complete_cycle' #{DateTime.current}.")
       else
         process_tracking_changes
-#!!!WIP: log_messages([TTM_LAST_TIME_KEY, DateTime.current.to_s])  #!!!!!??
+log_messages(debug: "finished 'process_tracking_changes' #{DateTime.current}.")
       end
       check_and_respond_to_sick_exchmon
+log_messages(debug: "finished 'check_and_respond_to_sick_exchmon' #{DateTime.current}.")
       sleep MODERATE_PAUSE_SECONDS
     end
 
     protected
 
     SHORT_PAUSE_SECONDS, MODERATE_PAUSE_SECONDS = 2, 30
+
+    # Clean up the database with respect to tradables marked as tracked that
+    # are no longer tracked:
+    #   - First, mark all tracked TradableSymbol records as NOT tracked.
+    #   - Find the tradables that are currently tracked and mark the
+    #     corresponding TradableSymbol records as tracked.
+    post :update_time_set do last_update_time != nil end
+    post :cleanup_time_set do last_cleanup_time != nil end
+    def execute_complete_cycle
+      raise "Fatal: abstract method: #{self.class} #{__method__}"
+    end
 
   end
 end

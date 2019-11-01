@@ -24,6 +24,7 @@ class ReportAnalysisPrompt
       { key: 't', name: 'sTatistics', value: self.method(:stats) },
       { key: 'e', name: 'dEtailed summary',
           value: self.method(:tr_detailed_summary) },
+      { key: 'g', name: 'search/Grep for pattern', value: self.method(:grep) },
       { key: 'r', name: 'choose sub-Report', value: self.method(:sub_report)},
       { key: 'q', name: 'Quit: terminate analysis', value: lambda { exit 0 } },
     ]
@@ -43,6 +44,11 @@ class ReportAnalysisPrompt
       { key: 't', name: 'sTatistics', value: self.method(:tr_stats) },
       { key: 'e', name: 'dEtailed summary',
           value: self.method(:tr_detailed_summary) },
+      { key: 'g', name: 'search/Grep for pattern', value: self.method(:grep) },
+      { key: 'l', name: 'unique message Labels',
+          value: self.method(:tr_labels) },
+      { key: 'i', name: 'Inspect message label',
+          value: self.method(:inspect_label)},
       { key: 'b', name: 'exit sub-menu (Back)', value: false },
       { key: 'q', name: 'Quit: terminate analysis', value: lambda { exit 0 } },
       { key: 'u', name: 'debUg', value: self.method(:tr_debug) },
@@ -116,6 +122,66 @@ class ReportAnalysisPrompt
     end
   end
 
+  def grep_switch_help
+"Something goes here..."
+  end
+
+  # Obtain a pattern from the user, fetch the report-components that match
+  # the pattern, and ...
+  def grep(r)
+    finished, strict_case, keys, values = false, false, true, true
+    case_switch, help_switch, keys_switch, values_switch, kvboth_switch =
+      '{c}', '{h}', '{k}', '{v}', '{b}'
+    prompt = TTY::Prompt.new(track_history: false)
+    while not finished do
+      q = "\n(Case sensitivity is #{(strict_case)? "on": "off"}) " +
+        "(Hit <Enter> to exit this menu.)\n" +
+        "Enter regular expression pattern (or #{help_switch} to switch " +
+        "case sensitivity) "
+      print q
+      response = prompt.ask("")
+      case response
+      when nil then
+        finished = true
+      when help_switch then
+        puts grep_switch_help
+      when case_switch then
+        strict_case = ! strict_case
+      when keys_switch then
+        keys = true; values = false
+      when values_switch then
+        keys = false; values = true
+      when kvboth_switch then
+        keys = true; values = true
+      else
+        options = (strict_case)? nil: Regexp::IGNORECASE
+        matches = r.matches_for(Regexp.new(response, options),
+                               use_keys: keys, use_values: values)
+        if matches.empty? then
+          puts "No matches found for '#{response}'\n"
+        else
+          display_matches(matches, response)
+        end
+      end
+=begin
+      if response.nil? then
+        finished = true
+      elsif response == case_switch then
+        strict_case = ! strict_case
+      else
+        options = (strict_case)? nil: Regexp::IGNORECASE
+        matches = r.matches_for(Regexp.new(response, options),
+                               use_keys: keys, use_values: values)
+        if matches.empty? then
+          puts "No matches found for '#{response}'\n"
+        else
+          display_matches(matches, response)
+        end
+      end
+=end
+    end
+  end
+
   def sub_report(r)
     finished = false
     prompt = TTY::Prompt.new
@@ -144,17 +210,62 @@ class ReportAnalysisPrompt
   #####  Method choices for "TopicReport"s
 
   def tr_summary(tr)
-    puts tr.summary
+    puts tr.summary(
+      lambda do |datetime|
+        local_time(datetime).strftime(DATEFMT)
+      end
+    )
+  end
+
+  def tr_labels(tr)
+    puts tr.message_labels.join(", ")
   end
 
   def tr_detailed_summary(tr)
-    pager = TTY::Pager.new
     summ = count_summary(report: tr, label: "Element counts")
     if $stdout.isatty then
+      pager = TTY::Pager.new
       pager.page(summ)
     else
       puts summ
     end
+  end
+
+  def inspect_label(tr)
+#!!!!We appear to need the option to include dates/timestamps!!!!!!!!!!!
+    finished = false
+    prompt = TTY::Prompt.new
+    choices = []
+    i = 1
+    tr.message_labels.each do |l|
+      choices <<
+      { key: i.to_s, name: l, value: tr.messages_for(l) }
+      i += 1
+    end
+    choices << { key: 'b', name: 'back', value: false }
+    i += 1
+    choices << { key: 'q', name: 'quit', value: nil }
+    while ! finished do
+      choice = prompt.expand('Choose analysis action ', choices)
+      if choice.nil? then
+        exit 0
+      elsif choice then
+        display_messages(choice)
+      else
+        finished = true
+      end
+    end
+  end
+
+  # Inspect the specified (search) "matches".
+  def inspect_selected(matches, display_list)
+    if $stdout.isatty then
+      pager = TTY::Pager.new
+      pager.page(display_list)
+    else
+      puts display_list
+    end
+  rescue Errno::EPIPE => e
   end
 
   def tr_dates(tr)
@@ -177,6 +288,37 @@ puts "tr_stats - work in progress {WPA}"
     tr.each do |t|
     end
     pp tr
+  end
+
+  #####  Utilities
+
+  def display_messages(messages)
+    border = "#{"=" * 72}\n"
+    display = border + messages.join("\n")
+    if $stdout.isatty then
+      pager = TTY::Pager.new
+      pager.page(display)
+    else
+      puts display
+    end
+  end
+
+  def formatted_local_time(dt)
+    local_time(dt).strftime(DATEFMT)
+  end
+
+  # Display 'grep' results
+  def display_matches(matches, pattern)
+    border = "#{"=" * 72}\n"
+    display = border +
+      "#{matches.count} matching components found for '#{pattern}':\n"
+    i = 1
+    matches.each do |m|
+      display += "#{i}: #{formatted_local_time(m.datetime)}, count: " +
+        "#{m.count}, first: #{m.matches.first}\n"
+      i += 1
+    end
+    inspect_selected(matches, display)
   end
 
 end

@@ -26,17 +26,13 @@ module MessageLog
 
   # Send the specified tag: msg pair to the log (with key 'log_key', if
   # specified - otherwise with self.key).
-#!!!!rm:  pre :good_args do |tag, msg| ! (tag.nil? || msg.nil?) end
   pre :good_args do |hash| ! (hash[:tag].nil? || hash[:msg].nil?) end
   def send_message(log_key: key, tag:, msg:)
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
 
-#!!!!rm:  # Send 'messages_hash' (hash table with {tag: msg} pairs) to the log.
   # Send the specified hash-table of messages (:messages_hash) to the log
-  # (with key 'log_key', if # specified - otherwise with self.key).
-#!!!!rm:  def send_messages(messages_hash)
-#!!!!rm:  pre :mhash_good do |mhash| mhash != nil && mhash.is_a?(Hash) end
+  # (with key 'log_key', if specified - otherwise with self.key).
   pre :mhash do |hash|
     hash[:messages_hash] != nil && hash[:messages_hash].is_a?(Hash) end
   def send_messages(log_key: key, messages_hash:)

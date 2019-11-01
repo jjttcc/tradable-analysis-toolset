@@ -50,6 +50,18 @@ class StatusReport
     self[label]
   end
 
+  # Array containing all matching <whatsits> from each TopicReport
+  pre  :regex do |p| p != nil && p.is_a?(Regexp) end
+  post :array do |result| result != nil && result.is_a?(Array) end
+  def matches_for(pattern, use_keys: true, use_values: true)
+    result = []
+    self.each do |r|
+      result.concat(r.matches_for(pattern, use_keys: use_keys,
+                                 use_values: use_values))
+    end
+    result
+  end
+
   # The "type" of this report, to be seen by the user
   def component_type
     COMPONENT_TYPE
