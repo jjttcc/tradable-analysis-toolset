@@ -63,8 +63,10 @@ class ReportComponent
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
 
-  # !!!!Describe me, please!!!!!
-  pre  :regex do |p| p != nil && p.is_a?(Regexp) end
+  # ReportMatchResult object containing all matching messages
+  # If 'pattern' is the symbol :all, all messages of all contained
+  # ReportComponents are considered a match.
+  pre  :regsym do |p| p != nil && (p.is_a?(Regexp) || p.is_a?(Symbol)) end
   post :result_exists do |result| result != nil end
   post :result_format do |result| result.respond_to?(:id) &&
     result.respond_to?(:datetime) && result.respond_to?(:matches) &&

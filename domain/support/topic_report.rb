@@ -121,8 +121,10 @@ class TopicReport
     @messages_for_label[label]
   end
 
-  # Array containing all matching <whatsits> from each ReportComponent
-  pre  :regex do |p| p != nil && p.is_a?(Regexp) end
+  # Array containing all matching messages from each ReportComponent
+  # If 'pattern' is the symbol :all, all messages of all contained
+  # ReportComponents are considered a match.
+  pre  :regsym do |p| p != nil && (p.is_a?(Regexp) || p.is_a?(Symbol)) end
   post :array do |result| result != nil && result.is_a?(Array) end
   def matches_for(pattern, use_keys: true, use_values: true)
     result = []

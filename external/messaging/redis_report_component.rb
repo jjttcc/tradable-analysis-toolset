@@ -34,9 +34,15 @@ class RedisReportComponent < ReportComponent
 
   def matches_for(pattern, use_keys: true, use_values: true)
     matches = {}
-    contents.each do |key, value|
-      if (use_keys && key =~ pattern) || (use_values && value =~ pattern) then
-        matches[key] = value
+    if pattern == :all then
+      matches = contents.clone
+    else
+      contents.each do |key, value|
+        if
+          (use_keys && key =~ pattern) || (use_values && value =~ pattern)
+        then
+          matches[key] = value
+        end
       end
     end
     ReportMatchResult.new(matches, self)
