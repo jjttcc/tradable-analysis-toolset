@@ -4,7 +4,7 @@ require 'topic_report'
 
 # Redis-stream-based implementation of TopicReport
 class RedisTopicReport < TopicReport
-  include Contracts::DSL
+  include Contracts::DSL, TatUtil
 
   public
 

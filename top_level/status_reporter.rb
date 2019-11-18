@@ -23,8 +23,11 @@ end
 
 require 'status_reporting'
 require 'application_configuration'
+require 'admin_tools'
+require 'tat_logging'
 
 config = ApplicationConfiguration.new
 log = config.message_log
 r = config.service_management.status_reporting_manager.new(config)
+configure_logging(r)
 r.execute

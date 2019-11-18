@@ -9,7 +9,8 @@ module TatUtil
   #####  Boolean queries
 
   # Is the specified string 's' a valid integer?
-  post :false_if_empty do |result, s| implies(s.nil? || s.empty?, ! result) end
+  post :false_if_empty do |result, s|
+    implies(s.nil? || ! s.is_a?(String) || s.empty?, ! result) end
   def is_i?(s)
     s != nil && s.is_a?(String) && /\A[-+]?\d+\z/ === s
   end

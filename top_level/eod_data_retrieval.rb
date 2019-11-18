@@ -23,6 +23,7 @@ end
 
 require 'eod_retrieval_manager'
 require 'application_configuration'
+require 'admin_tools'
 require 'tat_logging'
 
 config = ApplicationConfiguration.new

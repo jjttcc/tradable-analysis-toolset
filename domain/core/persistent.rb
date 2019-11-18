@@ -2,7 +2,11 @@
 module Persistent
   include Contracts::DSL, TatUtil
 
-  public  ###  Access
+  public
+
+  #####  Access
+
+  attr_accessor :log
 
   # The object's persistent fields
   post :exists do |result| result != nil end
@@ -18,7 +22,7 @@ module Persistent
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
 
-  public  ###  Status report
+  #####  Status report
 
   def fields_exist
     fields.all? do |f|
@@ -34,6 +38,25 @@ module Persistent
 
   def invariant
     fields_exist && associations_exist
+  end
+
+  protected
+
+  #####  Implementation
+
+  def log_message(tag, msg)
+    if log.nil? then
+      if $global_config != nil then
+        self.log = $global_config.log
+      else
+        self.log = false    # i.e., no global log available
+      end
+    end
+    if log == false then
+      puts "#{tag}: #{msg}"
+    else
+      log.send_message(tag: tag, msg: msg)
+    end
   end
 
 end

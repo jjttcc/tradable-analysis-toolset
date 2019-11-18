@@ -17,7 +17,10 @@ class RedisReportComponent < ReportComponent
   end
 
   def datetime
-    DateTime.strptime(id[0..9], "%s")
+    if @datetime.nil? then
+      @datetime = DateTime.strptime(id[0..9], "%s")
+    end
+    @datetime
   end
 
   def labels
@@ -26,6 +29,10 @@ class RedisReportComponent < ReportComponent
 
   def messages
     contents.values
+  end
+
+  def matches
+    contents
   end
 
   def message_for(label)
@@ -53,6 +60,16 @@ class RedisReportComponent < ReportComponent
   def ===(other)
     other != nil && contents == other.contents &&
       timestamp == other.timestamp
+  end
+
+  #####  Duplication
+
+  def new_component(label_message_hash = nil)
+    guts = label_message_hash
+    if guts.nil? then
+      guts = self.contents
+    end
+    self.class.new(id: self.id, guts: guts)
   end
 
   private

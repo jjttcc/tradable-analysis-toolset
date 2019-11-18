@@ -18,7 +18,6 @@ class ExchangeClock
   protected ### Hook method implementations
 
   def tracked_tradables(exchanges = nil)
-puts "#{self.class}.[tracked_tradables] called"
     result = TradableSymbol.tracked_tradables
     if exchanges != nil then
       # result = all "tracked-tradables" whose exchange is in 'exchanges'
@@ -27,7 +26,6 @@ puts "#{self.class}.[tracked_tradables] called"
         ex_id_map[s.exchange_id]
       end
     end
-puts "#{self.class}.[tracked_tradables] returning #{result.inspect}"
     result
   end
 
@@ -37,15 +35,16 @@ puts "#{self.class}.[tracked_tradables] returning #{result.inspect}"
 
   private
 
+  pre  :log do |log| log != nil end
   post :exchanges_set do ! exchanges.nil? end
   post :invariant do invariant end
-  def initialize
+  def initialize(log)
     # Ensure invariant from TimeUtilities
     self.time_utilities_implementation = TimeUtil
     @exchanges = Exchange.all
     @initialization_time = current_date_time
     @closing_times = nil
-    super
+    super(log)
   end
 
 end

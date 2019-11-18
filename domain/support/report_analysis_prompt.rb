@@ -6,7 +6,7 @@ require 'local_time'
 # the user (via the TTY::Prompt tool), from a report (which is de-serialized
 # from the provided open file)
 class ReportAnalysisPrompt
-  include Contracts::DSL, LocalTime, ReportTools, TatUtil
+  include Contracts::DSL, LocalTime, ReportTools
 
   public
 
@@ -23,7 +23,7 @@ class ReportAnalysisPrompt
       { key: 'c', name: 'Counts', value: self.method(:counts) },
       { key: 't', name: 'sTatistics', value: self.method(:stats) },
       { key: 'e', name: 'dEtailed summary',
-          value: self.method(:tr_detailed_summary) },
+          value: self.method(:detailed_summary) },
       { key: 'g', name: 'search/Grep for pattern', value: self.method(:grep) },
       { key: 'a', name: 'select All components for inspection',
           value: self.method(:inspect_all_components) },
@@ -45,10 +45,13 @@ class ReportAnalysisPrompt
       { key: 'c', name: 'Count', value: self.method(:tr_count) },
       { key: 't', name: 'sTatistics', value: self.method(:tr_stats) },
       { key: 'e', name: 'dEtailed summary',
-          value: self.method(:tr_detailed_summary) },
+          value: self.method(:detailed_summary) },
       { key: 'g', name: 'search/Grep for pattern', value: self.method(:grep) },
       { key: 'a', name: 'select All components for inspection',
           value: self.method(:inspect_all_components) },
+      { key: 'R', name:
+        'select components in the specified date/time Range for inspection',
+          value: self.method(:inspect_range) },
       { key: 'l', name: 'unique message Labels',
           value: self.method(:tr_labels) },
       { key: 'i', name: 'Inspect message label',
@@ -85,17 +88,22 @@ class ReportAnalysisPrompt
   #####  Method choices
 
   def summary(r)
-    puts "summary: #{r.summary}"
+    puts "#{BORDER}#{r.summary}"
   end
 
   # Print the start- and end-date of each topic-report in 'r'
   def date_ranges(r)
+    puts "#{BORDER}"
     r.topic_reports.each do |tr|
       tag = tr.label + ":"
-      start_dt = local_time(tr.start_date_time)
-      end_dt = local_time(tr.end_date_time)
-      puts sprintf("%-26s %s, %s", tag,
-                   start_dt.strftime(DATEFMT), end_dt.strftime(DATEFMT))
+      if tr.empty? then
+        puts sprintf("%-26s empty", tag)
+      else
+        start_dt = local_time(tr.start_date_time)
+        end_dt = local_time(tr.end_date_time)
+        puts sprintf("%-26s %s, %s", tag,
+                     start_dt.strftime(DATEFMT), end_dt.strftime(DATEFMT))
+      end
     end
   end
 
@@ -107,7 +115,7 @@ class ReportAnalysisPrompt
   # Print the number of topic-reports in 'r' and the number of components for
   # each of those topic-reports
   def counts(r)
-    puts "#{r.component_type} count: #{r.count}"
+    puts "#{BORDER}#{r.component_type} count: #{r.count}"
     if r.topic_reports.count > 0 then
       puts "#{r.topic_reports[0].component_type} counts: " +
         "#{r.sub_counts.join(", ")}"
@@ -116,15 +124,16 @@ class ReportAnalysisPrompt
     end
   end
 
-  # Print stats for 'r'.  - To-be-refined/changed/fixed/...
+  # Print stats for 'r'.  - To-be-refined/changed/fixed/...!!!!!!
   def stats(r)
-    puts "#{r.component_type} count: #{r.count}"
+    puts "#{BORDER}#{r.component_type} count: #{r.count}"
     if r.topic_reports.count > 0 then
       puts "#{r.topic_reports[0].component_type} counts: " +
         "#{r.sub_counts.join(", ")}"
     else
       puts "0 sub-reports"
     end
+puts "(Fix-me!!!!!)"
   end
 
   begin
@@ -158,14 +167,20 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
 
   # Obtain a pattern from the user, fetch the report-components that match
   # the pattern, and allow the user to inspect the results.
+#  pre  :does_matches_for do |r|
+#    r.respond_to?(:matches_for) || r.all? {|o| o.respond_to?(:matches_for)} end
   def grep(r)
     finished, strict_case, keys, values = false, false, true, true
     prompt = TTY::Prompt.new
+    last_response = ""
     while not finished do
       q = "\n(Case sensitivity is #{(strict_case)? "on": "off"}. " +
       q = "Search mode is '#{grep_mode_name(keys, values)}')\n" +
         "(Hit <Enter> to exit this menu.)\n" +
         "Enter regular expression pattern (or \"#{HELP_SWITCH}\" to for help) "
+      if ! last_response.empty? then
+        q += "[#{last_response}] "
+      end
       print q
       response = prompt.ask("")
       case response
@@ -182,9 +197,10 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
       when KVBOTH_SWITCH then
         keys = true; values = true
       else
+        last_response = response
         options = (strict_case)? nil: Regexp::IGNORECASE
-        matches = r.matches_for(Regexp.new(response, options),
-                               use_keys: keys, use_values: values)
+        matches = collected_matches(r, Regexp.new(response, options),
+                                    keys, values)
         if matches.empty? then
           puts "No matches found for '#{response}'\n"
         else
@@ -192,6 +208,8 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
         end
       end
     end
+  end
+
   end
 
   # Fetch all report-components accessible via 'r' and allow the user to
@@ -204,41 +222,61 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
     else
       display_matches(matches)
     end
+  end
+
+  # Fetch all report-components for 'r' according to a date/time range
+  # specified by the user and allow the user to inspect the results.
+  def inspect_range(r)
+    puts "Count; and first and last dates of current data set:\n"\
+      "#{r.count}; "\
+      "#{local_time(r.first.datetime)}, #{local_time(r.last.datetime)}"
+#    timezone_offset = (DateTime.now.utc_offset / 3600).to_s
+    prompt = TTY::Prompt.new
 =begin
-    while not finished do
-      q = "\n(Case sensitivity is #{(strict_case)? "on": "off"}. " +
-      q = "Search mode is '#{grep_mode_name(keys, values)}')\n" +
-        "(Hit <Enter> to exit this menu.)\n" +
-        "Enter regular expression pattern (or \"#{HELP_SWITCH}\" to for help) "
-      print q
-      response = prompt.ask("")
-      case response
-      when nil then
-        finished = true
-      when HELP_SWITCH then
-        puts grep_switch_help
-      when CASE_SWITCH then
-        strict_case = ! strict_case
-      when KEYS_SWITCH then
-        keys = true; values = false
-      when VALUES_SWITCH then
-        keys = false; values = true
-      when KVBOTH_SWITCH then
-        keys = true; values = true
+    while ! finished do
+      response = prompt.ask('Enter start date/time (empty for "now")')
+      if response.nil? then
+        start_time = DateTime.now
       else
-        options = (strict_case)? nil: Regexp::IGNORECASE
-        matches = r.matches_for(Regexp.new(response, options),
-                               use_keys: keys, use_values: values)
-        if matches.empty? then
-          puts "No matches found for '#{response}'\n"
-        else
-          display_matches(matches, response)
-        end
+        y, m, d, h, min = response.split(/[-\/ :]/).map { |n| n.to_i }
+        y, m, d, h, min = [y, m, d, h, min].map { |n| (n.nil?)? 0: n }
+        start_time = DateTime.new(y, m, d, h, min, 0, timezone_offset)
+      end
+      response = prompt.ask('Enter end date/time (empty for "now")')
+      if response.nil? then
+        end_time = DateTime.now
+      else
+        y, m, d, h, min = response.split(/[-\/ :]/).map { |n| n.to_i }
+        end_time = DateTime.new(y, m, d, h, min, 0, timezone_offset)
       end
     end
 =end
-  end
-
+    abort_op = false
+    finished = false
+    while ! finished do
+      start_time = prompted_datetime("start")
+      end_time = prompted_datetime("end", false)
+      matches = r.components_in_range(start_time, end_time)
+      if matches.empty? then
+        prompt_str = "No components found for '#{r.handle}'\n"
+      else
+        prompt_str = "#{matches.count} matches found\n"\
+          "Date of earliest and latest matches:\n"\
+          "#{local_time(matches.first.datetime)}, "\
+          "#{local_time(matches.last.datetime)}\n"
+      end
+      choice = prompt.select(prompt_str, cycle: true) do |menu|
+        menu.choice 'Continue?',     :continue
+        menu.choice 'Try again?',    :again
+        menu.choice 'Abort action?', :abort
+      end
+      finished = choice == :continue || choice == :abort
+      abort_op = choice == :abort
+    end
+    if ! abort_op then
+      print "Processing..."
+      display_matches(matches)
+    end
   end
 
   def sub_report(r)
@@ -269,6 +307,7 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
   #####  Method choices for "TopicReport"s
 
   def tr_summary(tr)
+    puts "#{BORDER}"
     puts tr.summary(
       lambda do |datetime|
         local_time(datetime).strftime(DATEFMT)
@@ -277,11 +316,16 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
   end
 
   def tr_labels(tr)
-    puts tr.message_labels.join(", ")
+    puts "#{BORDER}"
+    puts wrap(tr.message_labels.join(", "), 79, '  ')
   end
 
-  def tr_detailed_summary(tr)
-    summ = count_summary(report: tr, label: "Element counts")
+  def detailed_summary(r)
+    l = "Element counts"
+    if r.respond_to?(:label) then
+      l += " for #{r.label}"
+    end
+    summ = BORDER + count_summary(report: r, label: l)
     if $stdout.isatty then
       pager = TTY::Pager.new
       pager.page(summ)
@@ -308,8 +352,12 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
     end
     while not finished do
       if $stdout.isatty then
-        pager = TTY::Pager.new
-        pager.page(display)
+        begin
+          pager = TTY::Pager.new
+          pager.page(display)
+        rescue Errno::EPIPE => e
+          # (User hit 'q' to stop pager - assume she wants to continue.)
+        end
       else
         puts display
       end
@@ -330,145 +378,6 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
     end
   end
 
-  def inspect_label_work2(tr)
-#!!!!We appear to need the option to include dates/timestamps!!!!!!!!!!!
-    finished = false
-    prompt = TTY::Prompt.new
-    choices = {}
-    i = 1
-    tr.message_labels.each do |l|
-      choices[i.to_s] = {name: l, value: tr.messages_for(l)}
-      i += 1
-    end
-    choices['b'] = {name: 'back', value: false}
-    choices['h'] = {name: 'help', value: :help}
-    choices['q'] = {name: 'quit', value: nil}
-    display = ""
-#!!!    choices.each { |c| display += "#{choices[:key]}: #{choices[:name]}\n" }
-    choices.keys.each do |k|
-#      display += "#{choices[:key]}: #{choices[:name]}\n"
-      display += "#{k}: #{choices[k][:name]}\n"
-    end
-
-    while not finished do
-      if $stdout.isatty then
-        pager = TTY::Pager.new
-        pager.page(display)
-      else
-        puts display
-      end
-      response = prompt.ask("Choose label or action")
-      choice = choices[response][:value]
-      if response == 'b' then
-        finished = true
-      elsif response == 'q' then
-        exit 0
-      elsif response == 'h' then
-        puts "Help!"
-      else
-        if is_i?(response) then
-          n = response.to_i
-          choice = matches[n]
-          if choice != nil then
-            inspect_selected_matches(choices)
-          else
-            ###!!!!Handle invalid choice
-          end
-        else
-          puts "Your response is not a number (#{response}) - try again" +
-            "\n(Empty response exits this menu.)"
-        end
-      end
-    end
-  end
-
-  def inspect_label_work1(tr)
-#!!!!We appear to need the option to include dates/timestamps!!!!!!!!!!!
-    finished = false
-    prompt = TTY::Prompt.new
-    choices = []
-    i = 1
-    tr.message_labels.each do |l|
-      choices <<
-      { key: i.to_s, name: l, value: tr.messages_for(l) }
-      i += 1
-    end
-    choices << { key: 'b', name: 'back', value: false }
-    i += 1
-    choices << { key: 'q', name: 'quit', value: nil }
-    display = ""
-    choices.each { |c| display += "#{choices[:key]}: #{choices[:name]}\n" }
-
-    while not finished do
-      if $stdout.isatty then
-        pager = TTY::Pager.new
-        pager.page(display)
-      else
-        puts display
-      end
-      response = prompt.ask("Choose label or action") do |r|
-        r.in(['b', 'q', 'h', "1-#{choices.count - 3}"])
-      end
-      if response == 'b' then
-        finished = true
-      elsif response == 'q' then
-        exit 0
-      elsif response == 'h' then
-        puts "Help!"
-      else
-        if is_i?(response) then
-          n = response.to_i
-          choice = matches[n]
-          if choice != nil then
-            inspect_selected_matches(choices)
-          else
-            ###!!!!Handle invalid choice
-          end
-        else
-          puts "Your response is not a number (#{response}) - try again" +
-            "\n(Empty response exits this menu.)"
-        end
-      end
-    end
-=begin
-if choice.nil? then
-  exit 0
-elsif choice then
-  display_messages(choice)
-else
-  finished = true
-end
-=end
-  end
-
-  def old___inspect_label(tr)
-#!!!!We appear to need the option to include dates/timestamps!!!!!!!!!!!
-    finished = false
-    prompt = TTY::Prompt.new
-    choices = []
-    i = 1
-    tr.message_labels.each do |l|
-      choices <<
-      { key: i.to_s, name: l, value: tr.messages_for(l) }
-      i += 1
-    end
-    choices << { key: 'b', name: 'back', value: false }
-    i += 1
-    choices << { key: 'q', name: 'quit', value: nil }
-    while ! finished do
-#!!!!Fix bug: Use something other than expand to get rid of:
-#    "Choice key `10` is more than one character long."
-      choice = prompt.expand('Choose analysis action ', choices)
-      if choice.nil? then
-        exit 0
-      elsif choice then
-        display_messages(choice)
-      else
-        finished = true
-      end
-    end
-  end
-
   def tr_dates(tr)
     start_dt = local_time(tr.start_date_time)
     end_dt = local_time(tr.end_date_time)
@@ -481,7 +390,7 @@ end
   end
 
   def tr_stats(tr)
-puts "tr_stats - work in progress {WPA}"
+puts "tr_stats - work in progress {WPA}!!!!!"
   end
 
   def tr_debug(tr)
@@ -496,8 +405,12 @@ puts "tr_stats - work in progress {WPA}"
   def display_messages(messages)
     display = BORDER + messages.join("\n")
     if $stdout.isatty then
-      pager = TTY::Pager.new
-      pager.page(display)
+      begin
+        pager = TTY::Pager.new
+        pager.page(display)
+      rescue Errno::EPIPE => e
+        # (User hit 'q' to stop pager - assume she wants to continue.)
+      end
     else
       puts display
     end
@@ -507,43 +420,38 @@ puts "tr_stats - work in progress {WPA}"
     local_time(dt).strftime(DATEFMT)
   end
 
-#=begin
-#  # Display 'grep' results
-#  def old___display_matches(matches, pattern)
-#    display = "#{matches.count} matching components found for '#{pattern}':\n"
-#    i = 1
-#    matches.each do |m|
-#      display += "#{i}: #{formatted_local_time(m.datetime)}, count: " +
-#        "#{m.count}, first: #{m.matches.first}\n"
-#      i += 1
-#    end
-#    inspect_matches(matches, display)
-#  end
-#=end
-
   # Display 'grep' results
   def display_matches(matches, pattern = nil)
     choices = {}
     i = 1
     matches.each do |m|
       choices[i.to_s] = {name: "#{formatted_local_time(m.datetime)}, " +
-        "count: #{m.count}, first: #{m.matches.first}\n",
+        "count: #{m.count}, first: #{m.matches.first}",
                          value: m}
       i += 1
     end
-    choices['b'] = {name: 'back', value: false}
-    choices['q'] = {name: 'quit', value: nil}
-    display = BORDER +
+    # Build the prompt and choices map for 'inspect_choices'.
+    prompt = '['
+    chars = %w/b q g/
+    tables = [{name: 'back', value: false}, {name: 'quit', value: nil},
+              {name: 'search/Grep', value: self.method(:grep)}]
+    (0..2).each do |i|
+      choices[chars[i]] = tables[i]
+      if i > 0 then prompt += ", " end
+      prompt += chars[i]
+    end
+    prompt += ", 1..#{matches.count}]"
+    display = "\n" + BORDER +
       "#{matches.count} matching components found" + ((pattern.nil?)? ":\n":
           " for '#{pattern}':\n")
     choices.keys.each do |k|
       display += "#{k}: #{choices[k][:name]}\n"
     end
-    inspect_choices(choices, display, matches.count)
+    inspect_choices(choices, display, matches.count, prompt)
   end
 
   # Inspect the specified (search) "matches".
-  def inspect_choices(choices, display_str, max_index)
+  def inspect_choices(choices, display_str, max_index, prompt_str)
     finished = false
     while not finished do
       begin
@@ -554,17 +462,13 @@ puts "tr_stats - work in progress {WPA}"
             pager.page(display_str)
           rescue Errno::EPIPE => e
             # (User hit 'q' to stop pager - assume she wants to continue.)
-            #!!!          inspect_selected_matches(values)
           end
         else
           puts display_str
         end
-        puts "B"
-        response = prompt.ask("> [b, q, 1..#{max_index}]")
-        puts "C"
+        response = prompt.ask("> #{prompt_str}")
         keys = keys_from_user_list(response: response, int_max: max_index,
-                 allowed_non_ints: ['q', 'b'], nil_choice: 'b')
-        puts "D"
+                 allowed_non_ints: ['q', 'b', 'g'], nil_choice: 'b')
         values = keys.map do |k|
           v = choices[k][:value]
           if v.nil? then
@@ -572,12 +476,19 @@ puts "tr_stats - work in progress {WPA}"
           elsif v == false then
             finished = true   # User requested "back" (Ignore other choices.)
             break
+          elsif v.is_a?(Method) then
+            collection = []
+            choices.keys.each do |k|
+              if choices[k][:value].respond_to?(:matches_for) then
+                collection << choices[k][:value]
+              end
+            end
+            v.call(collection)
+            break
           end
           v
         end
-        puts "E"
-        if ! finished then
-          puts "F"
+        if values != nil && ! finished then
           inspect_selected_matches(values)
         end
       rescue RuntimeError => e
@@ -609,18 +520,22 @@ puts "tr_stats - work in progress {WPA}"
       end
     else
       range_error = false
-      if response =~ /-/ then
-        lower, upper = response.split(/\s*-\s*/, 2)
+      if response =~ /-/ || response =~ /\.\.?/ then
+        lower, upper = response.split(/\s*-\s*|\s*\.\.\s*/, 2)
+        if upper == '$' then    # Map '$' to largest index value.
+          upper = int_max.to_s
+        end
+        if lower == '^' then    # Map '^' to smallest index value.
+          lower = int_min.to_s
+        end
         if is_i?(lower) && is_i?(upper) then
           result = (lower .. upper).to_a
-puts "l, u: #{lower}, #{upper}"
-puts "mi, mx: #{int_min}, #{int_max}"
           range_error = lower.to_i < int_min || upper.to_i > int_max
         else
           range_error = true
         end
         if range_error then
-          raise "Invalid range specified: #{response} (" +
+          raise "Invalid range specified: #{lower}..#{upper} [#{response}] ("\
           "expected #{int_min}..#{int_max})"
         end
       else
@@ -638,55 +553,15 @@ puts "mi, mx: #{int_min}, #{int_max}"
         end
       end
     end
-puts "kful result: #{result.inspect}"
     result
   end
 
-#=begin
-#  # Inspect the specified (search) "matches".
-#  def old___inspect_matches(matches, display_str)
-#    finished = false
-#    display_str = "#{"=" * 72}\n" +
-#      "Choose the number of the item you would like to inspect.\n" +
-#      display_str
-#    while not finished do
-#      if $stdout.isatty then
-#        pager = TTY::Pager.new
-#        pager.page(display_str)
-#      else
-#        puts display_str
-#      end
-#      prompt = TTY::Prompt.new
-#      response = prompt.ask("> ")
-#      if response.nil? then
-#        finished = true
-#      else
-#        if is_i?(response) then
-#          n = response.to_i
-#          choice = matches[n]
-#          if choice != nil then
-#            inspect_selected_matches(choices)
-#          else
-#            ###!!!!Handle invalid choice
-#          end
-#        else
-#          puts "Your response is not a number (#{response}) - try again" +
-#            "\n(Empty response exits this menu.)"
-#        end
-#      end
-#    end
-#  rescue Errno::EPIPE => e
-#  end
-#=end
-
   def inspect_selected_matches(matches)
-#puts "You have a #{matches.class} on your hands " +
-#  "(size: #{matches.count}, contents:\n#{matches.inspect})"
     finished = false
     display = BORDER
     matches.each do |match|
       display += "match count for #{match.id}: #{match.count}\n" +
-      "time stamp: #{match.datetime}\nMESSAGES:\n"
+      "time stamp: #{local_time(match.datetime)}\nMESSAGES:\n"
       match.matches.each do |k, v|
         display += "#{k}:  #{v}\n"
       end
@@ -694,8 +569,11 @@ puts "kful result: #{result.inspect}"
     end
     while not finished do
       if $stdout.isatty then
-        pager = TTY::Pager.new
-        pager.page(display)
+        begin
+          pager = TTY::Pager.new
+          pager.page(display)
+        rescue Errno::EPIPE => e
+        end
       else
         puts display
       end
@@ -706,34 +584,5 @@ puts "kful result: #{result.inspect}"
       end
     end
   end
-
-#=begin
-#  def old___inspect_selected_matches(choice)
-## 'matches':  Hash table containing the matching messages for which, for each
-## 'owner':    The ReportComponent that owns the matches
-## 'datetime': owner.datetime
-## 'id':       owner.id
-## 'count':    matches.count
-#    finished = false
-#    while not finished do
-#      display = BORDER + "match count for #{choice.id}: #{choice.count}\n" +
-#        "time stamp: #{choice.datetime}\nMESSAGES:\n"
-#      choice.matches.each do |k, v|
-#        display += "#{k}:  #{v}\n"
-#      end
-#      if $stdout.isatty then
-#        pager = TTY::Pager.new
-#        pager.page(display)
-#      else
-#        puts display
-#      end
-#      prompt = TTY::Prompt.new
-#      response = prompt.ask("View again?")
-#      if response.nil? || response =~ /\bn/i then
-#        finished = true
-#      end
-#    end
-#  end
-#=end
 
 end

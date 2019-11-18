@@ -80,7 +80,7 @@ GEM
       execjs
     coffee-script-source (1.12.2)
     concurrent-ruby (1.1.5)
-    crass (1.0.4)
+    crass (1.0.5)
     equatable (0.6.1)
     erubis (2.7.0)
     execjs (2.7.0)
@@ -107,7 +107,7 @@ GEM
     json (2.2.0)
     launchy (2.4.3)
       addressable (~> 2.3)
-    loofah (2.2.3)
+    loofah (2.3.1)
       crass (~> 1.0.2)
       nokogiri (>= 1.5.9)
     mail (2.7.1)
@@ -138,7 +138,7 @@ GEM
     multi_json (1.13.1)
     necromancer (0.5.0)
     nio4r (2.3.1)
-    nokogiri (1.10.4)
+    nokogiri (1.10.5)
       mini_portile2 (~> 2.4.0)
     oj (3.9.2)
     passenger (6.0.2)
@@ -277,7 +277,7 @@ DEPENDENCIES
   gon
   jquery-rails
   launchy
-  loofah (= 2.2.3)
+  loofah (>= 2.3.1)
   minitest
   minitest-rails
   minitest-rails-capybara

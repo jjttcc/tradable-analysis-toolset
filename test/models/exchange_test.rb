@@ -1,3 +1,4 @@
+require "admin_tools"
 require "test_helper"
 
 describe Exchange do
@@ -9,7 +10,7 @@ describe Exchange do
 end
 
 describe ExchangeClock do
-  let(:eclock) { ExchangeClock.new }
+  let(:eclock) { ExchangeClock.new($global_log) }
 
   it "must be valid" do
     value(eclock.exchanges).must_be :present?

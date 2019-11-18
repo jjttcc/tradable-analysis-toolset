@@ -57,6 +57,28 @@ class RedisLogReader
     result
   end
 
+  #####  Measurement
+
+  def counts_for(args_hash)
+    result = []
+    key_list = args_hash[:key_list]
+    if key_list != nil && ! key_list.empty? then
+      if ! key_list.is_a?(Enumerable) then
+        key_list = [key_list]   # Attempt to make it enumerable.
+      end
+      key_list.each do |stream_key|
+        info = redis_log.xinfo(:stream, stream_key)
+        if info.nil? || ! info.has_key?(:length) then
+          raise "Unexpected nil result from Redis#xinfo("\
+            ":stream, #{stream_key})"
+        end
+        count = info[:length]
+        result << count.to_i
+      end
+    end
+    result
+  end
+
   #####  Removal
 
   # (Delete all entries associated with 'key_list' - i.e., call:
@@ -86,10 +108,11 @@ class RedisLogReader
   # Log contents for all keys in 'key_list' whose ids match the specified
   # 'start_time' and 'end_time' (i.e., each id falls within the time-range
   # implied by start_time and end_time), where 'start_time' and 'end_time'
-  # are UNIX timestamps - i.e., seconds since # the "epoch", implemented by
+  # are UNIX timestamps - i.e., seconds since the "epoch", implemented by
   # calling 'redis_log.xrange'
   # If 'count' is not nil, it is provided as the 'count' argument for
   # 'xrange'.
+  post :result do |result| result != nil && result.is_a?(Hash) end
   def contents_for_range(key_list, start_time, end_time, count)
     result = {}
     fix_time = lambda do |s|
@@ -101,11 +124,15 @@ class RedisLogReader
         s
       end
     end
-    start_time = fix_time(start_time)
-    end_time = fix_time(end_time)
+    start_time = fix_time.call(start_time)
+    end_time = fix_time.call(end_time)
     key_list.each do |key|
-      result.merge(redis_log.xrange(key, start_time, end_time, count: count))
+      result[key.to_s] = redis_log.xrange(key, start_time, end_time,
+                                          count: count)
     end
+    result
+  rescue StandardError => e
+    raise "contents_for_range - error: #{e}"
   end
 
   # Initialize with the Redis-port, logging key, and, if supplied, the

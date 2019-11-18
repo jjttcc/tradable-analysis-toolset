@@ -1,10 +1,10 @@
-require 'time_util'
 require 'topic_report'
+require 'report_tools'
 
 # Reports on the status of the system, services, etc. - consisting of
 # "TopicReport"s
 class StatusReport
-  include Contracts::DSL, Enumerable
+  include Contracts::DSL, Enumerable, ReportTools
 
   public
 
@@ -17,7 +17,7 @@ class StatusReport
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
 
-  # The date & time the report was created as a DateTime
+  # The date & time the report was created as a DateTime (based on 'timestamp')
   post :natural do |result| result != nil && result >= 0 end
   def date_time
     DateTime.strptime(timestamp.to_s, "%s")
@@ -50,6 +50,7 @@ class StatusReport
     self[label]
   end
 
+#                             fix:!!!!!!!!!!
   # Array containing all matching <whatsits> from each TopicReport
   # If 'pattern' is the symbol :all, all messages of all contained
   # ReportComponents are considered a match.
@@ -72,9 +73,9 @@ class StatusReport
   # Summary of report contents
   def summary
     result = "Number of sub-reports: #{count}, date/time: #{date_time}\n" +
-      "labels: #{labels.join(", ")}\n"
+      wrap("Labels: #{labels.join(", ")}", 79, '  ') + "\n"
     subcount = sub_counts.inject(0){|sum,x| sum + x }
-    result += "subcount: #{subcount}\n"
+    result += "Component count: #{subcount}\n"
     result
   end
 

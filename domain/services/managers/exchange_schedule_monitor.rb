@@ -36,7 +36,6 @@ log_messages(debug: "eom - @next_close_time: #{@next_close_time} (for " +
 "#{exchange_clock.exchanges_for(@next_close_time).map do |e|
   "#{e.name.inspect}/#{e.timezone.inspect}"
 end.join(", ")})")
-STDOUT.flush    # Allow any debugging output to be seen.
         # (Wait until it's '@next_close_time'.)
 #!!!!Consider sending (queue_messages) the list of symbols and the
 #!!!close-date (send_close_date) ahead of time for robustness -
@@ -103,7 +102,6 @@ log_messages(debug: "On #{Time.current} the database was changed, so I'm ending 
   #   exchange_clock.refresh_exchanges
   def handle_exchange_updates
     if run_state == SERVICE_RUNNING && exchange_clock.exchanges_updated?  then
-log_messages(debug: "[heu] - ex_updated was true")
       @exchange_was_updated = true
       exchange_clock.refresh_exchanges
     end
@@ -238,7 +236,7 @@ log_messages(debug: "enqueuing check key: #{eod_check_key}")
     @log = self.config.message_log
     @error_log = self.config.error_log
     @refresh_requested = false
-    @exchange_clock = config.database::exchange_clock
+    @exchange_clock = config.database::exchange_clock(@log)
     @run_state = SERVICE_RUNNING
     @long_term_i_count = -1
     @service_tag = EOD_EXCHANGE_MONITORING

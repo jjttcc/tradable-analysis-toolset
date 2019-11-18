@@ -1,4 +1,9 @@
+require 'time_util'
+require 'ruby_contracts'
+
 module LocalTime
+  include Contracts::DSL
+
   protected
 
   # Local timezone, as a String (found via:
@@ -21,11 +26,21 @@ module LocalTime
     return result
   end
 
+  pre  :exists do |datetime| datetime != nil end
   def local_time(datetime)
     if @timezone.nil? then
       @timezone = local_timezone
     end
     TimeUtil::local_time(@timezone, datetime)
+  end
+
+  # A new DateTime the String 'date_str'
+  pre  :string do |date_str| date_str != nil && date_str.is_a?(String) end
+  def local_time_from_s(date_str)
+    if @timezone.nil? then
+      @timezone = local_timezone
+    end
+    date_str.in_time_zone(@timezone)
   end
 
 end

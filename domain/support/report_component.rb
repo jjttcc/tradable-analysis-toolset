@@ -8,6 +8,8 @@
 # 'id':       owner.id
 # 'count':    matches.count
 ReportMatchResult = Struct.new(:matches, :owner) do
+  public
+
   def datetime
     owner.datetime
   end
@@ -16,6 +18,10 @@ ReportMatchResult = Struct.new(:matches, :owner) do
   end
   def count
     matches.count
+  end
+  def matches_for(pattern, use_keys: true, use_values: true)
+    target = owner.new_component(matches)
+    target.matches_for(pattern, use_keys: true, use_values: true)
   end
 end
 
@@ -55,6 +61,13 @@ class ReportComponent
   # The contents of the report - i.e., one message per label
   post :enumerable do |result| result != nil && result.is_a?(Enumerable) end
   def messages
+    raise "Fatal: abstract method: #{self.class} #{__method__}"
+  end
+
+# 'matches':  Hash table containing the matching messages for which, for each
+#             element, the key is the message label and the value is the
+#             message body
+  def matches
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
 
@@ -99,6 +112,19 @@ class ReportComponent
   end
 
   alias_method :count, :message_count
+
+  #####  Duplication
+
+  # A new ReportComponent (with the same run-time type as 'self') with
+  # contents taken from, if it is not nil, 'label_message_hash' (a hash
+  # table whose keys are the labels and associated values the associated
+  # messages).  If 'label_message_hash' is nil, the contents are take from
+  # those of 'self' (i.e., its 'labels' and 'messages')
+  pre  :arg_is_hash do |arg| arg.nil? || arg.is_a?(Hash) end
+  post :result do |result| result != nil && result.is_a?(self.class) end
+  def new_component(label_message_hash = nil)
+    raise "Fatal: abstract method: #{self.class} #{__method__}"
+  end
 
   protected
 

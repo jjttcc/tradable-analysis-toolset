@@ -25,22 +25,38 @@ end
 end
 
 require 'application_configuration'
+require 'local_time'
 
 class ReportProcessor
-  include Contracts::DSL
+  include Contracts::DSL, LocalTime
 
   public
 
-  attr_reader :report_callbacks, :verbose
+  attr_reader :report_callbacks, :report_args, :verbose
 
   def process_cl_args
     OptionParser.new do |parser|
       parser.on("-o", "--output=filepath",
-                "output report to 'filepath'") do |f|
+                "Output report to 'filepath'") do |f|
         @options[:output] = f
         @report_callbacks << self.method(:save_report)
       end
+      parser.on("-s", "--start-time=<date/time>",
+                "Start report at <date/time>") do |dt|
+        stime = parsed_datetime(dt)
+        if stime != nil then
+          @report_args[:start_time] = stime.to_i.to_s # seconds since "epoch"
+        end
+      end
+      parser.on("-e", "--end-time=<date/time>",
+                "End report at <date/time>") do |dt|
+        etime = parsed_datetime(dt)
+        if etime != nil then
+          @report_args[:end_time] = etime.to_i.to_s   # seconds since "epoch"
+        end
+      end
     end.parse!
+    post_process_args
   end
 
   def receive_report(report)
@@ -89,7 +105,27 @@ class ReportProcessor
     @name = name
     @options = {}
     @report_callbacks = [self.method(:receive_report)]
+    @report_args = {
+      client_methods: @report_callbacks
+    }
     @verbose = verbose
+  end
+
+  ##### Implementation - utilities
+
+  # DateTime produced by parsing String 's'
+  def parsed_datetime(s)
+    local_time_from_s(s)
+  rescue StandardError => e
+    $stderr.puts "Invalid date specified: '#{s}'"
+    return nil
+  end
+
+  def post_process_args
+    if @report_args[:start_time] != nil && @report_args[:end_time].nil?  then
+      et = DateTime.now
+      @report_args[:end_time] = et.to_i.to_s
+    end
   end
 
 end
@@ -98,7 +134,14 @@ end
 config = ApplicationConfiguration.new
 rproc = ReportProcessor.new(config, program_name)
 rproc.process_cl_args
+args_hash = rproc.report_args
 log = config.message_log
 r = config.service_management.reporting_administrator.new(config, log)
-r.order_reports(r.all_service_keys, rproc.report_callbacks)
+#!!!!(keys: option might be specifiable via command-line in future.)
+args_hash[:keys] = r.all_service_keys
+#puts "args hash: #{args_hash}"
+#r.order_reports(r.all_service_keys, rproc.report_callbacks)
+r.order_reports(args_hash)
+#r.order_reports(keys: r.all_service_keys,
+#                client_methods: rproc.report_callbacks)
 report = r.report

@@ -40,7 +40,7 @@ class Exchange < ApplicationRecord
   def reload
     super
     self.current_local_time = nil
-    cached_current_schedule = nil
+    self.cached_current_schedule = nil
   end
 
   protected ##### Hook method implementations

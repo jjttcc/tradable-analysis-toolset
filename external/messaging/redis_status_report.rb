@@ -29,6 +29,7 @@ class RedisStatusReport < StatusReport
 
   alias_method :report_for, :[]
 
+#!!!!!keep/change?, remove?, or ...?!!!!:
   def what_the___summary
     result = "Number of items: #{contents.count}\n"
     result += "timestamp, contents.type: #{timestamp}, #{contents.class}\n"

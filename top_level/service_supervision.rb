@@ -24,6 +24,7 @@ end
 require 'ruby_contracts'
 require 'services_supervisor'
 require 'application_configuration'
+require 'admin_tools'
 require 'tat_logging'
 
 r = ServicesSupervisor.new(ApplicationConfiguration.new)

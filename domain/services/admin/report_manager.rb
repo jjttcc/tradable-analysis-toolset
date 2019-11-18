@@ -22,10 +22,31 @@ class ReportManager < PublisherSubscriber
 
   # Order the specified reports, by publishing a report request, obtain the
   # results, and feed the resulting reports to each of 'client_methods'.
+  pre :args_hash do |hash| hash != nil && hash.is_a?(Hash) end
+  pre :valid_keys do |hash|
+    hash[:keys] != nil && (hash[:keys].is_a?(Enumerable) ||
+        hash[:keys].is_a?(Symbol) || hash[:keys].is_a?(String)) end
+  pre :valid_cl_methds do |hash| implies(hash[:client_methods] != nil,
+                                   hash[:client_methods].is_a?(Enumerable)) end
+  def order_reports(args)
+    @report = nil
+    @client_methods = args[:client_methods]
+    key_list = key_list_from(args[:keys])
+    report_specs = ReportSpecification.new(type: :create, new_only: false,
+        key_list: key_list, response_key: "#{REPORT_KEY_BASE}#{$$}",
+        block_msecs: BLOCK_MSECS_DEFAULT, count: args[:count],
+        start_time: args[:start_time], end_time: args[:end_time])
+    # Request production of the specified reports:
+    publish(report_specs.to_json)
+    process_report_results(report_specs.response_key)
+  end
+
+  # Order the specified reports, by publishing a report request, obtain the
+  # results, and feed the resulting reports to each of 'client_methods'.
   pre :valid_report_keys do |keys| keys != nil &&
     (keys.is_a?(Enumerable) || keys.is_a?(Symbol) || keys.is_a?(String)) end
   pre :valid_rcli do |k, cli| implies(cli != nil, cli.is_a?(Enumerable)) end
-  def order_reports(keys, cl_methods = nil)
+  def old_replace___order_reports(keys, cl_methods = nil)
     @report = nil
     @client_methods = cl_methods
     key_list = key_list_from(keys)

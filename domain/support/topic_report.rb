@@ -4,7 +4,7 @@ require 'report_component'
 # which contains one or more keyed messages, on a specific "topic" (e.g.,
 # a particular service)
 class TopicReport
-  include Contracts::DSL, Enumerable
+  include Contracts::DSL, TatUtil, Enumerable
 
   public
 
@@ -58,6 +58,43 @@ class TopicReport
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
 
+  # All components whose timestamps are >= 'start_time' and <= 'end_time'
+  pre  :times_exist do |st, et| st != nil && et != nil end
+  pre  :have_ge do |st, et| st.respond_to?(">=") && et.respond_to?(">=") end
+  pre  :have_lt do |st, et| st.respond_to?("<") && et.respond_to?("<") end
+  post :result do |result| result != nil && result.is_a?(Enumerable) end
+  def components_in_range(start_time, end_time)
+    result = []
+    ix_range = 0 .. self.count - 1
+    # Find the earliest component c such that c.datetime >= 'start_time':
+    start_i = ix_range.bsearch do |i|
+      self[i].datetime >= start_time
+    end
+    if start_i != nil then
+      # Find the latest component c such that c.datetime <= 'end_time':
+      end_i = ix_range.bsearch do |i|
+        self[i].datetime >= end_time
+      end
+      if end_i.nil? then
+        end_i = count - 1
+      elsif end_time < self[end_i].datetime then
+        end_i -= 1
+      end
+      if start_i <= end_i then
+puts "!!!!!!Search complete - copying matches...!!!!!!"
+        check(self[start_i].datetime >= start_time &&
+              self[end_i].datetime <= end_time, "valid start/end range")
+        (start_i .. end_i).each do |i|
+          result << self[i]
+        end
+      end
+    else
+      # start_i == nil: implies all of self's date-times are earlier than
+      # 'start_time'; thus, no date-times fall within start_time..end_time
+    end
+    result
+  end
+
   # The "type" of this report, to be seen by the user
   def component_type
     COMPONENT_TYPE
@@ -81,26 +118,6 @@ class TopicReport
       result += "\nfirst component: #{fst}\nlast component:  #{lst}"
     end
     result
-  end
-
-  # Unique list (i.e., no duplicates) of all of the labels that occur in
-  # all the messages of all components of 'self'
-  post :exists do |result| result != nil && result.is_a?(Array) end
-  def old___message_labels
-    if @cached_message_labels.nil? then
-      label_map = {}
-      self.each do |component|
-        component.labels.each do |l|
-          if ! label_map.has_key?(l) then
-            label_map[l] = 1
-          else
-            label_map[l] += 1
-          end
-        end
-      end
-      @cached_message_labels = label_map.keys.sort
-    end
-    @cached_message_labels
   end
 
   # Unique list (i.e., no duplicates) of all of the labels that occur in

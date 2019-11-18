@@ -27,6 +27,20 @@ module LogReader
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
 
+  #####  Measurement
+
+  # The count - number of elements - for each key specified via
+  # args_hash[:key_list] - parallels 'contents_for', with the difference
+  # that instead of returning the contents for each specified key, the
+  # result is simply the count for each specified key
+  # (Any other keys/options in 'args_hash' will be ignored.)
+  pre  :args_hash do |hash| hash != nil && hash.respond_to?(:to_hash) end
+  pre  :has_keylist do |hash| hash.has_key?(:key_list) end
+  post :hash_result do |r| r != nil && r.is_a?(Array) end
+  def counts_for(args_hash)
+    raise "Fatal: abstract method: #{self.class} #{__method__}"
+  end
+
   #####  Removal
 
   # Delete all contents associated with the specified key list.

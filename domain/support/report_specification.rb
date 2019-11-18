@@ -92,6 +92,15 @@ class ReportSpecification
 
   private
 
+  # Valid arguments ('contents' keys/values):
+  #   :type          - type of report being requested
+  #   :key_list      - list of logging keys to include in report
+  #   :count         - limit for # of log entries per key to include
+  #   :start_time    - starting date/time for report
+  #   :end_time      - ending date/time for report
+  #   :response_key  - key for reporting service to use for response
+  #   :new_only
+  #   :block_msecs
   pre  :contents do |contents| contents != nil end
   pre  :valid_type do |contents| ! contents.is_a?(Hash) ||
     contents[:type] != nil && REPORT_TYPES[contents[:type]] end
@@ -120,13 +129,13 @@ class ReportSpecification
     else
       @new_only = !! contents[:new_only]
     end
-    if contents.has_key?(:count) then
+    if contents[:count] != nil then
       @count = contents[:count]
     end
-    if contents.has_key?(:start_time) then
+    if contents[:start_time] != nil then
       @start_time = contents[:start_time]
     end
-    if contents.has_key?(:end_time) then
+    if contents[:end_time] != nil then
       @end_time = contents[:end_time]
     end
   end

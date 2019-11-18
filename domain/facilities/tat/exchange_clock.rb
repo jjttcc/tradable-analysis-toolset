@@ -19,7 +19,6 @@ module TAT
     # The earliest (future) closing time among 'exchanges'
     # nil if today is not a trading day for any of 'exchanges'
     def next_close_time
-      $stderr.puts "NCT"
       result = nil
       now = current_date_time
       if closing_unix_times.nil? then
@@ -43,7 +42,8 @@ module TAT
 #            time_for
 #          end
           else
-            $log.debug("close_time for #{e.name} is past (#{close_time})")
+            log.send_message(tag: :debug,
+              msg: "close_time for #{e.name} is past (#{close_time})")
           end
         end
       else
@@ -147,6 +147,7 @@ module TAT
     # Hash-table: key: closing-(unix)time, value: list of Exchange
       :exchanges_for_unix_time
     attr_writer :initialization_time
+    attr_reader :log
 
     protected ### Hook methods
 
@@ -173,9 +174,11 @@ module TAT
 
     attr_accessor :time_for
 
+    pre  :log do |log| log != nil end
     post :exchanges_for_utime_set do ! exchanges_for_unix_time.nil? end
-    def initialize
+    def initialize(log)
       self.exchanges_for_unix_time = {}
+      @log = log
     end
 
   end
