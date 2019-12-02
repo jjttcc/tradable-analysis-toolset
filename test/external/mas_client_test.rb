@@ -6,45 +6,50 @@ require 'ruby_contracts'
 class MasClientTest < MiniTest::Test
   include Contracts::DSL, PeriodTypeConstants
 
-  TESTPORT = 5441
-  TARGET_SYMBOL   = 'ibm'
-  ANA_USER     = 'mas-client-testc@test.org'
+  TESTPORT      = 5441
+  TARGET_SYMBOL = 'ibm'
+  ANA_USER      = 'mas-client-testc@test.org'
 
   def new_logged_in_client
     result = MasClientNonblocking.new(host: 'localhost', port: TESTPORT,
                                      factory: TradableObjectFactory.new)
+    if result.communication_failed then
+      puts "comm failed - err: #{result.last_error_msg}"
+    end
+    result
   end
 
   def setup
-    $client = new_logged_in_client
     if TradableAnalyzer.all.count <= 2 then
+      client = new_logged_in_client
       # Force the "tradable analyzers" to be retrieved from the MAS server
       # and saved to the database.
-      $client.request_analyzers(TARGET_SYMBOL, MasClient::DAILY)
-      analyzers = $client.analyzers
+      client.request_analyzers(TARGET_SYMBOL, MasClient::DAILY)
+      analyzers = client.analyzers
     end
   end
 
   def teardown
-    if $client.logged_in then $client.logout end
+    if @client != nil && @client.logged_in then @client.logout end
     ModelHelper::cleanup
   end
 
   def test_create_client
-    client = new_logged_in_client
-    assert client != nil, 'MAS client object created.'
-    assert ! client.communication_failed && !  client.server_error,
+    @client = new_logged_in_client
+    assert @client != nil, 'MAS client object created.'
+    assert ! @client.communication_failed && !  @client.server_error,
       "server returned failure status"
-    assert client.logged_in, 'logged in'
-    client.logout
-    assert ! client.logged_in, 'logged out'
+    assert @client.logged_in, 'logged in'
+    @client.logout
+    assert ! @client.logged_in, 'logged out'
   end
 
   def test_symbols
-    $client.request_symbols
-    assert ! $client.communication_failed && !  $client.server_error,
+    @client = new_logged_in_client
+    @client.request_symbols
+    assert ! @client.communication_failed && !  @client.server_error,
       "server returned failure status"
-    symbols = $client.symbols
+    symbols = @client.symbols
     assert symbols.length > 0
     symbol = TARGET_SYMBOL
     assert (symbols.include? symbol), "Missing symbol #{symbol}"
@@ -53,10 +58,11 @@ class MasClientTest < MiniTest::Test
   # Get the list of analyzers from the MAS server, save them to the
   # database.
   def test_analyzer_list
-    $client.request_analyzers(TARGET_SYMBOL, MasClient::DAILY)
-    assert ! $client.communication_failed && !  $client.server_error,
+    @client = new_logged_in_client
+    @client.request_analyzers(TARGET_SYMBOL, MasClient::DAILY)
+    assert ! @client.communication_failed && !  @client.server_error,
       "server returned failure status"
-    analyzers = $client.analyzers
+    analyzers = @client.analyzers
     assert analyzers.class == [].class, "analyzers is an array"
     assert analyzers.length > 0, 'Some analyzers'
     analyzers.each do |a|

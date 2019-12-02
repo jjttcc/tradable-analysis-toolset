@@ -28,49 +28,57 @@ class ReportManager < PublisherSubscriber
         hash[:keys].is_a?(Symbol) || hash[:keys].is_a?(String)) end
   pre :valid_cl_methds do |hash| implies(hash[:client_methods] != nil,
                                    hash[:client_methods].is_a?(Enumerable)) end
-  def order_reports(args)
+  def order_reports(args_hash)
     @report = nil
-    @client_methods = args[:client_methods]
-    key_list = key_list_from(args[:keys])
-    report_specs = ReportSpecification.new(type: :create, new_only: false,
-        key_list: key_list, response_key: "#{REPORT_KEY_BASE}#{$$}",
-        block_msecs: BLOCK_MSECS_DEFAULT, count: args[:count],
-        start_time: args[:start_time], end_time: args[:end_time])
+    @client_methods = args_hash[:client_methods]
+    key_list = key_list_from(args_hash[:keys])
+    report_specs = ReportSpecification.new(
+      type: ReportSpecification::CREATE_TYPE, new_only: false,
+      key_list: key_list, response_key: "#{REPORT_KEY_BASE}#{$$}",
+      block_msecs: BLOCK_MSECS_DEFAULT, count: args_hash[:count],
+      start_time: args_hash[:start_time], end_time: args_hash[:end_time])
     # Request production of the specified reports:
     publish(report_specs.to_json)
     process_report_results(report_specs.response_key)
   end
 
-  # Order the specified reports, by publishing a report request, obtain the
-  # results, and feed the resulting reports to each of 'client_methods'.
-  pre :valid_report_keys do |keys| keys != nil &&
-    (keys.is_a?(Enumerable) || keys.is_a?(Symbol) || keys.is_a?(String)) end
-  pre :valid_rcli do |k, cli| implies(cli != nil, cli.is_a?(Enumerable)) end
-  def old_replace___order_reports(keys, cl_methods = nil)
+  # Clean-up/trim the specified (via args_hash[:keys]) report-related log
+  # entries.  If args_hash[:count] != nil, it is assumed to be an integer
+  # that specifies a minimum number of entries that are to remain after
+  # the clean-up.
+  pre :args_hash do |hash| hash != nil && hash.is_a?(Hash) end
+  pre :valid_keys do |hash|
+    hash[:keys] != nil && (hash[:keys].is_a?(Enumerable) ||
+        hash[:keys].is_a?(Symbol) || hash[:keys].is_a?(String)) end
+  def cleanup_reports(args_hash)
     @report = nil
-    @client_methods = cl_methods
-    key_list = key_list_from(keys)
-    report_specs = ReportSpecification.new(type: :create, new_only: false,
-        key_list: key_list, response_key: "#{REPORT_KEY_BASE}#{$$}",
-        block_msecs: BLOCK_MSECS_DEFAULT)
-    # Request production of the specified reports:
-    publish(report_specs.to_json)
-    process_report_results(report_specs.response_key)
-  end
-
-  # Clean-up/trim the specified (via 'keys') report-related log entries.
-  # If 'remaining_count' != nil, it is assumed to be an integer that
-  # specifies a minimum number of entries that are to remain after the
-  # clean-up.
-  pre :valid_report_keys do |keys| keys != nil &&
-    (keys.is_a?(Enumerable) || keys.is_a?(Symbol) || keys.is_a?(String)) end
-  def cleanup_reports(keys, remaining_count = nil)
-    @report = nil
-    key_list = key_list_from(keys)
-    report_specs = ReportSpecification.new(type: :cleanup, key_list: key_list,
-        response_key: "#{REPORT_KEY_BASE}#{$$}", count: remaining_count)
+    key_list = key_list_from(args_hash[:keys])
+    remaining_count = args_hash[:count]
+    report_specs = ReportSpecification.new(
+      type: ReportSpecification::CLEANUP_TYPE, key_list: key_list,
+      response_key: "#{REPORT_KEY_BASE}#{$$}", count: remaining_count)
     # Request the cleanup.
     publish(report_specs.to_json)
+  end
+
+  # Retrieve information about the log entries for each key in
+  # args_hash[:keys] (currently, just the count of log entries for each key)
+  pre :args_hash do |hash| hash != nil && hash.is_a?(Hash) end
+  pre :valid_keys do |hash|
+    hash[:keys] != nil && (hash[:keys].is_a?(Enumerable) ||
+        hash[:keys].is_a?(Symbol) || hash[:keys].is_a?(String)) end
+  pre :valid_cl_methds do |hash| implies(hash[:client_methods] != nil,
+                                   hash[:client_methods].is_a?(Enumerable)) end
+  def info(args_hash)
+    @report = nil
+    @client_methods = args_hash[:client_methods]
+    key_list = key_list_from(args_hash[:keys])
+    report_specs = ReportSpecification.new(
+      type: ReportSpecification::INFO_TYPE, key_list: key_list,
+      response_key: "#{REPORT_KEY_BASE}#{$$}")
+    # Request the info.
+    publish(report_specs.to_json)
+    process_report_results(report_specs.response_key)
   end
 
   protected
@@ -111,10 +119,14 @@ class ReportManager < PublisherSubscriber
 
   def key_list_from(keys)
     result = nil
-    if keys.is_a?(String) || keys.is_a?(Symbol) then
-      result = [logging_key_for(keys)]
+    if keys == ["*"] then
+      result = keys   # Special "key" signifying 'all available keys'
     else
-      result = keys.map { |k| logging_key_for(k) }
+      if keys.is_a?(String) || keys.is_a?(Symbol) then
+        result = [logging_key_for(keys)]
+      else
+        result = keys.map { |k| logging_key_for(k) }
+      end
     end
     result
   end

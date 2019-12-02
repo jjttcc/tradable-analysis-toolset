@@ -1,10 +1,11 @@
 require 'topic_report'
 require 'report_tools'
+require 'local_time'
 
 # Reports on the status of the system, services, etc. - consisting of
 # "TopicReport"s
 class StatusReport
-  include Contracts::DSL, Enumerable, ReportTools
+  include Contracts::DSL, Enumerable, ReportTools, LocalTime
 
   public
 
@@ -50,8 +51,7 @@ class StatusReport
     self[label]
   end
 
-#                             fix:!!!!!!!!!!
-  # Array containing all matching <whatsits> from each TopicReport
+  # Array containing all matching components from each TopicReport
   # If 'pattern' is the symbol :all, all messages of all contained
   # ReportComponents are considered a match.
   pre  :regsym do |p| p != nil && (p.is_a?(Regexp) || p.is_a?(Symbol)) end
@@ -72,10 +72,11 @@ class StatusReport
 
   # Summary of report contents
   def summary
-    result = "Number of sub-reports: #{count}, date/time: #{date_time}\n" +
+    result = "Number of sub-reports: #{count}, date/time: " +
+      "#{local_time(date_time)}\n" +
       wrap("Labels: #{labels.join(", ")}", 79, '  ') + "\n"
     subcount = sub_counts.inject(0){|sum,x| sum + x }
-    result += "Component count: #{subcount}\n"
+    result += "Component count: #{number_with_delimiter(subcount)}\n"
     result
   end
 

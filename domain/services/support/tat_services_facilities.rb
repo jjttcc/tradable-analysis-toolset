@@ -172,7 +172,6 @@ error_log.debug("#{self}.#{__method__} - status from #{method_name}: " +
         value_arg = "#{run_state}@#{Time.now.utc}"
         set_message(key, value_arg, exp, true)
       rescue StandardError => e
-puts "[rescue] errlog: #{error_log.inspect}"
         error_log.warn("exception in #{__method__}: #{e}")
       end
     end
@@ -256,7 +255,6 @@ puts "[rescue] errlog: #{error_log.inspect}"
 
     # Add the specified EOD check key-value to the "EOD-check" queue.
     def enqueue_eod_check_key(key_value)
-puts "#{__method__} - for key #{EOD_CHECK_QUEUE}, adding #{key_value}"
       queue_messages(EOD_CHECK_QUEUE, key_value, DEFAULT_EXPIRATION_SECONDS)
     end
 
@@ -430,13 +428,9 @@ puts "#{__method__} - for key #{EOD_CHECK_QUEUE}, adding #{key_value}"
         secs_passed = 1
         until retrieved_message(key) != true.to_s ||
                 secs_passed >= acknowledgement_timeout
-puts "#{$$} waiting for termination ack... (s_passed: #{secs_passed})"
           sleep 1
           secs_passed += 1
         end
-if secs_passed < acknowledgement_timeout then
-puts "#{$$} received ack... (s_passed: #{secs_passed})"
-end
       end
     end
 
@@ -495,7 +489,19 @@ end
       begin
         send(@status_report_method)
       rescue StandardError => e
-puts "[rescue2] errlog: #{error_log.inspect}"
+        error_log.warn("exception in #{__method__}: #{e}")
+      end
+    end
+  end
+
+  # Timer task configured to run method 'mthd' every 'secs' seconds
+  post :task_exists do |result| result != nil end
+  def periodic_task(mthd:, secs:)
+    result = Concurrent::TimerTask.new(
+          execution_interval: secs) do |task|
+      begin
+        mthd.call
+      rescue StandardError => e
         error_log.warn("exception in #{__method__}: #{e}")
       end
     end
@@ -505,7 +511,6 @@ puts "[rescue2] errlog: #{error_log.inspect}"
 
   # Object used for error logging
   def error_log
-puts "(TSF.error_log) returning #{self.log.inspect}"
     # (Default to self.log - redefine if separate 'log' and 'error_log'
     # objects are needed.)
     self.log
@@ -516,14 +521,12 @@ puts "(TSF.error_log) returning #{self.log.inspect}"
     [:info, :debug, :warn, :error, :fatal, :unknown].include?(level.to_sym) end
   pre :msg_exists do |msg| msg != nil end
   def log_error(msg, level = 'warn')
-puts "[log_error] errlog: #{error_log.inspect}"
     error_log.method(level.to_sym).call(msg)
   end
 
   # Logging with category: info, debug, warn, error, fatal, unknown:
   [ :info, :debug, :warn, :error, :fatal, :unknown].each do |m_name|
     define_method(m_name) do |msg|
-puts "error_log: #{error_log.inspect}"
       log_error(msg, m_name)
     end
   end

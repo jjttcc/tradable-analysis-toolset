@@ -37,18 +37,25 @@ module Service
 
   # Start the service.
   def execute(args = nil)
-    pre_process(args)
+    prepare_for_main_loop(args)
     while continue_processing do
+      pre_process(args)
       process(args)
+      post_process(args)
     end
-    post_process(args)
+    main_loop_cleanup(args)
   end
 
   protected
 
+  #####  Constants
+
+  DEFAULT_MEM_LIMIT        = 1_000_000
+  DEFAULT_MEMCHECK_SECONDS = 30
+
   ##### Implementation - utilities
 
-  attr_reader :config, :error_log
+  attr_reader :config, :error_log, :monitor_memory, :memlimit_reached
 
   # (Redefined to additionally log the 'msg' if 'logging_on'.)
   def set_message(key, msg, expire_secs = nil, admin = false)
@@ -76,10 +83,55 @@ module Service
     end
   end
 
+  # Number of kilobytes of RAM being used
+  def mem_usage
+    config.mem_usage
+  end
+
+  # Limit: number of kilobytes of RAM "allowed" - redefine if needed
+  def mem_limit
+    DEFAULT_MEM_LIMIT
+  end
+
+  def DO_NOT__manage_memory
+puts "manage_memory - musage: #{mem_usage.to_s}"
+    log_messages(memory_usage: mem_usage.to_s)
+puts "mem_usage, mem_limit: #{mem_usage}, #{mem_limit}"
+puts "mem_usage > mem_limit: #{mem_usage > mem_limit}"
+    if mem_usage > mem_limit then
+puts "mem_usage > mem_limit calling cleanup_memory... #{self}"
+      self.cleanup_memory
+puts "manage_memory - cleanup_memory completed"
+    end
+  end
+
+  # Perform any needed preparation before starting the main 'while' loop.
+  # (To turn this into a [template-method-pattern] hook method, simply
+  # redefine this method in the "descendant class" and call 'super(args)'
+  # at the appropriate time - e.g.:
+  #   do_stuff #...
+  #   super(args)
+  #   # [do_more_stuff #...]
+  # )
+  def prepare_for_main_loop(args)
+    if monitor_memory then
+      mem_task = periodic_task(mthd: method(:manage_memory),
+                               secs: DEFAULT_MEMCHECK_SECONDS)
+puts "executing mem_task (#{mem_task})..."
+      mem_task.execute
+puts "FINISHED executing mem_task..."
+    end
+  end
+
   ##### Hook methods
 
   def continue_processing
     true  # Redefine if needed.
+  end
+
+  # Perform any needed cleanup after ending the main 'while' loop.
+  def main_loop_cleanup(args)
+    # Null operation - Redefine if needed.
   end
 
   # Perform the main processing.
@@ -87,12 +139,19 @@ module Service
     # Null operation - Redefine if needed.
   end
 
-  # Perform any needed pre-processing.
+  # Perform any needed pre-processing before 'process' is called.
   def pre_process(args = nil)
+  end
+
+  # Perform any needed post-processing after 'process' is called.
+  def post_process(args = nil)
     # Null operation - Redefine if needed.
   end
 
-  def post_orocess(args = nil)
+  # Perform memory cleanup.
+  pre :cleanup_needed do monitor_memory && memlimit_reached end
+  def cleanup_memory
+puts "#{self.class}.#{__method__} started - usage: #{mem_usage.to_s}"   #!!!!!
     # Null operation - Redefine if needed.
   end
 

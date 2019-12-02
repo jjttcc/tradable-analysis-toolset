@@ -1,13 +1,17 @@
+require 'action_view'
 require 'ruby_contracts'
 
 module ReportTools
-  include Contracts::DSL, TatUtil
+  include Contracts::DSL, TatUtil, ActionView::Helpers
 
   public
 
+  # Disable, effectively, the 'label' feature in action_view.
+  def label; nil end
+
   COUNT_LIMIT = 5
 
-  # Summary of the counts of components of 'r'
+  # Summary of the counts of components of 'report'
   pre  :rep_good do |h| h[:report] != nil && h[:report].is_a?(Enumerable) end
   pre  :lbl_good do |h| h[:label].nil? || h[:label].is_a?(String)         end
   pre  :cl_good  do |h|
@@ -20,7 +24,11 @@ module ReportTools
       result += ":\n"
     end
     count_lines = {}
+    max_handle_length = 0
     report.each do |e|
+      if e.handle.length > max_handle_length then
+        max_handle_length = e.handle.length
+      end
       if ! count_lines.has_key?(e.count) then
         count_lines[e.count] = [e.handle]
       else
@@ -31,11 +39,78 @@ module ReportTools
       if count_lines[k].count > count_limit then
         same_counts[k] = count_lines[k].count
       else
-        result += "#{count_lines[k].join(", ")}: #{k}\n"
+        result += sprintf("%-#{max_handle_length + 2}s %s\n",
+          count_lines[k].join(", ") + ":", number_with_delimiter(k))
       end
     end
     same_counts.keys.each do |count|
       result += "#{same_counts[count]} elements with count: #{count}\n"
+    end
+    result
+  end
+
+  MSG_SUB_SAMPLE_SIZE = 3
+
+  # Information extracted from a TopicReport
+  pre :topic_report do |hash|
+    hash[:report] != nil && hash[:report].is_a?(TopicReport) end
+  def topic_info(report:, count_limit: COUNT_LIMIT, label: "")
+    result = ""   # (Ignore 'label'.)
+    indent = 2
+    subreport = lambda do |starti, endi|
+      (starti..endi).each do |i|
+        c = report[i]
+        result +=
+          "#{" " * indent}#{c.handle} - timestamp: #{c.datetime}, messages:\n"
+        indent += 2
+        c.labels.each do |l|
+          result +=  "#{" " * indent}#{l}: #{c.message_for(l)}\n"
+        end
+        indent -= 2
+      end
+    end
+    if report.count > count_limit then
+      result += "first 3 components:\n"
+      subreport.call(0, MSG_SUB_SAMPLE_SIZE - 1)
+      result += "last 3 components:\n"
+      subreport.call(report.count - MSG_SUB_SAMPLE_SIZE, report.count - 1)
+    else
+      result += "all #{report.count} components:\n"
+      subreport.call(0, report.count - 1)
+    end
+    result
+  end
+
+  # Information extracted from a TopicReport
+  pre :status_report do |hash|
+    hash[:report] != nil && hash[:report].is_a?(StatusReport) end
+  def status_info(report:, count_limit: COUNT_LIMIT, label: "")
+    result = ""   # (Ignore 'label'.)
+    indent = 2
+    result += "#{report.count} sub-reports:\n"
+    report.each do |tr|
+      result +=  "#{tr.summary(nil, indent)}\n"
+    end
+    result
+  end
+
+  COL_SEP_MARGIN = 3
+  def formatted_two_column_list(l, col1func, col2func, sep_str = ':')
+    result = ""
+    max_col_length = 0
+    col1s, col2s = [], []
+    l.each do |o|
+      s = col1func.call(o)
+      if s.length > max_col_length then
+        max_col_length = s.length
+      end
+      col1s << s
+      col2s << col2func.call(o)
+    end
+    sep_spaces = max_col_length + COL_SEP_MARGIN
+    (0..col1s.count - 1).each do |i|
+      result += sprintf("%-#{sep_spaces}s %s\n",
+                        col1s[i] + sep_str, col2s[i])
     end
     result
   end

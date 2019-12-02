@@ -101,6 +101,11 @@ class ApplicationConfiguration
     UtilityConfiguration::de_serializer
   end
 
+  # RAM usage of current process in kilobytes
+  def mem_usage
+    UtilityConfiguration::mem_usage
+  end
+
   # Database configuration/factory (class)
   post :is_class do |result| result.is_a?(Class) end
   def database

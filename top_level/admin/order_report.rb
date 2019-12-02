@@ -26,9 +26,10 @@ end
 
 require 'application_configuration'
 require 'local_time'
+require 'tat_util'
 
 class ReportProcessor
-  include Contracts::DSL, LocalTime
+  include Contracts::DSL, LocalTime, TatUtil
 
   public
 
@@ -54,6 +55,22 @@ class ReportProcessor
         if etime != nil then
           @report_args[:end_time] = etime.to_i.to_s   # seconds since "epoch"
         end
+      end
+      parser.on("-k", "--keys=lbl1[,lbl2,...]",
+                "restrict report to the specified Keys.") do |k|
+        key_args = k.split(/,/)
+        if key_args.include?("*") then
+          @report_args[:keys] = ['*']
+        else
+          @report_args[:keys] = key_args.map { |key| key.to_sym }
+        end
+      end
+      parser.on("-c", "--count=<integer>",
+                "limit the result Count for each key to 'count'.") do |n|
+        if ! is_i?(n) then
+          raise "count argument - #{n} - is not an integer."
+        end
+        @report_args[:count] = n.to_i
       end
     end.parse!
     post_process_args
@@ -137,11 +154,8 @@ rproc.process_cl_args
 args_hash = rproc.report_args
 log = config.message_log
 r = config.service_management.reporting_administrator.new(config, log)
-#!!!!(keys: option might be specifiable via command-line in future.)
-args_hash[:keys] = r.all_service_keys
-#puts "args hash: #{args_hash}"
-#r.order_reports(r.all_service_keys, rproc.report_callbacks)
+if ! args_hash.has_key?(:keys) then
+  args_hash[:keys] = r.all_service_keys
+end
 r.order_reports(args_hash)
-#r.order_reports(keys: r.all_service_keys,
-#                client_methods: rproc.report_callbacks)
 report = r.report

@@ -59,9 +59,4 @@ rproc = ReportProcessor.new(config, program_name)
 rproc.process_cl_args
 log = config.message_log
 r = config.service_management.reporting_administrator.new(config, log)
-puts "rproc: #{rproc.inspect}"
-puts "keys: #{r.all_service_keys}"
-puts "key: #{r.manage_tradable_tracking_key}"
-puts "key: #{r.logging_key_for(:manage_tradable_tracking)}"
-puts "key type: #{r.manage_tradable_tracking_key.class}"
-r.cleanup_reports(r.all_service_keys, rproc.count)
+r.cleanup_reports(keys: r.all_service_keys, count: rproc.count)

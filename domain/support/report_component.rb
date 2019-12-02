@@ -64,9 +64,9 @@ class ReportComponent
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
 
-# 'matches':  Hash table containing the matching messages for which, for each
-#             element, the key is the message label and the value is the
-#             message body
+  # 'matches':  Hash table containing the matching messages for which, for each
+  #             element, the key is the message label and the value is the
+  #             message body
   def matches
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end

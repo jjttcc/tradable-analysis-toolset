@@ -20,6 +20,7 @@ gem 'loofah', '>= 2.3.1'
 gem "passenger", ">= 5.0.25", require: "phusion_passenger/rack_handler"
 gem "nokogiri", ">= 1.10.4"
 gem 'oj'
+gem 'os'
 
 gem 'sass-rails'
 gem 'coffee-rails'

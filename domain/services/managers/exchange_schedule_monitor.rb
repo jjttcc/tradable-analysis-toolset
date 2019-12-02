@@ -17,7 +17,7 @@ class ExchangeScheduleMonitor < Publisher
   ##### Hook method implementations
 
   # Perform any needed pre-processing.
-  def pre_process(args = nil)
+  def prepare_for_main_loop(args = nil)
     @continue_monitoring = true
     send_status_info
   end

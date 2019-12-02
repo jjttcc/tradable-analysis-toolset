@@ -141,6 +141,7 @@ GEM
     nokogiri (1.10.5)
       mini_portile2 (~> 2.4.0)
     oj (3.9.2)
+    os (1.0.1)
     passenger (6.0.2)
       rack
       rake (>= 0.8.1)
@@ -284,6 +285,7 @@ DEPENDENCIES
   minitest-reporters
   nokogiri (>= 1.10.4)
   oj
+  os
   passenger (>= 5.0.25)
   pg
   pry

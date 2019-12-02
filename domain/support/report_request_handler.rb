@@ -1,3 +1,5 @@
+require 'ruby_contracts'
+
 # Objects that execute report-related requests
 class ReportRequestHandler
   include Contracts::DSL

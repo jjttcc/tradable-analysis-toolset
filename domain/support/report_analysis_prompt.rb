@@ -20,10 +20,12 @@ class ReportAnalysisPrompt
     choices = [
       { key: 's', name: 'Summary', value: self.method(:summary) },
       { key: 'd', name: 'Date range', value: self.method(:date_ranges) },
-      { key: 'c', name: 'Counts', value: self.method(:counts) },
-      { key: 't', name: 'sTatistics', value: self.method(:stats) },
+      { key: 'c', name: 'report-category Counts',
+        value: [self.method(:detailed_summary),
+                [self.method(:count_summary)], 'Sub-report counts'] },
       { key: 'e', name: 'dEtailed summary',
-          value: self.method(:detailed_summary) },
+        value: [self.method(:detailed_summary),
+                [self.method(:status_info)], 'Details']},
       { key: 'g', name: 'search/Grep for pattern', value: self.method(:grep) },
       { key: 'a', name: 'select All components for inspection',
           value: self.method(:inspect_all_components) },
@@ -32,7 +34,8 @@ class ReportAnalysisPrompt
     ]
     while true do
       choice = prompt.expand('Choose analysis action ', choices)
-      choice.call(report)
+      routine, args = menu_components(report, choice)
+      routine.call(*args)
     end
   end
 
@@ -42,10 +45,11 @@ class ReportAnalysisPrompt
     choices = [
       { key: 's', name: 'Summary', value: self.method(:tr_summary) },
       { key: 'd', name: 'Dates', value: self.method(:tr_dates) },
-      { key: 'c', name: 'Count', value: self.method(:tr_count) },
-      { key: 't', name: 'sTatistics', value: self.method(:tr_stats) },
-      { key: 'e', name: 'dEtailed summary',
-          value: self.method(:detailed_summary) },
+      { key: 'c', name: 'Count', value: [self.method(:detailed_summary),
+                                         [self.method(:count_summary)]] },
+      { key: 'e', name: 'dEtailed summary', value:
+        [self.method(:detailed_summary), [self.method(:count_summary),
+                                        self.method(:topic_info)], 'Details'] },
       { key: 'g', name: 'search/Grep for pattern', value: self.method(:grep) },
       { key: 'a', name: 'select All components for inspection',
           value: self.method(:inspect_all_components) },
@@ -62,7 +66,8 @@ class ReportAnalysisPrompt
     ]
     choice = prompt.expand('Choose analysis action ', choices)
     while choice do
-      choice.call(tr)
+      routine, args = menu_components(tr, choice)
+      routine.call(*args)
       choice = prompt.expand('Choose analysis action ', choices)
     end
   end
@@ -91,20 +96,40 @@ class ReportAnalysisPrompt
     puts "#{BORDER}#{r.summary}"
   end
 
+  COL_SEP_MARGIN = 3
+  def formatted_two_column_list(l, col1func, col2func, sep_str = ':')
+    result = ""
+    max_col_length = 0
+    col1s, col2s = [], []
+    l.each do |o|
+      s = col1func.call(o)
+      if s.length > max_col_length then
+        max_col_length = s.length
+      end
+      col1s << s
+      col2s << col2func.call(o)
+    end
+    sep_spaces = max_col_length + COL_SEP_MARGIN
+    (0..col1s.count - 1).each do |i|
+      result += sprintf("%-#{sep_spaces}s %s\n",
+                        col1s[i] + sep_str, col2s[i])
+    end
+    result
+  end
+
   # Print the start- and end-date of each topic-report in 'r'
   def date_ranges(r)
-    puts "#{BORDER}"
-    r.topic_reports.each do |tr|
-      tag = tr.label + ":"
+    label_func = lambda { |tr| tr.label }
+    value_func = lambda do |tr|
       if tr.empty? then
-        puts sprintf("%-26s empty", tag)
+        "empty"
       else
-        start_dt = local_time(tr.start_date_time)
-        end_dt = local_time(tr.end_date_time)
-        puts sprintf("%-26s %s, %s", tag,
-                     start_dt.strftime(DATEFMT), end_dt.strftime(DATEFMT))
+        "#{local_time(tr.start_date_time).strftime(DATEFMT)}, " +
+          "#{local_time(tr.end_date_time).strftime(DATEFMT)}"
       end
     end
+    puts "#{BORDER}" + formatted_two_column_list(r.topic_reports,
+                                                 label_func, value_func)
   end
 
   # Print the number of topic-reports in 'r'
@@ -115,25 +140,13 @@ class ReportAnalysisPrompt
   # Print the number of topic-reports in 'r' and the number of components for
   # each of those topic-reports
   def counts(r)
-    puts "#{BORDER}#{r.component_type} count: #{r.count}"
+    label_func = lambda { |tr| tr.label }
+    value_func = lambda { |tr| number_with_delimiter(tr.count) }
     if r.topic_reports.count > 0 then
-      puts "#{r.topic_reports[0].component_type} counts: " +
-        "#{r.sub_counts.join(", ")}"
+      puts BORDER + count_summary(report: r)
     else
       puts "0 sub-reports"
     end
-  end
-
-  # Print stats for 'r'.  - To-be-refined/changed/fixed/...!!!!!!
-  def stats(r)
-    puts "#{BORDER}#{r.component_type} count: #{r.count}"
-    if r.topic_reports.count > 0 then
-      puts "#{r.topic_reports[0].component_type} counts: " +
-        "#{r.sub_counts.join(", ")}"
-    else
-      puts "0 sub-reports"
-    end
-puts "(Fix-me!!!!!)"
   end
 
   begin
@@ -154,8 +167,8 @@ puts "(Fix-me!!!!!)"
   end
 
   def grep_switch_help
-    "Enter {<letter>} to execute a command or change an option, where <letter>
-is one of:
+    "Enter {<letter>} to execute a command or change an option, "\
+      "where <letter>\nis one of:
     h  - display this Help
     c  - toogle Case sensitivity
     k  - search Keys (labels) only
@@ -167,8 +180,6 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
 
   # Obtain a pattern from the user, fetch the report-components that match
   # the pattern, and allow the user to inspect the results.
-#  pre  :does_matches_for do |r|
-#    r.respond_to?(:matches_for) || r.all? {|o| o.respond_to?(:matches_for)} end
   def grep(r)
     finished, strict_case, keys, values = false, false, true, true
     prompt = TTY::Prompt.new
@@ -230,27 +241,7 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
     puts "Count; and first and last dates of current data set:\n"\
       "#{r.count}; "\
       "#{local_time(r.first.datetime)}, #{local_time(r.last.datetime)}"
-#    timezone_offset = (DateTime.now.utc_offset / 3600).to_s
     prompt = TTY::Prompt.new
-=begin
-    while ! finished do
-      response = prompt.ask('Enter start date/time (empty for "now")')
-      if response.nil? then
-        start_time = DateTime.now
-      else
-        y, m, d, h, min = response.split(/[-\/ :]/).map { |n| n.to_i }
-        y, m, d, h, min = [y, m, d, h, min].map { |n| (n.nil?)? 0: n }
-        start_time = DateTime.new(y, m, d, h, min, 0, timezone_offset)
-      end
-      response = prompt.ask('Enter end date/time (empty for "now")')
-      if response.nil? then
-        end_time = DateTime.now
-      else
-        y, m, d, h, min = response.split(/[-\/ :]/).map { |n| n.to_i }
-        end_time = DateTime.new(y, m, d, h, min, 0, timezone_offset)
-      end
-    end
-=end
     abort_op = false
     finished = false
     while ! finished do
@@ -320,22 +311,28 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
     puts wrap(tr.message_labels.join(", "), 79, '  ')
   end
 
-  def detailed_summary(r)
-    l = "Element counts"
+  pre :args do |r, fp| r != nil && fp != nil end
+  def detailed_summary(r, format_procs, label = nil)
+    l = (label.nil?)? "": label
     if r.respond_to?(:label) then
-      l += " for #{r.label}"
+      lbl = r.label
+      if lbl != nil then
+        l += " for #{lbl}"
+      end
     end
-    summ = BORDER + count_summary(report: r, label: l)
+    summary = BORDER
+    format_procs.each do |p|
+      summary += p.call(report: r, label: l)
+    end
     if $stdout.isatty then
       pager = TTY::Pager.new
-      pager.page(summ)
+      pager.page(summary)
     else
-      puts summ
+      puts summary
     end
   end
 
   def inspect_label(tr)
-#!!!!We appear to need the option to include dates/timestamps!!!!!!!!!!!
     finished = false
     prompt = TTY::Prompt.new
     choices = {}
@@ -381,16 +378,12 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
   def tr_dates(tr)
     start_dt = local_time(tr.start_date_time)
     end_dt = local_time(tr.end_date_time)
-    puts "#{tr.label}: #{start_dt.strftime(DATEFMT)}, " +
+    puts "#{BORDER}#{tr.label}: #{start_dt.strftime(DATEFMT)}, " +
       "#{end_dt.strftime(DATEFMT)}"
   end
 
   def tr_count(tr)
-    puts tr.count
-  end
-
-  def tr_stats(tr)
-puts "tr_stats - work in progress {WPA}!!!!!"
+    puts "#{BORDER}#{tr.count}"
   end
 
   def tr_debug(tr)
@@ -583,6 +576,27 @@ puts "tr_stats - work in progress {WPA}!!!!!"
         finished = true
       end
     end
+  end
+
+  # Components from user selection for execution
+  # result is a 2-element array for which:
+  #   result[0]:  The method to execute, obtained from 'choice'
+  #   result[1]:  Array of arguments for result[0], with 'report' as the
+  #               first element
+  pre  :args do |report, choice| report != nil && choice != nil end
+  post :result do |result| result != nil && result.is_a?(Array) end
+  post :foo do |result, rep, c| result.count == 2 && result[1][0] == rep end
+  def menu_components(report, choice)
+    result = []
+    if choice.is_a?(Array) then
+      result = [choice[0], [report]]
+      if choice.count > 1 then
+        result[1].concat(choice[1..choice.count-1])
+      end
+    else
+      result = [choice, [report]]
+    end
+    result
   end
 
 end

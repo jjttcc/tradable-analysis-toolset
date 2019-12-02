@@ -121,12 +121,12 @@ class EODRetrievalManager < Subscriber
   # not been finished (for example, due to the EOD-retrieval process aborting
   # or being killed), retrieve the associated symbol list, and complete the
   # processing for those symbols (i.e.: handle unfinished processing).
-  def pre_process(args = nil)
+  def prepare_for_main_loop(args = nil)
     eod_check_keys = eod_check_contents
 puts "#{self.class}.#{__method__}: eod_check_keys #{eod_check_keys}"
     eod_check_keys.each do |key|
       @eod_check_key = key
-puts "'pre_process': eod-check-key: #{eod_check_key}"
+puts "'prepare_for_main_loop': eod-check-key: #{eod_check_key}"
       if @eod_check_key != nil then
         msg = "recovering '#{@eod_check_key}' at #{Time.now} (ERM)"
         error_log.warn(msg)

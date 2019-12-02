@@ -16,7 +16,9 @@ module LogReader
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
 
-  # The log contents for the specified args_hash[:key_list]
+  # The log contents for the specified keys in args_hash[:key_list]
+  # If args_hash[:key_list] includes the string "*" (i.e., one-character
+  # string that is an asterisk), all available keys will be queried.
   # Other specifications or options may be present in 'args_hash' depending
   # on the run-time type of the LogReader object (i.e., the class that
   # includes LogReader that is used to instantiate this object)
@@ -29,15 +31,26 @@ module LogReader
 
   #####  Measurement
 
-  # The count - number of elements - for each key specified via
-  # args_hash[:key_list] - parallels 'contents_for', with the difference
-  # that instead of returning the contents for each specified key, the
-  # result is simply the count for each specified key
-  # (Any other keys/options in 'args_hash' will be ignored.)
+#{:count=>23755, "length"=>23755, "radix-tree-keys"=>259, "radix-tree-nodes"=>541, "groups"=>0, "last-generated-id"=>"1574128627983-0", "first-entry"=>["1573787219125-0", ["eod_data_retrieval_status", "running@2019-11-15 03:06:59 UTC"]], "last-entry"=>["1574128627983-0", ["eod_data_retrieval_status", "running@2019-11-19 01:57:07 UTC"]]},
+
+  # Information for each key specified via args_hash[:key_list] - parallels
+  # 'contents_for', with the difference that instead of returning the contents
+  # for each specified key, the result is simply a set of associated "info"
+  # (such as the count of entries).
+  # 'result' is a hash-table of hash-tables such that:
+  # For each key, k, in args_hash[:key_list], result[:k] will hold the
+  # following key/value pairs:
+  #   :count        -> The number of elements associated with :k
+  #   :first_entry  -> The first log entry for key :k
+  #   :last_entry   -> The last  log entry for key :k
+  # In addition, for debugging (or further analysis, etc.), all information
+  # returned by the implementation being used will, if practical (e.g., it
+  # is not extremely large), be included as further key/value pairs.  (Any
+  # other keys/options in 'args_hash' other than :key_list will be ignored.)
   pre  :args_hash do |hash| hash != nil && hash.respond_to?(:to_hash) end
   pre  :has_keylist do |hash| hash.has_key?(:key_list) end
-  post :hash_result do |r| r != nil && r.is_a?(Array) end
-  def counts_for(args_hash)
+  post :hash_result do |r| r != nil && r.is_a?(Hash) end
+  def info_for(args_hash)
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
 

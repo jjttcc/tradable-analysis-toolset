@@ -2,8 +2,10 @@ require 'redis_status_report'
 require 'report_specification'
 require 'report_creation_handler'
 require 'report_cleanup_handler'
+require 'report_info_handler'
 require 'oj_serializer'
 require 'oj_de_serializer'
+require 'system_tools'
 
 class UtilityConfiguration
   include Contracts::DSL
@@ -26,13 +28,18 @@ class UtilityConfiguration
     OJDeSerializer
   end
 
+  def self.mem_usage
+    SystemTools.rss_kbytes_used
+  end
+
   #####  Access - objects
 
   begin
 
     @@report_handler = {
-      ReportSpecification::CREATE_TYPE => ReportCreationHandler,
+      ReportSpecification::CREATE_TYPE  => ReportCreationHandler,
       ReportSpecification::CLEANUP_TYPE => ReportCleanupHandler,
+      ReportSpecification::INFO_TYPE    => ReportInfoHandler,
     }
 
     # ReportRequestHandler descendant object, according to 'specs.type'

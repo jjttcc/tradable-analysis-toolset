@@ -39,7 +39,7 @@ class EODEventManager < Subscriber
   ##### Hook method implementations
 
 #!!! (Used to be: 'handle_unfinished_processing' [a null op])!!!!
-  def pre_process(args = nil)
+  def prepare_for_main_loop(args = nil)
 #!!!Will this NOT be a null op????!!!!!!
   end
 

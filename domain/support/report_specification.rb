@@ -15,8 +15,10 @@ class ReportSpecification
     :type, :response_key, :key_list, :block_msecs, :new_only, :count
   START_TIME_KEY, END_TIME_KEY = :start_time, :end_time
 
-  CREATE_TYPE, CLEANUP_TYPE = :create, :cleanup
-  REPORT_TYPES = {CREATE_TYPE => true, CLEANUP_TYPE => true}
+  CREATE_TYPE, CLEANUP_TYPE, INFO_TYPE = :create, :cleanup, :info
+  REPORT_TYPES = {
+    CREATE_TYPE => true, CLEANUP_TYPE => true, INFO_TYPE => true
+  }
 
   BLOCK_MSECS_DEFAULT = 2000
 

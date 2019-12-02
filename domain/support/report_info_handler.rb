@@ -1,7 +1,7 @@
-require 'ruby_contracts'
 require 'report_request_handler'
+require 'ruby_contracts'
 
-class ReportCreationHandler < ReportRequestHandler
+class ReportInfoHandler < ReportRequestHandler
   include Contracts::DSL
 
   public
@@ -15,10 +15,9 @@ class ReportCreationHandler < ReportRequestHandler
   # Data gathered using specs via 'report_specs'
   pre  :has_key_list do
     report_specs[:key_list] != nil && ! report_specs[:key_list].empty? end
-  post :resgood do |result| result != nil && result.is_a?(StatusReport) end
+  post :resgood do |result| result != nil && result.is_a?(Hash) end
   def report
-    contents = config.log_reader.contents_for(report_specs)
-    result = config.status_report.new(contents)
+    result = config.log_reader.info_for(report_specs)
     result
   rescue StandardError => e
     raise e

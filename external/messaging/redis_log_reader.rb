@@ -1,15 +1,17 @@
 require 'log_reader'
 require 'redis'
+require 'redis_tools'
 require 'redis_stream_facilities'
 
 class RedisLogReader
-  include Contracts::DSL, RedisStreamFacilities, LogReader, TatUtil
+  include Contracts::DSL, RedisStreamFacilities, LogReader, TatUtil, RedisTools
 
   public
 
   #####  Constants
 
-  DEFAULT_TRIM_THRESHHOLD = 100
+  DEFAULT_TRIM_THRESHHOLD = 1000
+  STREAM_TYPE = :stream
 
   #####  Access
 
@@ -21,7 +23,7 @@ class RedisLogReader
 ##!!!!!'xread' - i.e.: consumer groups; use of saved ids (e.g., in a private
 ##!!!!!array attribite) to be used in the next 'contents_for' call; ...
 ##!!!!!(An abstract representation of this functionality will need to go
-##!!!!!into 'LogReader'.)
+##!!!!!into 'LogReader'.)  [Delete this comment "soon" if not <whatever>.]
 
   # If args_hash[:count] != nil, it will be used as a limit for the number
   # of entries retrieved per key; otherwise, there is no limit.
@@ -40,6 +42,9 @@ class RedisLogReader
       args_hash[:key_list], args_hash[:count], args_hash[:new_only],
       args_hash[:block_msecs], args_hash[:start_time], args_hash[:end_time]
     if key_list != nil && ! key_list.empty? then
+      if key_list.any? { |k| k.to_s == "*" } then
+        key_list = all_keys_of_type(STREAM_TYPE, redis_log)
+      end
       if is_i?(start_time) || is_i?(end_time) then
         result = contents_for_range(key_list, start_time, end_time, count)
       else
@@ -59,8 +64,41 @@ class RedisLogReader
 
   #####  Measurement
 
-  def counts_for(args_hash)
-    result = []
+  begin
+
+  first_entry_s, last_entry_s = "first-entry", "last-entry"
+  INFO_KEYS_MAP = {
+    :length              => :count,
+    :"#{first_entry_s}"  => :first_entry,
+    :"#{last_entry_s}"   => :last_entry,
+  }
+
+  def info_for(args_hash)
+    result = {}
+    key_list = args_hash[:key_list]
+    if key_list != nil && ! key_list.empty? then
+      if ! key_list.is_a?(Enumerable) then
+        key_list = [key_list]   # Attempt to make it enumerable.
+      end
+      key_list.each do |stream_key|
+        info_hash = {}
+        info = redis_log.xinfo(:stream, stream_key)
+        if info.nil? then
+          raise "Unexpected nil result from Redis#xinfo("\
+            ":stream, #{stream_key})"
+        end
+        INFO_KEYS_MAP.keys.each do |k|
+          info_hash[INFO_KEYS_MAP[k]] = info[k.to_s]
+        end
+        result[stream_key] = info_hash.merge(info)
+      end
+    end
+    result
+  end
+
+#!!!!!!!!!!!!!!!!!:
+  def old___counts_for(args_hash)
+    result = {}
     key_list = args_hash[:key_list]
     if key_list != nil && ! key_list.empty? then
       if ! key_list.is_a?(Enumerable) then
@@ -68,15 +106,22 @@ class RedisLogReader
       end
       key_list.each do |stream_key|
         info = redis_log.xinfo(:stream, stream_key)
-        if info.nil? || ! info.has_key?(:length) then
+        if info.nil? then
           raise "Unexpected nil result from Redis#xinfo("\
             ":stream, #{stream_key})"
         end
         count = info[:length]
-        result << count.to_i
+        count ||= info[:length.to_s]
+        if count.nil? then
+          raise "Unexpected missing length in result from Redis#xinfo("\
+            ":stream, #{stream_key})"
+        end
+        result[stream_key] = count.to_i
       end
     end
     result
+  end
+
   end
 
   #####  Removal

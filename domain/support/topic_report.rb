@@ -81,7 +81,6 @@ class TopicReport
         end_i -= 1
       end
       if start_i <= end_i then
-puts "!!!!!!Search complete - copying matches...!!!!!!"
         check(self[start_i].datetime >= start_time &&
               self[end_i].datetime <= end_time, "valid start/end range")
         (start_i .. end_i).each do |i|
@@ -103,19 +102,23 @@ puts "!!!!!!Search complete - copying matches...!!!!!!"
   # Summary of report contents
   # If 'conversion_function' != nil, it will be called to convert the UTC
   # date/times into the desired (e.g., local-time) time zone.
-  def summary(conversion_function = nil)
+  def summary(conversion_function = nil, indent = 0)
+    spaces = " " * indent
+    result = "#{spaces}label: #{label}"
     if empty? then
-      result = "(Report is empty.)"
+      result += " (Report is empty.)"
     else
+      spaces = " " * indent * 2
       fst = self.first; lst = self.last
       first_datetime = (conversion_function.nil?)?
         fst.datetime: conversion_function.call(fst.datetime)
       last_datetime = (conversion_function.nil?)?
         lst.datetime: conversion_function.call(lst.datetime)
-      result = "label: #{label}, number of components: #{count}\n" +
-        "date/time of first component: #{first_datetime}\n" +
-        "date/time of last component:  #{last_datetime}"
-      result += "\nfirst component: #{fst}\nlast component:  #{lst}"
+      result += ", number of components: #{count}\n" +
+        "#{spaces}date/time of first component: #{first_datetime}\n" +
+        "#{spaces}date/time of last component:  #{last_datetime}"
+      result += "\n#{spaces}first component: #{fst}\n" +
+      "#{spaces}last component:  #{lst}"
     end
     result
   end

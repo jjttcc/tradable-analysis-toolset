@@ -28,17 +28,19 @@ module TAT
 
     # Core start and end times, if is_trading_day?
     pre  :good_time do |ltime| ltime != nil && ltime.respond_to?(:wday) end
-    post :nil_iff_not_trading_day do |result, ltime|
-      ! is_trading_day?(ltime.wday) == result.nil? end
+    post :nil_iff_not_trading_day do |result, localtime|
+      ! is_trading_day?(localtime.wday) == result.nil? end
     post :invariant do invariant end
     def core_hours(localtime)
       result = nil
-      start_time = new_time_from_h_m(localtime, core_start_time[0..1].to_i,
-                                     core_start_time[3..4].to_i)
-      end_time = new_time_from_h_m(localtime, core_end_time[0..1].to_i,
-                                   core_end_time[3..4].to_i)
-      if ! (start_time.nil? || end_time.nil?) then
-        result = [start_time, end_time]
+      if is_trading_day?(localtime.wday) then
+        start_time = new_time_from_h_m(localtime, core_start_time[0..1].to_i,
+                                       core_start_time[3..4].to_i)
+        end_time = new_time_from_h_m(localtime, core_end_time[0..1].to_i,
+                                     core_end_time[3..4].to_i)
+        if ! (start_time.nil? || end_time.nil?) then
+          result = [start_time, end_time]
+        end
       end
       result
     end
