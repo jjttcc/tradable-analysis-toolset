@@ -56,11 +56,11 @@ class StatusReport
   # ReportComponents are considered a match.
   pre  :regsym do |p| p != nil && (p.is_a?(Regexp) || p.is_a?(Symbol)) end
   post :array do |result| result != nil && result.is_a?(Array) end
-  def matches_for(pattern, use_keys: true, use_values: true)
+  def matches_for(pattern, use_keys: true, use_values: true, negate: false)
     result = []
     self.each do |r|
       result.concat(r.matches_for(pattern, use_keys: use_keys,
-                                 use_values: use_values))
+                                 use_values: use_values, negate: negate))
     end
     result
   end

@@ -33,10 +33,7 @@ class RedisLog
   end
 
   def send_messages(log_key: key, messages_hash:)
-#!!!!!!!!!!!![FOR DEBUG - REMOVE ASAP(2019-september-iteration)]:
-puts "<<<START xadd:>>> (No '<<<END xadd>>>' below means exception thrown.)"
     redis_log.xadd(log_key, messages_hash)
-puts "<<<END xadd>>>" #!!!!!!!!!!!
     redis_log.expire(log_key, expiration_secs)
   end
 

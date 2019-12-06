@@ -21,6 +21,7 @@ class ServicesSupervisor
     service_managers.each do |sm|
       sm.monitor
     end
+    log_startup(true)
     # Is there any need for this loop?!!!!:
     while continue_supervising do
       check_on_managers
@@ -33,7 +34,7 @@ class ServicesSupervisor
     thread_report
     service_managers.each do |sm|
       if ! sm.healthy? then
-log_error("#{sm} is NOT healthy!!!! - perhaps I should restart it.")
+        log.debug("#{sm} is NOT healthy!!!! - perhaps I should restart it.")
       end
     end
   end
@@ -44,23 +45,20 @@ log_error("#{sm} is NOT healthy!!!! - perhaps I should restart it.")
     end
     if @iteration_cycle == 0 then
       threads = Thread.list
-      log_error("thread count: #{threads.count} - threads:")
+      log.debug("thread count: #{threads.count} - threads:")
       threads.each do |t|
-        log_error(t.inspect)
+        log.debug(t.inspect)
       end
     end
     @iteration_cycle += 1
-  end
-
-  def log_error(msg)
-    puts msg
-    $stdout.flush
   end
 
   private
 
   MAIN_PAUSE_SECONDS = 25
   ITERATION_CYCLE_LENGTH = 6
+
+  attr_reader :log
 
   private  ###  Initialization
 
@@ -84,23 +82,32 @@ log_error("#{sm} is NOT healthy!!!! - perhaps I should restart it.")
     @continue_supervising = true
     @config = config
     @log = config.error_log
+    log_startup
     # (Array of service managers ordered according to which service should
     # be started when relative to the other services)
     @service_managers = initialized_service_managers
-i = 1
     @service_managers.each do |sm|
-log_error("i: #{i}")
       begin
         # (I.e., block until sm has ensured that its service has started.)
-        log_error("starting #{sm.inspect}")
+        @log.debug("starting #{sm.inspect}")
         sm.block_until_started
       rescue StandardError => e
-        log_error("#{sm} startup failed for #{sm.inspect}: #{e} - stack:")
-        log_error("#{caller.join("\n")}")
+        @log.error("#{sm} startup failed for #{sm.inspect}: #{e} - stack:")
+        @log.error("#{caller.join("\n")}")
       end
-i += 1
     end
     supervise
+  end
+
+  pre :log do @log != nil end
+  def log_startup(complete = false)
+    id = "#{self.class} (pid: #{$$})"
+    if complete then
+      msg = "#{id}: All #{service_managers.count} services initiated."
+    else
+      msg = "#{id}: Starting up services."
+    end
+    log.info(msg)
   end
 
 end

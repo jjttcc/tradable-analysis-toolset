@@ -26,7 +26,7 @@ class ServiceManager
   post :started do is_alive?(tag) end
   def block_until_started
     if ! is_alive?(tag) then
-      error_log.warn("#{tag} is NOT running - starting it up...")
+      warn("#{tag} is NOT running - starting it up...")
       start_service
       tries = 0
       sleep PING_RETRY_PAUSE
@@ -38,7 +38,7 @@ class ServiceManager
         tries += 1
       end
     else
-$stderr.puts "[ServiceManager] service #{tag} is alive";$stderr.flush
+    info("[ServiceManager] service #{tag} is alive")
     end
   end
 
@@ -52,7 +52,7 @@ $stderr.puts "[ServiceManager] service #{tag} is alive";$stderr.flush
 #!!!!Add some method to shut this timer down on command!!!!
       rescue StandardError => e
         msg = "#{tag} service - failed while monitoring: #{e}"
-        error_log.warn(msg)
+        warn(msg)
       end
     end
     @monitoring_task.execute

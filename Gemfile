@@ -1,7 +1,7 @@
 source 'https://rubygems.org'
 # vim: expandtab ts=2 sw=2
 
-gem 'rails', '5.0.7.2'
+gem 'rails', '5.2.4'
 gem 'activerecord-session_store'
 
 # Bundle edge Rails instead:

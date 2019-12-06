@@ -107,9 +107,8 @@ module TatServicesFacilities
     status = method(method_name).call
     result = !! (status =~ /^#{SERVICE_RUNNING}/ ||
                   status =~ /^#{SERVICE_SUSPENDED}/)  # (i.e., as boolean)
-#!!!!![2019-september-iteration]!!!!:
-error_log.debug("#{self}.#{__method__} - status from #{method_name}: " +
-"'#{status}', result: '#{result}'")
+    debug("#{self}.#{__method__} - status from #{method_name}: " +
+          "'#{status}', result: '#{result}'")
     result
   end
 

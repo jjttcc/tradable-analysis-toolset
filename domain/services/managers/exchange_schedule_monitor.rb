@@ -32,18 +32,18 @@ class ExchangeScheduleMonitor < Publisher
       long_pause
     else
       check(@next_close_time != nil)
-log_messages(debug: "eom - @next_close_time: #{@next_close_time} (for " +
-"#{exchange_clock.exchanges_for(@next_close_time).map do |e|
-  "#{e.name.inspect}/#{e.timezone.inspect}"
-end.join(", ")})")
-        # (Wait until it's '@next_close_time'.)
+      debug("eom - @next_close_time: #{@next_close_time} (for " +
+            "#{exchange_clock.exchanges_for(@next_close_time).map do |e|
+              "#{e.name.inspect}/#{e.timezone.inspect}"
+            end.join(", ")})")
 #!!!!Consider sending (queue_messages) the list of symbols and the
 #!!!close-date (send_close_date) ahead of time for robustness -
 #!!!If the process dies and is not restarted until after 'next_close_time'
 #!!!occurs, then (on startup) retrieve the key (from where? - the message
 #!!!broker?) and do the 'publish eod_check_key' again.
+      # (Wait until it's '@next_close_time'.)
       time_to_send = deadline_reached(@next_close_time)
-log_messages(debug: "eom: time_to_send: #{time_to_send}")
+      debug("eom: time_to_send: #{time_to_send}")
       if time_to_send then
         if run_state != SERVICE_RUNNING then
           if run_state == SERVICE_SUSPENDED then
@@ -79,8 +79,8 @@ log_messages(debug: "eom: time_to_send: #{time_to_send}")
     while ! terminated? && ! cancel_wait && Time.current < utc_time do
       pause
       if pause_counter > CHECK_FOR_UPDATES_THRESHOLD then
-log_messages(debug:
-"It's #{Time.current} and I'm waiting for a deadline of #{utc_time}.")
+        debug("It's #{Time.current} and I'm waiting for a deadline " +
+              "of #{utc_time}.")
         handle_exchange_updates
         pause_counter = 0
       else
@@ -91,7 +91,8 @@ log_messages(debug:
         utc_time.to_i - Time.current.to_i >= EXCH_THRESHOLD_INTERVAL
       then
         cancel_wait = true
-log_messages(debug: "On #{Time.current} the database was changed, so I'm ending my loop.")
+        debug("On #{Time.current} the database was changed, " +
+              "so I'm ending my loop.")
       end
     end
     ! cancel_wait
@@ -130,7 +131,6 @@ log_messages(debug: "On #{Time.current} the database was changed, so I'm ending 
         end
         send_open_market_info(open_markets)
       end
-      @long_term_i_count += 1
       @long_term_i_count += 1
     end
   end
@@ -173,7 +173,7 @@ log_messages(debug: "On #{Time.current} the database was changed, so I'm ending 
     eod_check_key = new_eod_check_key
     if symbols.count > 0 then
       # Insurance - in case subscriber crashes while processing eod_check_key:
-log_messages(debug: "enqueuing check key: #{eod_check_key}")
+      debug("enqueuing check key: #{eod_check_key}")
       enqueue_eod_check_key eod_check_key
       count = queue_messages(eod_check_key, symbols.map {|s| s.symbol},
                      DEFAULT_EXPIRATION_SECONDS)
@@ -236,12 +236,15 @@ log_messages(debug: "enqueuing check key: #{eod_check_key}")
     @log = self.config.message_log
     @error_log = self.config.error_log
     @refresh_requested = false
-    @exchange_clock = config.database::exchange_clock(@log)
+    @exchange_clock = config.database::exchange_clock(@error_log)
     @run_state = SERVICE_RUNNING
     @long_term_i_count = -1
     @service_tag = EOD_EXCHANGE_MONITORING
     # Set up to log with the key 'service_tag'.
     self.log.change_key(service_tag)
+    if @error_log.respond_to?(:change_key) then
+      @error_log.change_key(service_tag)
+    end
     initialize_message_brokers(self.config)
     initialize_pubsub_broker(self.config)
     create_status_report_timer

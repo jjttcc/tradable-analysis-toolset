@@ -117,15 +117,15 @@ module ReportTools
 
   pre :target_enum_or_has_matches_for do |tgt|
     tgt != nil && (tgt.is_a?(Enumerable) || tgt.respond_to?(:matches_for)) end
-  def collected_matches(target, regexp, use_keys, use_values)
+  def collected_matches(target, regexp, use_keys, use_values, negate)
     result = []
     if target.respond_to?(:matches_for) then
       result = target.matches_for(regexp, use_keys: use_keys,
-                                  use_values: use_values)
+                                  use_values: use_values, negate: negate)
     else
       target.each do |o|
         matches = o.matches_for(regexp, use_keys: use_keys,
-                                use_values: use_values)
+                                use_values: use_values, negate: negate)
         if matches != nil && matches.count > 0 then
           if matches.is_a?(Array) then
             result.concat(matches)

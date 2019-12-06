@@ -40,11 +40,13 @@ class TradableTrackingManager
     log_verbose_messages(debug4: "executing with 'wait'")
     execute_with_wait do
       ActiveRecord::Base.transaction do
-log_messages(track_debug: "untracking all symbols...#{DateTime.current}")
+        log_messages(track_debug:
+                     "untracking all symbols...#{DateTime.current}")
         untrack_all_symbols
-log_messages(track_debug: "tracking symbols...#{DateTime.current}")
+        log_messages(track_debug: "tracking symbols...#{DateTime.current}")
         track_used_symbols
-log_messages(track_debug: "FINISHED tracking symbols...#{DateTime.current}")
+        log_messages(track_debug:
+                     "FINISHED tracking symbols...#{DateTime.current}")
       end
     end
     @last_update_time = DateTime.current
@@ -68,7 +70,7 @@ log_messages(track_debug: "FINISHED tracking symbols...#{DateTime.current}")
           suspend_exch_monitor
           track(updated_symbol_ids)
           set_message(TTM_LAST_TIME_KEY, DateTime.current.to_s)
-log_messages([TTM_LAST_TIME_KEY, DateTime.current.to_s])  #!!!!!??
+          log_messages({TTM_LAST_TIME_KEY => DateTime.current.to_s})
           wake_exch_monitor
         end
       end
@@ -135,8 +137,10 @@ log_messages([TTM_LAST_TIME_KEY, DateTime.current.to_s])  #!!!!!??
     now = DateTime.current
     previous_close_time = last_recorded_close_time
     @last_recorded_close_time = next_exch_close_datetime
-log_messages(wuemr: "Waiting for ex mon to become ready (#{DateTime.current})")
-log_messages(wuemr: "prevct, last_rct: #{previous_close_time}, #{last_recorded_close_time}")
+    log_messages(wuemr:
+                 "Waiting for ex mon to become ready (#{DateTime.current})")
+    log_messages(wuemr:
+      "prevct, last_rct: #{previous_close_time}, #{last_recorded_close_time}")
     if last_recorded_close_time != nil then
 #!!!!![Check this section for correctness:
       seconds_until_close = last_recorded_close_time.to_i - now.to_i
@@ -146,24 +150,26 @@ log_messages(wuemr: "prevct, last_rct: #{previous_close_time}, #{last_recorded_c
         (previous_close_time != nil) &&
         (previous_close_time != last_recorded_close_time)
       )?  now.to_i - previous_close_time.to_i: POST_CLOSE_TIME_MARGIN
-log_messages(wuemr: "secs until ct: #{seconds_until_close}")
-log_messages(wuemr: "secs after lct: #{seconds_after_last_close}")
+      log_messages(wuemr: "secs until ct: #{seconds_until_close}")
+      log_messages(wuemr: "secs after lct: #{seconds_after_last_close}")
       if
         seconds_until_close < PRE_CLOSE_TIME_MARGIN ||
           seconds_after_last_close < POST_CLOSE_TIME_MARGIN
       then
-log_messages(wuemr: "I'm waiting for " +
-"#{seconds_until_close + POST_CLOSE_TIME_MARGIN}.....(#{DateTime.current})")
+      log_messages(wuemr:
+        "I'm waiting for #{seconds_until_close + POST_CLOSE_TIME_MARGIN}" +
+        ".....(#{DateTime.current})")
         sleep seconds_until_close + POST_CLOSE_TIME_MARGIN
       else
-log_messages(wuemr: "I'm NOT waiting (#{DateTime.current})")
+        log_messages(wuemr: "I'm NOT waiting (#{DateTime.current})")
       end
 #!!!!!end (Check...)]
     else
       check(last_recorded_close_time.nil?)
       # last_recorded_close_time == nil implies that no wait is needed.
     end
-log_messages(wuemr: "finished waiting (or NOT waiting)(#{DateTime.current})")
+    log_messages(wuemr:
+                 "finished waiting (or NOT waiting)(#{DateTime.current})")
   end
 
   # Suspend the exchange monitor - Wait and verify that it enters the
@@ -172,10 +178,11 @@ log_messages(wuemr: "finished waiting (or NOT waiting)(#{DateTime.current})")
     implies(! exch_monitor_is_ill, eod_exchange_monitoring_suspended?) end
   def suspend_exch_monitor
     if ! eod_exchange_monitoring_suspended? then
-log_messages(sem: "#{self.class}.#{__method__} calling 'order_eod_exchange_monitoring_suspension'")
+      log_messages(sem: "#{self.class}.#{__method__} calling " +
+                   "'order_eod_exchange_monitoring_suspension'")
       order_eod_exchange_monitoring_suspension
       sleep SHORT_PAUSE_SECONDS
-log_messages(sem: "waiting for exch. mon. to suspend itself...")
+      log_messages(sem: "waiting for exch. mon. to suspend itself...")
       pause_count = 0
       while ! eod_exchange_monitoring_suspended?
         if pause_count > 0 && pause_count % 5 == 0 then
@@ -193,7 +200,7 @@ log_messages(sem: "waiting for exch. mon. to suspend itself...")
         sleep SHORT_PAUSE_SECONDS
         pause_count += 1
       end
-log_messages(sem: "FINISHED waiting for exch. mon. to suspend itself...")
+      log_messages(sem: "FINISHED waiting for exch. mon. to suspend itself...")
     end
   end
 
@@ -218,7 +225,7 @@ log_messages(sem: "FINISHED waiting for exch. mon. to suspend itself...")
         tracked[symbol_id] = true
       end
     end
-log_messages(tus: "#{__method__} tracking ids: #{tracked.keys.inspect}")
+    log_messages(tus: "#{__method__} tracking ids: #{tracked.keys.inspect}")
     TradableSymbol.where(id: tracked.keys).update_all(tracked: true)
   end
 
@@ -251,19 +258,21 @@ log_messages(tus: "#{__method__} tracking ids: #{tracked.keys.inspect}")
     # Insert all 'in_use?' owners of updated_symlist_assignments.values
     # (SymbolListAssignment objects) into result_hash.
     updated_symlist_assignments.values.each do |sla|
-log_messages(uslo: "sla: #{sla.inspect}")
+      log_messages(uslo: "sla: #{sla.inspect}")
       owner = sla.symbol_list_user
       if owner != nil then
         if owner.in_use? then
           result_hash[owner] = true
         end
       else
-log_messages(uslo: "owner with id: #{sla.symbol_list_user_id} appears to NOT exist.")
+        log_messages(uslo:
+          "owner with id: #{sla.symbol_list_user_id} appears to NOT exist.")
       end
     end
-if ! result_hash.empty? then
-log_messages(uslo: "#{__method__} returning:#{result_hash.keys.inspect} (#{DateTime.current})")
-end
+    if ! result_hash.empty? then
+      log_messages(uslo: "#{__method__} returning:" +
+                   "#{result_hash.keys.inspect} (#{DateTime.current})")
+    end
     result_hash.keys
   end
 
@@ -300,14 +309,13 @@ end
 
   private    ###  Initialization
 
-include LoggingFacilities
+  include LoggingFacilities
 
-def db_key_report
-  log_messages(dkr: "all keys: #{all_logging_keys.join(",")}")
-  log_messages(dkr:
-"ALL KEYS: <#{LoggingFacilities::all_logging_keys.join(">, <")}>\n")
-  log_messages(dkr: "MY KEY: '#{logging_key_for(service_tag)}'\n")
-end
+  def db_key_report
+    debug("all keys: #{all_logging_keys.join(",")}")
+    debug("ALL KEYS: <#{LoggingFacilities::all_logging_keys.join(">, <")}>\n")
+    debug("MY KEY: '#{logging_key_for(service_tag)}'\n")
+  end
 
   pre  :config_exists do |config| config != nil end
   post :log_config_etc_set do invariant end
@@ -321,15 +329,13 @@ end
     @last_update_time = nil
     @run_state = SERVICE_RUNNING
     @service_tag = MANAGE_TRADABLE_TRACKING
-db_key_report #!!!!
-    @log = config.message_log
-log_messages(init: "TTM log is a #{@log.class} [#{@log.inspect}]")
-log_messages(init: "TTM self.log is a #{self.log.class} [#{self.log.inspect}]")
+    db_key_report
     # Set up to log with the key 'service_tag'.
     self.log.change_key(service_tag)
-log_messages(init: "TTM init - log: #{log.inspect}")
+    if @error_log.respond_to?(:change_key) then
+      @error_log.change_key(service_tag)
+    end
     set_message(TTM_LAST_TIME_KEY, nil)
-log_messages({TTM_LAST_TIME_KEY => nil})  #!!!!!??
     @last_cleanup_time = nil
     @last_recorded_close_time = next_exch_close_datetime
     @continue_processing = true

@@ -48,14 +48,10 @@ module Service
 
   protected
 
-  #####  Constants
-
-  DEFAULT_MEM_LIMIT        = 1_000_000
-  DEFAULT_MEMCHECK_SECONDS = 30
-
   ##### Implementation - utilities
 
-  attr_reader :config, :error_log, :monitor_memory, :memlimit_reached
+  attr_reader :config, :error_log
+  attr_reader :monitor_memory   #!!!!!used?/not-used??!!!!!!
 
   # (Redefined to additionally log the 'msg' if 'logging_on'.)
   def set_message(key, msg, expire_secs = nil, admin = false)
@@ -88,23 +84,6 @@ module Service
     config.mem_usage
   end
 
-  # Limit: number of kilobytes of RAM "allowed" - redefine if needed
-  def mem_limit
-    DEFAULT_MEM_LIMIT
-  end
-
-  def DO_NOT__manage_memory
-puts "manage_memory - musage: #{mem_usage.to_s}"
-    log_messages(memory_usage: mem_usage.to_s)
-puts "mem_usage, mem_limit: #{mem_usage}, #{mem_limit}"
-puts "mem_usage > mem_limit: #{mem_usage > mem_limit}"
-    if mem_usage > mem_limit then
-puts "mem_usage > mem_limit calling cleanup_memory... #{self}"
-      self.cleanup_memory
-puts "manage_memory - cleanup_memory completed"
-    end
-  end
-
   # Perform any needed preparation before starting the main 'while' loop.
   # (To turn this into a [template-method-pattern] hook method, simply
   # redefine this method in the "descendant class" and call 'super(args)'
@@ -114,12 +93,12 @@ puts "manage_memory - cleanup_memory completed"
   #   # [do_more_stuff #...]
   # )
   def prepare_for_main_loop(args)
+    #!!!!!If this "memory-management" stuff turns out to be unuseful,
+    #!!!remove it!!!!!
     if monitor_memory then
       mem_task = periodic_task(mthd: method(:manage_memory),
-                               secs: DEFAULT_MEMCHECK_SECONDS)
-puts "executing mem_task (#{mem_task})..."
+                               secs: 30)
       mem_task.execute
-puts "FINISHED executing mem_task..."
     end
   end
 
@@ -145,13 +124,6 @@ puts "FINISHED executing mem_task..."
 
   # Perform any needed post-processing after 'process' is called.
   def post_process(args = nil)
-    # Null operation - Redefine if needed.
-  end
-
-  # Perform memory cleanup.
-  pre :cleanup_needed do monitor_memory && memlimit_reached end
-  def cleanup_memory
-puts "#{self.class}.#{__method__} started - usage: #{mem_usage.to_s}"   #!!!!!
     # Null operation - Redefine if needed.
   end
 

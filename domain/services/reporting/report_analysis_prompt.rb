@@ -151,8 +151,8 @@ class ReportAnalysisPrompt
 
   begin
 
-  CASE_SWITCH, HELP_SWITCH, KEYS_SWITCH, VALUES_SWITCH, KVBOTH_SWITCH =
-    '{c}', '{h}', '{k}', '{v}', '{b}'
+  CASE_SWITCH, HELP_SWITCH, KEYS_SWITCH, VALUES_SWITCH, KVBOTH_SWITCH,
+    NEGATION_SWITCH = '{c}', '{h}', '{k}', '{v}', '{b}', '{n}'
   KEYS_NAME, VALUES_NAME, BOTH_NAME =
     "keys-only", "values-only", "keys-and-values"
 
@@ -174,6 +174,7 @@ class ReportAnalysisPrompt
     k  - search Keys (labels) only
     v  - search Values (message bodies) only
     b  - search Both keys and values
+    n  - toggle Negation (don't-match/match pattern)
 
 For example, enter (without quotes): '{k}' for search-only-keys mode"
   end
@@ -182,11 +183,13 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
   # the pattern, and allow the user to inspect the results.
   def grep(r)
     finished, strict_case, keys, values = false, false, true, true
+    negate = false
     prompt = TTY::Prompt.new
     last_response = ""
     while not finished do
       q = "\n(Case sensitivity is #{(strict_case)? "on": "off"}. " +
-      q = "Search mode is '#{grep_mode_name(keys, values)}')\n" +
+        "Search mode is '#{grep_mode_name(keys, values)}'. " +
+        "Negation is '#{(negate)? "on": "off"}'.)\n" +
         "(Hit <Enter> to exit this menu.)\n" +
         "Enter regular expression pattern (or \"#{HELP_SWITCH}\" to for help) "
       if ! last_response.empty? then
@@ -207,11 +210,13 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
         keys = false; values = true
       when KVBOTH_SWITCH then
         keys = true; values = true
+      when NEGATION_SWITCH then
+        negate = ! negate
       else
         last_response = response
         options = (strict_case)? nil: Regexp::IGNORECASE
         matches = collected_matches(r, Regexp.new(response, options),
-                                    keys, values)
+                                    keys, values, negate)
         if matches.empty? then
           puts "No matches found for '#{response}'\n"
         else
@@ -554,7 +559,11 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
     display = BORDER
     matches.each do |match|
       display += "match count for #{match.id}: #{match.count}\n" +
-      "time stamp: #{local_time(match.datetime)}\nMESSAGES:\n"
+      "time stamp: #{local_time(match.datetime)}\n"
+      if match.owner != nil then
+        display += "label: #{match.owner.label}\n"
+      end
+      display += "MESSAGES:\n"
       match.matches.each do |k, v|
         display += "#{k}:  #{v}\n"
       end

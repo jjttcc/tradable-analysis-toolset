@@ -29,29 +29,6 @@ class RedisStatusReport < StatusReport
 
   alias_method :report_for, :[]
 
-#!!!!!keep/change?, remove?, or ...?!!!!:
-  def what_the___summary
-    result = "Number of items: #{contents.count}\n"
-    result += "timestamp, contents.type: #{timestamp}, #{contents.class}\n"
-    if contents.count > 0 then
-      first = contents.first
-      result += "first.count: #{first.count}\n"
-      result += "type of first: #{first.class}\n"
-      if first.count > 0 then
-        ffirst = first.first
-        fsecond = first[1]
-        result += "type of first of first: #{ffirst.class}\n"
-        result += "type of second of first: #{fsecond.class}\n"
-        result += "second of first (topic report): #{fsecond}\n"
-        result += "1st of 2nd of 1st: #{fsecond.first}\n"
-        result += "1st of 2nd of 1st.inspect: #{fsecond.first.inspect}\n"
-        result += "1st of 2nd of 1st timestamp: #{fsecond.first.timestamp}\n"
-        result += "1st of 2nd of 1st datetime: #{fsecond.first.datetime}\n"
-      end
-    end
-    result
-  end
-
   #####  Boolean queries
 
   def ===(other)

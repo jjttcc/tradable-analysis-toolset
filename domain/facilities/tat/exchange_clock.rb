@@ -37,13 +37,8 @@ module TAT
               time_for[unix_close_time] = close_time
             end
             self.closing_unix_times = exchanges_for_unix_time.keys
-#!!!!!!fix-or-delete[2019-september-iteration] these 3 lines:
-#          closing_unix_times.each do |t|
-#            time_for
-#          end
           else
-            log.send_message(tag: :debug,
-              msg: "close_time for #{e.name} is past (#{close_time})")
+            log.debug("close_time for #{e.name} is past (#{close_time})")
           end
         end
       else
@@ -75,10 +70,11 @@ module TAT
     post :exists do |result| ! result.nil? && result.is_a?(Enumerable) end
     def symbols_for(close_time)
       result = []
-      exchanges = exchanges_for(close_time)
-      if exchanges != nil then
-       result = tracked_tradables(exchanges)
+      exchngs = exchanges_for(close_time)
+      if exchngs != nil then
+       result = tracked_tradables(exchngs)
       end
+      log.debug("#{__method__} - close_time, result: #{close_time}, #{result}")
       result
     end
 
@@ -90,6 +86,7 @@ module TAT
       result = exchanges.select do |e|
         e.is_open?
       end
+      log.debug("#{__method__} - result: #{result}")
       result
     end
 
@@ -106,7 +103,6 @@ module TAT
     post :init_time_updated_iff_true do |result|
       implies(result, initialization_time != nil) end
     def exchanges_updated?(&block)
-#!!!!TO-DO: Analyze this method, e.g., AR dependencies[2019-september-iteration]
       new_exchanges = all_exchanges
       result = new_exchanges.count != exchanges.count
       if ! result || block_given? then
@@ -158,7 +154,7 @@ module TAT
     post :enumerable do |result| result != nil && result.is_a?(Enumerable) end
     post :empty_if_0_exchanges do |result| implies(exchanges != nil &&
         exchanges.count == 0, result != nil && result.count == 0) end
-    def tracked_tradables(exchanges = nil)
+    def tracked_tradables(exchngs = nil)
       raise "Fatal: abstract method: #{self.class} #{__method__}"
     end
 
@@ -175,10 +171,13 @@ module TAT
     attr_accessor :time_for
 
     pre  :log do |log| log != nil end
+    post :exchanges_set do ! exchanges.nil? end
     post :exchanges_for_utime_set do ! exchanges_for_unix_time.nil? end
     def initialize(log)
       self.exchanges_for_unix_time = {}
       @log = log
+      self.initialization_time = current_date_time
+      @exchanges = all_exchanges
     end
 
   end

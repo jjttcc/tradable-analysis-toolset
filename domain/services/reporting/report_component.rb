@@ -1,27 +1,31 @@
 # !!!!!TO-DO: Move this class to its own file!!!!:
 # Matching results from a search of ReportComponent objects
-# 'matches':  Hash table containing the matching messages for which, for each
-#             element, the key is the message label and the value is the
-#             message body
-# 'owner':    The ReportComponent that owns the matches
-# 'datetime': owner.datetime
-# 'id':       owner.id
-# 'count':    matches.count
-ReportMatchResult = Struct.new(:matches, :owner) do
+# 'matches':    Hash table containing the matching messages for which, for each
+#               element, the key is the message label and the value is the
+#               message body
+# 'component':  The ReportComponent that owns the matches
+# 'owner':      The TopicReport that owns 'component', if available
+# 'datetime':   component.datetime
+# 'id':         component.id
+# 'count':      matches.count
+ReportMatchResult = Struct.new(:matches, :component, :owner) do
   public
 
   def datetime
-    owner.datetime
+    component.datetime
   end
   def id
-    owner.id
+    component.id
   end
   def count
     matches.count
   end
-  def matches_for(pattern, use_keys: true, use_values: true)
-    target = owner.new_component(matches)
-    target.matches_for(pattern, use_keys: true, use_values: true)
+  def matches_for(pattern, use_keys: true, use_values: true, negate: false)
+    target = component.new_component(matches)
+    result = target.matches_for(pattern, use_keys: use_keys,
+                                use_values: use_values, negate: negate)
+    result.owner = owner
+    result
   end
 end
 
@@ -79,12 +83,13 @@ class ReportComponent
   # ReportMatchResult object containing all matching messages
   # If 'pattern' is the symbol :all, all messages of all contained
   # ReportComponents are considered a match.
+  # If 'negate' is true, include only messages that don't match pattern.
   pre  :regsym do |p| p != nil && (p.is_a?(Regexp) || p.is_a?(Symbol)) end
   post :result_exists do |result| result != nil end
   post :result_format do |result| result.respond_to?(:id) &&
     result.respond_to?(:datetime) && result.respond_to?(:matches) &&
     result.respond_to?(:count) end
-  def matches_for(pattern, use_keys: true, use_values: true)
+  def matches_for(pattern, use_keys: true, use_values: true, negate: false)
     raise "Fatal: abstract method: #{self.class} #{__method__}"
   end
 

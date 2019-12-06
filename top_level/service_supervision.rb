@@ -9,8 +9,8 @@ end
 # Add directories under ./ to LOAD_PATH:
 %w{. lib/util config/tat lib/messaging external/data_retrieval
   external/messaging external/utility domain/data_retrieval
-  domain/services/support domain/services/admin domain/support
-  domain/facilities
+  domain/services/support domain/services/admin domain/services/reporting
+  domain/support domain/facilities
 }.each do |path|
   $LOAD_PATH << "#{TATDIR}/#{path}"
 end

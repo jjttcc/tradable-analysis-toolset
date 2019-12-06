@@ -64,3 +64,15 @@ doc/books
 old-*
 *needed-changes
 *out-of-date*
+*.yml.sqlite?
+exp-*
+*.db[0-9]
+db/chinese*
+db/info
+db/data
+db/faked
+db/mas-*
+dump.rdb
+f[0-9]*admin
+top_level/admin/data
+on_hold

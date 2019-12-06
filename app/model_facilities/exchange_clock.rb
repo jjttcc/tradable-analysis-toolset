@@ -17,11 +17,11 @@ class ExchangeClock
 
   protected ### Hook method implementations
 
-  def tracked_tradables(exchanges = nil)
+  def tracked_tradables(exchngs = nil)
     result = TradableSymbol.tracked_tradables
-    if exchanges != nil then
-      # result = all "tracked-tradables" whose exchange is in 'exchanges'
-      ex_id_map = Hash[exchanges.collect { |x| [x.id, true] } ]
+    if exchngs != nil then
+      # result = all "tracked-tradables" whose exchange is in 'exchngs'
+      ex_id_map = Hash[exchngs.collect { |x| [x.id, true] } ]
       result = result.select do |s|
         ex_id_map[s.exchange_id]
       end
@@ -30,20 +30,16 @@ class ExchangeClock
   end
 
   def all_exchanges
-    new_exchanges = Exchange.all
+    Exchange.all
   end
 
   private
 
   pre  :log do |log| log != nil end
-  post :exchanges_set do ! exchanges.nil? end
   post :invariant do invariant end
   def initialize(log)
     # Ensure invariant from TimeUtilities
     self.time_utilities_implementation = TimeUtil
-    @exchanges = Exchange.all
-    @initialization_time = current_date_time
-    @closing_times = nil
     super(log)
   end
 

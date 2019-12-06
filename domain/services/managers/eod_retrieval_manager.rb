@@ -16,7 +16,7 @@ require 'eod_data_wrangler'
 #   handler.async.execute(wrangler)
 #!!!!???Can this class be generalized to also handle EOD-data-ready ->
 #!!!!!!!EventBasedTrigger processing?
-class DataWranglerHandler
+class OldReplace__DataWranglerHandler
   include Concurrent::Async, Contracts::DSL, TatServicesFacilities
 
   public
@@ -35,23 +35,22 @@ class DataWranglerHandler
       tries += 1
       status = Process.wait(child)
       if tries > RETRY_LIMIT then
-        error_log.warn("#{@tag}: " +
-                  ": Retry limit reached (#{RETRY_LIMIT}) - aborting...")
+        warn("#{@tag}: Retry limit reached (#{RETRY_LIMIT}) - aborting...")
         break
       end
       error_msg = retrieved_message(@child_error_key)
       if error_msg != nil then
         delete_message(@child_error_key)
-        log_msg("#{@tag}: #{error_msg}")
+        warn("#{@tag}: #{error_msg}")
         if error_msg[0..RETRY_TAG.length-1] == RETRY_TAG then
-          log_msg("Retrying #{@tag} (for #{wrangler.inspect})")
+          warn("Retrying #{@tag} (for #{wrangler.inspect})")
         else
-          log_msg("#{@tag}: Unrecoverable error")
+          error("#{@tag}: Unrecoverable error")
           # Unrecoverable error - end loop.
           break
         end
       else
-        error_log.info("#{@tag}: succeeded (#{wrangler.inspect})")
+        info("#{@tag}: succeeded (#{wrangler.inspect})")
         # error_msg.nil? implies success, end the loop.
         break
       end
@@ -123,14 +122,15 @@ class EODRetrievalManager < Subscriber
   # processing for those symbols (i.e.: handle unfinished processing).
   def prepare_for_main_loop(args = nil)
     eod_check_keys = eod_check_contents
-puts "#{self.class}.#{__method__}: eod_check_keys #{eod_check_keys}"
+meth_key = "#{self.class}.#{__method__}".to_sym
+log_messages({meth_key => "eod_check_keys: #{eod_check_keys}"})
     eod_check_keys.each do |key|
       @eod_check_key = key
-puts "'prepare_for_main_loop': eod-check-key: #{eod_check_key}"
+log_messages({meth_key => "eod-check-key: #{eod_check_key}"})
       if @eod_check_key != nil then
         msg = "recovering '#{@eod_check_key}' at #{Time.now} (ERM)"
         error_log.warn(msg)
-puts msg
+log_messages({meth_key => msg})
         # Terminate the orphaned EOD-retrieval process to prevent conflict:
 #!!!!(Will block [with time-limit] until acknowledgement is received.)!!!!
         order_termination(eod_check_key)
@@ -175,36 +175,11 @@ puts msg
          "#{default_subscription_channel} (#{self.inspect})")
     subscribe_once do
 #!!!!QUESTION: What to do if 'last_message' is nil or empty?!!!!
-puts "(#{__method__}, in block) lastmsg: #{last_message}"
+log_messages({__method__.to_sym =>
+              "(in subscribe_once block) lastmsg: #{last_message}"})
       @eod_check_key = last_message
     end
-debug("[#{self.class}#{__method__}] end of method")
-  end
-
-#!!!!!!!!TO-DO: remove:
-  # Check if there are any past "eod-check" notifications whose processing
-  # has not been finished (for example, due to the EOD-retrieval process
-  # aborting or being killed), retrieve the associated symbol list, and
-  # complete the processing for those symbols.
-  def orig___handle_unfinished_processing
-    loop do
-      # (Assume each call to 'handle_data_retrieval' results in the current
-      # eod_check_key being removed from the queue, allowing the loop to
-      # eventually terminate.)
-      @eod_check_key = next_eod_check_key
-      if @eod_check_key != nil then
-        msg = "recovering '#{@eod_check_key}' at #{Time.now} (ERM)"
-        error_log.warn(msg)
-        # Terminate the orphaned EOD-retrieval process - prevent conflict:
-        order_termination(eod_check_key)
-        sleep 1 # (Allow time for the termination to complete.)
-        @target_symbols_count = queue_count(eod_check_key)
-        handle_data_retrieval
-      else
-        break   # eod_check_key == nil: We are finished.
-      end
-break #!!!!!Fix!!!!!
-    end
+    debug("[#{self.class}#{__method__}] end of method")
   end
 
   # Oversee the retrieval of EOD data for the symbols associated with
@@ -215,7 +190,8 @@ break #!!!!!Fix!!!!!
   post :empty_symlist_cleanup do implies(target_symbols_count == 0,
          ! eod_check_queue_contains(eod_check_key)) end
   def handle_data_retrieval
-puts "#{self.class}.#{__method__}: target_symbols_count: #{target_symbols_count}"
+    meth_key = "#{self.class}.#{__method__}".to_sym
+log_messages({meth_key => "target_symbols_count: #{target_symbols_count}"})
     if target_symbols_count > 0 then
       end_date = close_date(eod_check_key)
       handler = DataWranglerHandler.new(service_tag, config)
@@ -238,11 +214,13 @@ puts "#{self.class}.#{__method__}: target_symbols_count: #{target_symbols_count}
     @config = config
     @log = self.config.message_log
     @error_log = self.config.error_log
-#!!!!This is ugly! - Can we get rid of it?: $log = @log
     @run_state = SERVICE_RUNNING
     @service_tag = EOD_DATA_RETRIEVAL
     # Set up to log with the key 'service_tag'.
     self.log.change_key(service_tag)
+    if @error_log.respond_to?(:change_key) then
+      @error_log.change_key(service_tag)
+    end
     initialize_message_brokers(@config)
     initialize_pubsub_broker(@config)
     set_subscription_callback_lambdas
@@ -256,7 +234,7 @@ puts "#{self.class}.#{__method__}: target_symbols_count: #{target_symbols_count}
     @subs_callbacks = {}
     @subs_callbacks[:postproc] = lambda do
       @target_symbols_count = queue_count(eod_check_key)
-error_log.debug("[ERM] #{__method__} - tgtsymscnt: #{@target_symbols_count}")
+      debug("[ERM] #{__method__} - tgtsymscnt: #{@target_symbols_count}")
     end
   end
 

@@ -96,32 +96,6 @@ class RedisLogReader
     result
   end
 
-#!!!!!!!!!!!!!!!!!:
-  def old___counts_for(args_hash)
-    result = {}
-    key_list = args_hash[:key_list]
-    if key_list != nil && ! key_list.empty? then
-      if ! key_list.is_a?(Enumerable) then
-        key_list = [key_list]   # Attempt to make it enumerable.
-      end
-      key_list.each do |stream_key|
-        info = redis_log.xinfo(:stream, stream_key)
-        if info.nil? then
-          raise "Unexpected nil result from Redis#xinfo("\
-            ":stream, #{stream_key})"
-        end
-        count = info[:length]
-        count ||= info[:length.to_s]
-        if count.nil? then
-          raise "Unexpected missing length in result from Redis#xinfo("\
-            ":stream, #{stream_key})"
-        end
-        result[stream_key] = count.to_i
-      end
-    end
-    result
-  end
-
   end
 
   #####  Removal

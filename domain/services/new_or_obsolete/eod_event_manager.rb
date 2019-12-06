@@ -1,15 +1,3 @@
-=begin
-#!!!!I believe these "require"s can all be deleted - do it soon!!!!!:
-require 'set'
-require 'ruby_contracts'
-require 'subscriber'
-require 'tat_util'
-require 'service_tokens'
-require 'tat_services_facilities'
-require 'eod_data_wrangler'
-require 'concurrent-ruby'
-=end
-
 
 # Management of EOD data-ready events
 # Subscribes to the EOD_DATA_CHANNEL for "eod-data-ready" notifications;
@@ -38,7 +26,6 @@ class EODEventManager < Subscriber
 
   ##### Hook method implementations
 
-#!!! (Used to be: 'handle_unfinished_processing' [a null op])!!!!
   def prepare_for_main_loop(args = nil)
 #!!!Will this NOT be a null op????!!!!!!
   end
@@ -92,11 +79,13 @@ class EODEventManager < Subscriber
     @config = config
     @log = self.config.message_log
     @error_log = self.config.error_log
-#!!!!This is ugly! - Can we get rid of it?: $log = @log
     @run_state = SERVICE_RUNNING
     @service_tag = EOD_EVENT_TRIGGERING
     # Set up to log with the key 'service_tag'.
     self.log.change_key(service_tag)
+    if @error_log.respond_to?(:change_key) then
+      @error_log.change_key(service_tag)
+    end
     initialize_message_brokers(config)
     initialize_pubsub_broker(config)
     set_subscription_callback_lambdas

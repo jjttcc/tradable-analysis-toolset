@@ -20,29 +20,12 @@ class StatusReporting < PublisherSubscriber
 
   protected
 
-  attr_reader :config, :self_terminated
+  attr_reader :config
 
   ##### Hook method implementations
 
   def continue_processing
-#    self_terminated || ordered_status_reporting_run_state != SERVICE_TERMINATED
-#!!!!rm: result = self_terminated || ordered_status_reporting_run_state != SERVICE_TERMINATED
-    result = ordered_status_reporting_run_state != SERVICE_TERMINATED &&
-      ! self_terminated
-puts "continue_processing - result: #{result}"
-    result
-  end
-
-  def old___process(args = nil)
-    # Subscribe to the STATUS_REPORTING_CHANNEL and provide a response/report
-    # when a subscription request arrives.
-    subscribe_once do
-      report_specs = ReportSpecification.new(last_message)
-      handler = config.report_handler_for(report_specs)
-      handler.execute(self)
-    rescue StandardError => e
-      report_specs_error(e, report_specs)
-    end
+    ordered_status_reporting_run_state != SERVICE_TERMINATED
   end
 
   def process(args = nil)
@@ -63,65 +46,6 @@ puts "continue_processing - result: #{result}"
       # child will exit after responding to the request.
       Process.detach(child)
     end
-  end
-
-  def mem_limit
-puts "mem_limit: #{40_000} (#{40_000/1000}m)"
-    40_000
-  end
-
-  def manage_memory__try1
-puts "#{self}.manage_memory - musage: #{mem_usage.to_s}"
-    log_messages(memory_usage: mem_usage.to_s)
-puts "mem_usage, mem_limit: #{mem_usage}, #{mem_limit}"
-puts "mem_usage > mem_limit: #{mem_usage > mem_limit}"
-    if mem_usage > mem_limit then
-puts "mem_usage > mem_limit calling cleanup_memory... #{self}"
-      self.cleanup_memory
-puts "#{self}.manage_memory - cleanup_memory completed"
-    end
-  end
-
-  def manage_memory
-puts "#{self}.manage_memory - musage: #{mem_usage.to_s}"
-    log_messages(memory_usage: mem_usage.to_s)
-puts "mem_usage, mem_limit: #{mem_usage}, #{mem_limit}"
-puts "mem_usage > mem_limit: #{mem_usage > mem_limit}"
-    if mem_usage > mem_limit then
-puts "mem_usage > mem_limit calling cleanup_memory... #{self}"
-#      self.cleanup_memory
-
-puts "starting inline mem-cleanup..."
-    log_messages(memory_usage: "memory cleanup [#{mem_usage.to_s}]")
-puts "#{self.class}.#{__method__} inline mem-cleanup: #{mem_usage.to_s}"
-    # Create new instances of attributes that may use significant memory.
-    @log = config.message_log
-    @error_log = config.error_log
-#!!!GC.start
-@self_terminated = true
-puts "#{__method__} finished (st: #{self.self_terminated})"   #!!!!!!!!!!!
-=begin
-#or - try this:
-@continue_processing = false  # or something to that effect
-=end
-
-puts "#{self}.manage_memory - cleanup_memory completed"
-    end
-  end
-
-  def cleanup_memory
-puts "#{self.class}.#{__method__} started - usage: #{mem_usage.to_s}"   #!!!!!
-    log_messages(memory_usage: "memory cleanup [#{mem_usage.to_s}]")
-    # Create new instances of attributes that may use significant memory.
-    @log = config.message_log
-    @error_log = config.error_log
-#!!!    GC.start
-@self_terminated = true
-puts "#{__method__} finished (st: #{self.self_terminated})"   #!!!!!!!!!!!
-=begin
-#or - try this:
-@continue_processing = false  # or something to that effect
-=end
   end
 
   #####  Implementation
@@ -146,6 +70,9 @@ puts "#{__method__} finished (st: #{self.self_terminated})"   #!!!!!!!!!!!
     @service_tag = STATUS_REPORTING
     # Set up to log with the key 'service_tag'.
     self.log.change_key(service_tag)
+    if @error_log.respond_to?(:change_key) then
+      @error_log.change_key(service_tag)
+    end
     initialize_message_brokers(@config)
     initialize_pubsub_broker(@config)
     set_subscription_callback_lambdas
@@ -153,24 +80,7 @@ puts "#{__method__} finished (st: #{self.self_terminated})"   #!!!!!!!!!!!
                 default_pubchan: REPORT_RESPONSE_CHANNEL)
     create_status_report_timer
     @status_task.execute
-    @monitor_memory = false
   end
-
-=begin
-#!!!!!TO-DO:!!!!!!!!!!!!!!!!
-=end
-=begin
-# Perform any needed pre-processing before 'process' is called.
-  def pre_process(args = nil)
-    if monitor_memory then
-      log_messages(memory_usage: mem_usage.to_s)
-      if mem_usage > mem_limit then
-        cleanup_memory
-      end
-    end
-    pre_process_extension
-  end
-=end
 
   post :subs_callbacks do subs_callbacks != nil end
   def set_subscription_callback_lambdas
