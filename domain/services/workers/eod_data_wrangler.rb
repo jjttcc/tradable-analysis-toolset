@@ -126,12 +126,12 @@ puts msg  #!!!![tmp/debugging]
     update_eod_data
     # If at least one symbol was updated and removed from the queue:
     if queue_count(eod_check_key) < old_count then
-#!!!!Note: data_ready_key can be published before all of <self>'s updates
-#!!!!  have been completed - The subscriber needs to be aware of that!!!!
+      # (Note: data_ready_key can be published before all of <self>'s updates
+      # have been completed - The subscriber needs to be aware of that.)
       # At least one tradable/symbol retrieval was completed:
       publish data_ready_key
       if next_eod_ready_key != data_ready_key then
-        # !!!!xxxInsurance - in case subscriber crashes while processing data_ready_key:
+        # Insurance, in case subscriber crashes while processing data_ready_key:
         enqueue_eod_ready_key data_ready_key
       end
     end

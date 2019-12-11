@@ -136,7 +136,7 @@ class ReportManager < PublisherSubscriber
   REPORT_KEY_BASE, BLOCK_MSECS_DEFAULT, SHORT_PAUSE =
     'status-report', 2000, 0.15
 
-  RESPONSE_QUERY_RETRIES, RETRY_PAUSE = 50, 0.75
+  RESPONSE_QUERY_RETRIES, RETRY_PAUSE = 100, 0.75
 
   attr_reader :config, :log_reader, :client_methods, :error_log
 

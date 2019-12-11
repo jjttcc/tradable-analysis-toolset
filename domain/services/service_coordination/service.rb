@@ -44,6 +44,10 @@ module Service
       post_process(args)
     end
     main_loop_cleanup(args)
+  rescue StandardError => e
+    msg = "Unrecoverable error occurred for service '#{service_tag}':\n#{e}"
+    error(msg)
+    raise "msg"
   end
 
   protected

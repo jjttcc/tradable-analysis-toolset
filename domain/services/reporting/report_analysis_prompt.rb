@@ -75,7 +75,6 @@ class ReportAnalysisPrompt
   private
 
   DATEFMT = '%Y-%m-%d %H:%M:%S'
-  BORDER = "#{"=" * 76}\n"
 
   attr_reader :config
 
@@ -307,7 +306,7 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
     puts tr.summary(
       lambda do |datetime|
         local_time(datetime).strftime(DATEFMT)
-      end
+      end, 0, method(:number_with_delimiter)
     )
   end
 
@@ -560,14 +559,14 @@ For example, enter (without quotes): '{k}' for search-only-keys mode"
     matches.each do |match|
       display += "match count for #{match.id}: #{match.count}\n" +
       "time stamp: #{local_time(match.datetime)}\n"
-      if match.owner != nil then
+      if match.respond_to?(:owner) && match.owner != nil then
         display += "label: #{match.owner.label}\n"
       end
       display += "MESSAGES:\n"
       match.matches.each do |k, v|
         display += "#{k}:  #{v}\n"
       end
-      display += "#{"-" * 62}\n"
+      display += MINOR_BORDER
     end
     while not finished do
       if $stdout.isatty then

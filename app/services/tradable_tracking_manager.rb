@@ -2,66 +2,19 @@
 class TradableTrackingManager
   include Contracts::DSL, TAT::TradableTrackingManager
 
+  protected
+
   # Use this module to allow RAM-hungry database operations to be
   # performed in a child process and thus released (RAM) when completed:
   include ForkedDatabaseExecution
-
-#!!!!!obsolete - remove:
-  # Execute an infinite loop in which the needed actions are periodically
-  # performed.
-  def old__execute
-    while continue_processing do
-      if cleanup_needed then
-        execute_complete_cycle
-      else
-        process_tracking_changes
-      end
-      check_and_respond_to_sick_exchmon
-      sleep MODERATE_PAUSE_SECONDS
-    end
-  end
-
-  protected  ###  Top-level implementation
-
-  # Clean up the database with respect to tradables marked as tracked that
-  # are no longer tracked:
-  #   - First, mark all tracked TradableSymbol records as NOT tracked.
-  #   - Find the tradables that are currently tracked and mark the
-  #     corresponding TradableSymbol records as tracked.
-  post :update_time_set do last_update_time != nil end
-  post :cleanup_time_set do last_cleanup_time != nil end
-  def execute_complete_cycle
-    log_verbose_messages(debug1: "[#{__method__}] CLEANING UP - " +
-                         "#{DateTime.current}.", lvma2test: "(useless goo)")
-    log_verbose_messages(debug2: "waiting for Godot")
-    wait_until_exch_monitor_ready
-    log_verbose_messages(debug3: "suspending Godot")
-    suspend_exch_monitor
-    log_verbose_messages(debug4: "executing with 'wait'")
-    execute_with_wait do
-      ActiveRecord::Base.transaction do
-        log_messages(track_debug:
-                     "untracking all symbols...#{DateTime.current}")
-        untrack_all_symbols
-        log_messages(track_debug: "tracking symbols...#{DateTime.current}")
-        track_used_symbols
-        log_messages(track_debug:
-                     "FINISHED tracking symbols...#{DateTime.current}")
-      end
-    end
-    @last_update_time = DateTime.current
-    @last_cleanup_time = @last_update_time
-    log_verbose_messages(debug5: "waking Godot", debug6: "Who is Godot?",
-                        debug7: "Where is Godot?", debug8: "What is Godot?")
-    wake_exch_monitor
-  end
 
   # Query for any tracking-related changes that have occurred since
   # 'last_update_time'.  If any are found, update the affected
   # TradableSymbols and set 'last_update_time' to the current date/time.
   pre  :update_time_set do last_update_time != nil end
   post :update_time_set do last_update_time != nil end
-  def process_tracking_changes
+#!!!!!!!:
+  def old__remove___process_tracking_changes
     execute_with_wait do
       ActiveRecord::Base.transaction do
         updated_symbol_ids = ids_of_updated_tradables
@@ -88,136 +41,12 @@ class TradableTrackingManager
     end
   end
 
-  # Does 'execute_complete_cycle' need to be called?
-  def cleanup_needed
-    last_cleanup_time.nil? || (cleanup_is_due && markets_are_closed)
-  end
+  ##### Hook method implementations
 
-  # If exch_monitor_is_ill, respond by logging a report on the issue and
-  # waiting for a while in the hope that an over-seer process will restart
-  # the exchange monitor.
-  def check_and_respond_to_sick_exchmon
-    if exch_monitor_is_ill then
-      pause_time = MODERATE_PAUSE_SECONDS * 3
-      warn("#{EOD_EXCHANGE_MONITORING} service is not responding - pausing " +
-        "for #{pause_time} seconds to wait for the process to be re-started.")
-      sleep pause_time
-      if
-        ! (eod_exchange_monitoring_unresponsive? ||
-           eod_exchange_monitoring_terminated?)
-      then
-        # exchange monitor has recovered.
-        @exch_monitor_is_ill = false
-      end
-    end
-  end
-
-  # Has enough time passed since the last cleanup that a new cleanup is
-  # needed?
-  pre  :last_cleanup_exists do last_cleanup_time != nil end
-  def cleanup_is_due
-    # I.e.: (secs-since-epoch - secs-since-epoch-of:last-cleanup-time) <
-    #          allocated-tracking-cleanup-interval[in-seconds]
-    result = DateTime.current.to_i - last_cleanup_time.to_i >
-      config.tracking_cleanup_interval
-    result
-  end
-
-  protected  ### Exchange-monitor-related querying and control
-
-  # Are all monitored exchanges currently closed?
-  def markets_are_closed
-    open_market_info.empty?
-  end
-
-  # If the current time is within PRE_CLOSE_TIME_MARGIN seconds from the
-  # next closing time, sleep until a little while after the closing time
-  # has passed.
-  def wait_until_exch_monitor_ready
-    now = DateTime.current
-    previous_close_time = last_recorded_close_time
-    @last_recorded_close_time = next_exch_close_datetime
-    log_messages(wuemr:
-                 "Waiting for ex mon to become ready (#{DateTime.current})")
-    log_messages(wuemr:
-      "prevct, last_rct: #{previous_close_time}, #{last_recorded_close_time}")
-    if last_recorded_close_time != nil then
-#!!!!![Check this section for correctness:
-      seconds_until_close = last_recorded_close_time.to_i - now.to_i
-      # Check # of seconds after last close in case it's, e.g., 5 seconds
-      # after an exchange just close (i.e., too soon):
-      seconds_after_last_close = (
-        (previous_close_time != nil) &&
-        (previous_close_time != last_recorded_close_time)
-      )?  now.to_i - previous_close_time.to_i: POST_CLOSE_TIME_MARGIN
-      log_messages(wuemr: "secs until ct: #{seconds_until_close}")
-      log_messages(wuemr: "secs after lct: #{seconds_after_last_close}")
-      if
-        seconds_until_close < PRE_CLOSE_TIME_MARGIN ||
-          seconds_after_last_close < POST_CLOSE_TIME_MARGIN
-      then
-      log_messages(wuemr:
-        "I'm waiting for #{seconds_until_close + POST_CLOSE_TIME_MARGIN}" +
-        ".....(#{DateTime.current})")
-        sleep seconds_until_close + POST_CLOSE_TIME_MARGIN
-      else
-        log_messages(wuemr: "I'm NOT waiting (#{DateTime.current})")
-      end
-#!!!!!end (Check...)]
-    else
-      check(last_recorded_close_time.nil?)
-      # last_recorded_close_time == nil implies that no wait is needed.
-    end
-    log_messages(wuemr:
-                 "finished waiting (or NOT waiting)(#{DateTime.current})")
-  end
-
-  # Suspend the exchange monitor - Wait and verify that it enters the
-  # suspended state before returning.
-  post :suspended do
-    implies(! exch_monitor_is_ill, eod_exchange_monitoring_suspended?) end
-  def suspend_exch_monitor
-    if ! eod_exchange_monitoring_suspended? then
-      log_messages(sem: "#{self.class}.#{__method__} calling " +
-                   "'order_eod_exchange_monitoring_suspension'")
-      order_eod_exchange_monitoring_suspension
-      sleep SHORT_PAUSE_SECONDS
-      log_messages(sem: "waiting for exch. mon. to suspend itself...")
-      pause_count = 0
-      while ! eod_exchange_monitoring_suspended?
-        if pause_count > 0 && pause_count % 5 == 0 then
-          if
-            eod_exchange_monitoring_unresponsive? ||
-              eod_exchange_monitoring_terminated?
-          then
-            warn("#{EOD_EXCHANGE_MONITORING} service has terminated or " +
-                 "is diseased")
-            @exch_monitor_is_ill = true
-            break
-          end
-        end
-        # Loop until the reported state actually is "suspended".
-        sleep SHORT_PAUSE_SECONDS
-        pause_count += 1
-      end
-      log_messages(sem: "FINISHED waiting for exch. mon. to suspend itself...")
-    end
-  end
-
-  # Tell the exchange monitor to start running again.
-  def wake_exch_monitor
-    order_eod_exchange_monitoring_resumption
-  end
-
-  protected  ### Database queries and updates
-
-  # Mark all tradable-symbols as 'untracked'.
   def untrack_all_symbols
     TradableSymbol.where(tracked: true).update_all(tracked: false)
   end
 
-  # Find all tradable-symbols that are currently used and mark each one as
-  # 'tracked'.
   def track_used_symbols
     tracked = {}
     AnalysisProfile.all.each do |p|
@@ -229,11 +58,33 @@ class TradableTrackingManager
     TradableSymbol.where(id: tracked.keys).update_all(tracked: true)
   end
 
+  def prepare_for_tracking_update
+    @updated_symbol_ids = ids_of_updated_tradables
+  end
+
+  def tracking_update_needed
+      ! @updated_symbol_ids.empty?
+  end
+
+  def perform_tracking_update
+    track(updated_symbol_ids)
+  end
+
+  # Run (yeild-to) the specified block within a "transaction".
+  def run_in_transaction
+    execute_with_wait do
+      ActiveRecord::Base.transaction do
+        yield
+      end
+    end
+  end
+
+  ##### Database queries and updates
+
   # Array: id of each TradableSymbol that has been updated since
   # 'last_update_time'
   def ids_of_updated_tradables
-    updated_owners = updated_symbol_list_owners
-    ids_of_untracked_tradables_for(updated_owners)
+    ids_of_untracked_tradables_for(updated_symbol_list_owners)
   end
 
   # All owners of an updated (new or changed) SymbolList
@@ -299,23 +150,9 @@ class TradableTrackingManager
 
   private
 
-  attr_reader :continue_processing, :last_update_time,
-    :last_cleanup_time, :exch_monitor_is_ill
-  # The last recorded 'next_exch_close_datetime'
-  attr_reader :last_recorded_close_time
-  attr_reader :config
-
-  TTM_LAST_TIME_KEY = 'ttm-last-update-time'
-
-  private    ###  Initialization
+  #####  Initialization
 
   include LoggingFacilities
-
-  def db_key_report
-    debug("all keys: #{all_logging_keys.join(",")}")
-    debug("ALL KEYS: <#{LoggingFacilities::all_logging_keys.join(">, <")}>\n")
-    debug("MY KEY: '#{logging_key_for(service_tag)}'\n")
-  end
 
   pre  :config_exists do |config| config != nil end
   post :log_config_etc_set do invariant end
@@ -329,7 +166,6 @@ class TradableTrackingManager
     @last_update_time = nil
     @run_state = SERVICE_RUNNING
     @service_tag = MANAGE_TRADABLE_TRACKING
-    db_key_report
     # Set up to log with the key 'service_tag'.
     self.log.change_key(service_tag)
     if @error_log.respond_to?(:change_key) then

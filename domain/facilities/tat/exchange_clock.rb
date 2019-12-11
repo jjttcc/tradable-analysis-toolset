@@ -147,13 +147,13 @@ module TAT
 
     protected ### Hook methods
 
-    # If exchanges != nil, list of symbols identifying all currently tracked
-    # tradables that are associated with an element (Exchange) of exchanges.
-    # Otherwise (exchanges.nil), list of symbols identifying all tradables
+    # If 'exchngs' != nil, list of symbols identifying all currently tracked
+    # tradables that are associated with an element (Exchange) of 'exchngs'.
+    # Otherwise ('exchngs'.nil?), list of symbols identifying all tradables
     # that are currently being "tracked"
     post :enumerable do |result| result != nil && result.is_a?(Enumerable) end
-    post :empty_if_0_exchanges do |result| implies(exchanges != nil &&
-        exchanges.count == 0, result != nil && result.count == 0) end
+    post :empty_if_0_exchanges do |result, exchngs| implies(exchngs != nil &&
+        exchngs.count == 0, result != nil && result.count == 0) end
     def tracked_tradables(exchngs = nil)
       raise "Fatal: abstract method: #{self.class} #{__method__}"
     end

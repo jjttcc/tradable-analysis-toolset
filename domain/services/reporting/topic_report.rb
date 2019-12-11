@@ -103,7 +103,7 @@ class TopicReport
   # Summary of report contents
   # If 'conversion_function' != nil, it will be called to convert the UTC
   # date/times into the desired (e.g., local-time) time zone.
-  def summary(conversion_function = nil, indent = 0)
+  def summary(conversion_function = nil, indent = 0, number_formatter = nil)
     spaces = " " * indent
     result = "#{spaces}label: #{label}"
     if empty? then
@@ -115,7 +115,9 @@ class TopicReport
         fst.datetime: conversion_function.call(fst.datetime)
       last_datetime = (conversion_function.nil?)?
         lst.datetime: conversion_function.call(lst.datetime)
-      result += ", number of components: #{count}\n" +
+      comp_count = (number_formatter.nil?)? self.count:
+        number_formatter.call(self.count)
+      result += ", number of components: #{comp_count}\n" +
         "#{spaces}date/time of first component: #{first_datetime}\n" +
         "#{spaces}date/time of last component:  #{last_datetime}"
       result += "\n#{spaces}first component: #{fst}\n" +

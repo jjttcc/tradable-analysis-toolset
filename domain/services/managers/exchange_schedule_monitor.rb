@@ -45,12 +45,17 @@ class ExchangeScheduleMonitor < Publisher
       time_to_send = deadline_reached(@next_close_time)
       debug("eom: time_to_send: #{time_to_send}")
       if time_to_send then
+        debug("[time_to_send == true] run_state, SR: "\
+              "#{run_state}, #{SERVICE_RUNNING}")
         if run_state != SERVICE_RUNNING then
           if run_state == SERVICE_SUSPENDED then
+            debug("{process}run_state == SERVICE_SUSPEND - waiting...")
             wait_for_resume_command
+            debug("{process}[run_state == SERVICE_SUSPEND] FINISHED waiting")
           end
         end
         if terminated? then
+          debug("{process}We've been terminated!")
           @continue_monitoring = false
         else
           check(run_state == SERVICE_RUNNING, "#{service_tag} is running")
@@ -158,7 +163,7 @@ class ExchangeScheduleMonitor < Publisher
   pre  :suspended do run_state == SERVICE_SUSPENDED end
   post :not_susp  do run_state != SERVICE_SUSPENDED end
   def wait_for_resume_command
-    while run_state == SERVICE_SUSPENDED
+    while run_state == SERVICE_SUSPENDED do
       pause
     end
   end
@@ -170,10 +175,11 @@ class ExchangeScheduleMonitor < Publisher
   # [1] The key for the closing-date is: "#{eod_check_key}:close-date"
   pre :symbols_array do |symbols| ! symbols.nil? && symbols.class == Array end
   def send_check_notification(symbols, closing_date_time)
+    debug("#{__method__} - symbols & count: #{symbols}, #{symbols.count}")
     eod_check_key = new_eod_check_key
     if symbols.count > 0 then
-      # Insurance - in case subscriber crashes while processing eod_check_key:
       debug("enqueuing check key: #{eod_check_key}")
+      # Insurance - in case subscriber crashes while processing eod_check_key:
       enqueue_eod_check_key eod_check_key
       count = queue_messages(eod_check_key, symbols.map {|s| s.symbol},
                      DEFAULT_EXPIRATION_SECONDS)

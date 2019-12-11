@@ -9,7 +9,9 @@ module ReportTools
   # Disable, effectively, the 'label' feature in action_view.
   def label; nil end
 
-  COUNT_LIMIT = 5
+  COUNT_LIMIT  = 5
+  BORDER       = "#{"=" * 76}\n"
+  MINOR_BORDER = "#{"-" * 62}\n"
 
   # Summary of the counts of components of 'report'
   pre  :rep_good do |h| h[:report] != nil && h[:report].is_a?(Enumerable) end
@@ -89,7 +91,8 @@ module ReportTools
     indent = 2
     result += "#{report.count} sub-reports:\n"
     report.each do |tr|
-      result +=  "#{tr.summary(nil, indent)}\n"
+      result +=  "#{tr.summary(nil, indent, method(:number_with_delimiter))}" \
+        "\n#{MINOR_BORDER}"
     end
     result
   end

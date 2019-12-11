@@ -20,12 +20,14 @@ class ExchangeClock
   def tracked_tradables(exchngs = nil)
     result = TradableSymbol.tracked_tradables
     if exchngs != nil then
+      log.debug("#{self.class}.#{__method__} - exchngs: #{exchngs}")
       # result = all "tracked-tradables" whose exchange is in 'exchngs'
       ex_id_map = Hash[exchngs.collect { |x| [x.id, true] } ]
       result = result.select do |s|
         ex_id_map[s.exchange_id]
       end
     end
+    log.debug("#{self.class}.#{__method__} - result: #{result}")
     result
   end
 

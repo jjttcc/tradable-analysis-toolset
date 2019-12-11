@@ -10,11 +10,6 @@ require 'status_report'
 
 # Management of administrative status reporting - e.g., for debugging,
 # statistics, etc.
-#!!!!!To-do: add "monitoring" to the services - e.g., when a service
-#!!!!sends or receives a message, receives a subscription notice,
-#!!!!publishes, etc., it monitors itself - i.e., it logs the event in
-#!!!!MessageLog.  This class can then gather this information (or a subset
-#!!!!of it, based on what is requested) and "report" it.
 class StatusReporting < PublisherSubscriber
   include Service, TimeUtilities, LoggingFacilities
 
