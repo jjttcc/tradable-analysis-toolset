@@ -1,4 +1,4 @@
-# Symbols, constants, method names, etc. used for TAT services
+# Symbols, method names, etc. used for TAT services
 module ServiceTokens
 
   public

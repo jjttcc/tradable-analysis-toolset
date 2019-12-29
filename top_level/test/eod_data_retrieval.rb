@@ -15,19 +15,29 @@ end
 
 # Add directories under domain/ to LOAD_PATH:
 %w{services/managers data_retrieval services/support support
-  services/service_coordination facilities services/admin services/reporting
+  services/managers/test services/service_coordination services/admin
+  services/workers services/workers/test services/reporting facilities
 }.each do |path|
   $LOAD_PATH << "#{TATDIR}/#{DOMDIR}/#{path}"
 end
 
 
 require 'application_configuration'
-require 'status_reporting'
+require 'test_eod_retrieval_manager'
 require 'admin_tools'
 require 'tat_logging'
 
+def user_supplied_symbols
+  if ARGV.count > 1 then
+    result = ARGV
+  else
+    result = ['aapl', 'adbe', 'c', 'g', 'fb', 'goog', 'pg', 'true']
+  end
+end
 config = ApplicationConfiguration.new
-log = config.message_log
-r = config.service_management.status_reporting_manager.new(config)
-configure_logging(r)
+symbols = user_supplied_symbols
+r = TestEODRetrievalManager.new(config, symbols)
+r.turn_on_logging
+r.verbose = true
 r.execute
+puts "#{$0} exiting normally"

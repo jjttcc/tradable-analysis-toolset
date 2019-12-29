@@ -57,16 +57,13 @@ class DataWranglerHandler
   RETRY_TAG = 'retry'
 
   pre :good_args do |tg, lg| ! (tg.nil? || lg.nil?) end
-  def initialize(svc_tag, the_log)
-    @log = the_log
+  def initialize(svc_tag, config)
+    @log = config.message_log
+    @error_log = config.error_log
     @child_error_key = new_semi_random_key(svc_tag.to_s)
     @tag = svc_tag
     # Async initialization:
     super()
-  end
-
-  def log_msg(s)
-    error_log.warn(s)
   end
 
 end

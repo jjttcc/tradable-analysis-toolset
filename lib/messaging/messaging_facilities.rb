@@ -248,6 +248,8 @@ module MessagingFacilities
     end
   end
 
+  alias_method :delete_queue, :delete_object
+
   #####  Initialization
 
   pre  :config_exists do |configuration| configuration != nil end

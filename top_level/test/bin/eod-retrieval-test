@@ -1,0 +1,103 @@
+#!/usr/bin/env bash
+# Test the eod_data_retrieval service.
+# Usage: $0 [<symbol> ...]
+
+export TAT_ENV=test
+stop_services=false
+mypath=$(dirname $0)
+arep=$mypath/../../admin/analyze_report.rb
+order=$mypath/../../admin/order_report.rb
+testscript=$mypath/../eod_data_retrieval.rb
+if ! [ -x $arep -a -x $order ]; then
+    echo "Cannot find executable scripts for analysis ($arep or $order)" >&2
+    exit 42
+fi
+if ! [ -x $testscript ]; then
+    echo "Cannot find executable script for test file: $testscript" >&2
+    exit 43
+fi
+sup_pid=$(pgrep -laf ruby|
+awk '/service_supervision/{print $1}'
+)
+other_pids=$(pgrep -laf ruby|
+awk '/eod_exchange_monitoring/ {print $1}
+/manage_tradable_tracking/ {print $1}
+/manage_event_triggering/ {print $1}
+/eod_data_retr/ {print $1}'
+)
+
+# Send STOP signal to $*
+stop_pids() {
+    if [ $# -gt 0 ]; then
+(date; echo "stopping $*...") >&2
+        kill -19 $* 2>/dev/null
+    fi
+}
+
+# Send CONTINUE signal to $*
+resume_pids() {
+    if [ $# -gt 0 ]; then
+(date; echo "resuming $*...") >&2
+        kill -18 $*
+    fi
+}
+
+perform_test() {
+    echo '"testing"...'
+    $testscript $symbols
+}
+
+prepare() {
+    if eval $stop_services; then
+        stop_pids $sup_pid
+        sleep 0.4
+        stop_pids $other_pids
+    fi
+    start_time=$(date +'%Y-%m-%d %H:%M:%S')
+    if [ $# -eq 0 ]; then
+        symbols='adbe c f ibm jcp pg'
+    else
+        symbols="$*"
+    fi
+}
+
+cleanup() {
+    sleep 0.2
+    end_time=$(date +'%Y-%m-%d %H:%M:%S')
+    if eval $stop_services; then
+        resume_pids $other_pids
+        (
+            sleep 14.4
+            resume_pids $sup_pid
+        )&
+    fi
+}
+
+verify_uptodate() {
+    wkfile=/tmp/eod_test$$
+    eod_rep=/tmp/eod_analysis$$
+    unset TAT_ENV
+    echo "Report output file: $wkfile" >&2
+    $order -o $wkfile -s "$start_time" -e "$end_time" -k '*'
+    $arep -i $wkfile <<EOM >$eod_rep
+g
+{c}
+UP.TO.DATE
+
+
+q
+EOM
+
+    for s in $symbols; do
+        if ! grep -iq "\<$s\>" $eod_rep; then
+            echo "FAILED" >&2
+            exit 1
+        fi
+    done
+    echo "SUCCEEDED" >&2
+}
+
+prepare $@
+perform_test
+cleanup
+verify_uptodate

@@ -59,4 +59,4 @@ rproc = ReportProcessor.new(config, program_name)
 rproc.process_cl_args
 log = config.message_log
 r = config.service_management.reporting_administrator.new(config, log)
-r.cleanup_reports(keys: r.all_service_keys, count: rproc.count)
+r.cleanup_reports(keys: ['*'], count: rproc.count)

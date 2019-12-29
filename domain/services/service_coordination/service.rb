@@ -47,7 +47,7 @@ module Service
   rescue StandardError => e
     msg = "Unrecoverable error occurred for service '#{service_tag}':\n#{e}"
     error(msg)
-    raise "msg"
+    raise msg
   end
 
   protected

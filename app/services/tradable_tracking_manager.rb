@@ -8,39 +8,6 @@ class TradableTrackingManager
   # performed in a child process and thus released (RAM) when completed:
   include ForkedDatabaseExecution
 
-  # Query for any tracking-related changes that have occurred since
-  # 'last_update_time'.  If any are found, update the affected
-  # TradableSymbols and set 'last_update_time' to the current date/time.
-  pre  :update_time_set do last_update_time != nil end
-  post :update_time_set do last_update_time != nil end
-#!!!!!!!:
-  def old__remove___process_tracking_changes
-    execute_with_wait do
-      ActiveRecord::Base.transaction do
-        updated_symbol_ids = ids_of_updated_tradables
-        if ! updated_symbol_ids.empty? then
-          wait_until_exch_monitor_ready
-          suspend_exch_monitor
-          track(updated_symbol_ids)
-          set_message(TTM_LAST_TIME_KEY, DateTime.current.to_s)
-          log_messages({TTM_LAST_TIME_KEY => DateTime.current.to_s})
-          wake_exch_monitor
-        end
-      end
-    end
-    begin
-      lut = retrieved_message(TTM_LAST_TIME_KEY)
-      if ! lut.nil? && ! lut.empty? then
-        new_lut = DateTime.parse(lut)
-        if new_lut > last_update_time then
-          @last_update_time = DateTime.parse(lut)
-        end
-      end
-    rescue StandardError => e
-      raise "Fatal error - parse of time (#{lut.inspect}) failed: #{e}"
-    end
-  end
-
   ##### Hook method implementations
 
   def untrack_all_symbols

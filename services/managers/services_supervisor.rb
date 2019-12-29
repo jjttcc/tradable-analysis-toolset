@@ -92,8 +92,10 @@ class ServicesSupervisor
         @log.debug("starting #{sm.inspect}")
         sm.block_until_started
       rescue StandardError => e
-        @log.error("#{sm} startup failed for #{sm.inspect}: #{e} - stack:")
-        @log.error("#{caller.join("\n")}")
+        msg = "#{sm} startup failed for #{sm.inspect}: #{e} - stack:"
+        msg += "\n#{caller.join("\n")}"
+        @log.error(msg)
+        $stderr.puts msg
       end
     end
     supervise

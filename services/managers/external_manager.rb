@@ -8,7 +8,7 @@ class ExternalManager < ServiceManager
   private
 
   # (i.e., redefine log method as an attribute.)
-  attr_reader :log
+  attr_reader :log, :path
 
   # Mapping of service symbol-tags to executable file paths
   PATH_FOR = {
@@ -24,7 +24,6 @@ class ExternalManager < ServiceManager
   }
 
   def start_service
-    path = PATH_FOR[tag]
 #!!!!TO-DO: harden/error-handling/...
     child = fork do
       exec(path)
@@ -36,8 +35,13 @@ class ExternalManager < ServiceManager
   private  ###  Initialization
 
   pre :config_exists do |config| config != nil end
-  def initialize(config, tag)
+  def initialize(config, tag, path_override = nil)
     @log = config.error_log
+    if path_override.nil? then
+      @path = PATH_FOR[tag]
+    else
+      @path = path_override
+    end
     super(config, tag)
   end
 

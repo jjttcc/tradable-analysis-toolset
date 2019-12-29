@@ -32,7 +32,7 @@ tags
 .*smtp
 .*token*
 Gemfile.lock.*
-bin/
+/bin/
 doc/
 vim*
 

@@ -70,7 +70,10 @@ class EODRetrievalManager < Subscriber
   end
 
   def continue_processing
-    ordered_eod_data_retrieval_run_state != SERVICE_TERMINATED
+    o_r_state = ordered_eod_data_retrieval_run_state
+    result = o_r_state != SERVICE_TERMINATED
+    debug "#{__method__}: result: #{result} [orstate: #{o_r_state}]"
+    result
   end
 
   def process(args = nil)
@@ -81,31 +84,27 @@ class EODRetrievalManager < Subscriber
   ##### Implementation
 
   def wait_for_and_process_eod_event
+    debug("#{__method__} - calling 'wait_for_notification")
     wait_for_notification
-#!!!template method needed (eod_check_key -> xxx):
     if eod_check_key.nil? then
-#!!!      error_msg = "failed to obtain <templated-label> key"
       error_msg = "failed to obtain 'EOD-check' key"
       error(error_msg)
       raise error_msg
     end
-#!!!template method needed (handle_data_retrieval -> xxx):
+    debug("#{__method__} - calling 'handle_data_retrieval")
     handle_data_retrieval
   end
 
   post :target_symbols_count do ! target_symbols_count.nil? end
-#!!!templatize:
   post :key_set do eod_check_key != nil end
-#!!!!QUESTION: What to do if 'last_message' is nil or empty?!!!!
   def wait_for_notification
     debug("[#{self.class}.#{__method__}] subscribing to channel: " +
          "#{default_subscription_channel} (#{self.inspect})")
     subscribe_once do
-#!!!!QUESTION: What to do if 'last_message' is nil or empty?!!!!
       debug("#{__method__}: (in subscribe_once block) lastmsg: #{last_message}")
       @eod_check_key = last_message
     end
-    debug("[#{self.class}#{__method__}] end of method")
+    debug("[#{self.class}.#{__method__}] end of method")
   end
 
   # Oversee the retrieval of EOD data for the symbols associated with
@@ -120,8 +119,7 @@ class EODRetrievalManager < Subscriber
           "#{target_symbols_count}")
     if target_symbols_count > 0 then
       handler = DataWranglerHandler.new(service_tag, config)
-      wrangler = EODDataWrangler.new(self, eod_check_key,
-                                     close_date(eod_check_key))
+      wrangler = new_data_wrangler
       wrangler.configure(log: log, elog: error_log, config: config)
       # Let the "data wrangler" do the actual data-retrieval work.
       handler.async.execute(wrangler)
@@ -130,6 +128,19 @@ class EODRetrievalManager < Subscriber
       # 'eod-check-key', since it has 0 associated symbols.
       remove_from_eod_check_queue(eod_check_key)
     end
+  end
+
+  pre  :eod_check_key do eod_check_key != nil end
+  post :result do |result| result != nil end
+  def new_data_wrangler
+    close = close_date(eod_check_key)
+    debug("close for #{eod_check_key}: #{close.inspect}")
+    if close.nil? then
+      msg = "No close date found for '#{eod_check_key}'"
+      error(msg)
+      raise msg
+    end
+    EODDataWrangler.new(self, eod_check_key, close)
   end
 
   MAIN_LOOP_PAUSE_SECONDS = 15
@@ -141,7 +152,9 @@ class EODRetrievalManager < Subscriber
     @log = self.config.message_log
     @error_log = self.config.error_log
     @run_state = SERVICE_RUNNING
-    @service_tag = EOD_DATA_RETRIEVAL
+    if @service_tag.nil? then
+      @service_tag = EOD_DATA_RETRIEVAL
+    end
     # Set up to log with the key 'service_tag'.
     self.log.change_key(service_tag)
     if @error_log.respond_to?(:change_key) then

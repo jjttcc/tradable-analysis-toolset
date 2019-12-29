@@ -22,8 +22,8 @@ services/non_rails/top_level}.each do |path|
 end
 
 require 'ruby_contracts'
-require 'services_supervisor'
 require 'application_configuration'
+require 'services_supervisor'
 require 'admin_tools'
 require 'tat_logging'
 

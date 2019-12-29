@@ -153,7 +153,7 @@ class ExchangeScheduleMonitor < Publisher
       if terminated? then
         @continue_monitoring = false
         # Make sure the order doesn't "linger" after termination.
-        delete_exch_mon_order
+        delete_eod_exchange_monitoring_order
       end
     else
     end
@@ -183,6 +183,7 @@ class ExchangeScheduleMonitor < Publisher
       enqueue_eod_check_key eod_check_key
       count = queue_messages(eod_check_key, symbols.map {|s| s.symbol},
                      DEFAULT_EXPIRATION_SECONDS)
+      debug("calling 'send_close_date' with: #{closing_date_time}")
       send_close_date(eod_check_key, closing_date_time)
       if count != symbols.count then
         msg = "send_check_notification: add_set returned different count " +

@@ -1,3 +1,8 @@
+PRODUCTION_VAR_NAME = 'TAT_PRODUCTION'
+if $is_production_run.nil? then
+  $is_production_run =  ENV.has_key?(PRODUCTION_VAR_NAME)
+end
+
 require 'service_configuration'
 require 'utility_configuration'
 require 'tiingo_data_retriever'

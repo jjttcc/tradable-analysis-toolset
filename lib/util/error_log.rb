@@ -24,6 +24,16 @@ module ErrorLog
     send(:info, msg)
   end
 
+  # Log 'msg' as an "unknown" message.
+  def unknown(msg)
+    send(:unknown, msg)
+  end
+
+  # Log 'msg' as a test message.
+  def test(msg)
+    send(:test, msg)
+  end
+
   protected
 
   pre :args_exist do |msg, tag| ! (msg.nil? || tag.nil?) end

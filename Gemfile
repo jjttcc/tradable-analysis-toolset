@@ -19,6 +19,7 @@ gem 'sprockets', '3.7.2'
 gem 'loofah', '>= 2.3.1'
 gem "passenger", ">= 5.0.25", require: "phusion_passenger/rack_handler"
 gem "nokogiri", ">= 1.10.4"
+gem "rack", ">= 2.0.8"
 gem 'oj'
 gem 'os'
 

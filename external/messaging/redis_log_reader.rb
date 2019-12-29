@@ -113,6 +113,10 @@ class RedisLogReader
     if ! keys.is_a?(Enumerable) then
       keys = [keys]
     end
+    if keys.any? { |k| k.to_s == "*" } then
+      # (Caller specified '*' - i.e., all stream keys.)
+      keys = all_keys_of_type(STREAM_TYPE, redis_log)
+    end
     threshhold = DEFAULT_TRIM_THRESHHOLD
     if is_i?(args_hash[:count]) then
       threshhold = args_hash[:count]

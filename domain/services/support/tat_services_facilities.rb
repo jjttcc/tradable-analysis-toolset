@@ -1,12 +1,14 @@
 require 'concurrent'
 require 'ruby_contracts'
 require 'stderr_error_log'
+require 'tat_services_constants'
 require 'messaging_facilities'
 require 'service_tokens'
 
 # Constants and other "facilities" used by/for the TAT services
 module TatServicesFacilities
-  include Contracts::DSL, MessagingFacilities, ServiceTokens
+  include Contracts::DSL
+  include TatServicesConstants, MessagingFacilities, ServiceTokens
 
   public
 
@@ -18,6 +20,10 @@ module TatServicesFacilities
   end
 
   protected
+
+  if $is_production_run.nil? then
+    raise "Fatal: '$is_production_run' is nil or not defined."
+  end
 
   ##### internal attributes/queries
 
@@ -43,6 +49,8 @@ module TatServicesFacilities
 
   STATUS_KEY, STATUS_VALUE, STATUS_EXPIRE = :status, :value, :expire
 
+=begin
+#!!!!!!!cleanup/remove:
   EOD_CHECK_KEY_BASE            = 'eod-check-symbols'
   EOD_DATA_KEY_BASE             = 'eod-ready-symbols'
   EXCHANGE_CLOSE_TIME_KEY       = 'exchange-next-close-time'
@@ -56,6 +64,7 @@ module TatServicesFacilities
   NOTIFICATION_DISPATCH_CHANNEL = 'notification-dispatch-requests'
   STATUS_REPORTING_CHANNEL      = 'status-reporting'
   REPORT_RESPONSE_CHANNEL       = 'status-reporting-response'
+=end
 
   CLOSE_DATE_SUFFIX             = 'close-date'
 
@@ -121,7 +130,7 @@ module TatServicesFacilities
     end
   end
 
-  # "order_<service>_run_state" commands
+  # "order_<service>_<run-state>" commands
   MANAGED_SERVICES.each do |symbol|
     {
       :suspension  => SERVICE_SUSPEND,
@@ -135,7 +144,7 @@ module TatServicesFacilities
     end
   end
 
-  # "<service>_run_state" queries
+  # "<service>_<run-state>?" queries - e.g., <service>_suspended?, ...
   MANAGED_SERVICES.each do |symbol|
     method_name = "#{symbol}_run_state".to_sym
     define_method(method_name) do
@@ -176,9 +185,12 @@ module TatServicesFacilities
     end
   end
 
-  # Delete the last exchange-monitoring-service control order.
-  def delete_exch_mon_order
-    delete_object(EXCHANGE_MONITOR_CONTROL_KEY, true)
+  # delete_<service>_order (delete last ordered run-state for <service>)
+  MANAGED_SERVICES.each do |symbol|
+    method_name = "delete_#{symbol}_order".to_sym
+    define_method(method_name) do
+      delete_object(CONTROL_KEY_FOR[symbol])
+    end
   end
 
   ######## generated constant-based key values ########
@@ -248,9 +260,6 @@ module TatServicesFacilities
   end
 
   begin  ## EOD-data-related messaging ##
-
-    EOD_CHECK_QUEUE = 'eod-check-queue'
-    EOD_READY_QUEUE = 'eod-data-ready-queue'
 
     # Add the specified EOD check key-value to the "EOD-check" queue.
     def enqueue_eod_check_key(key_value)
@@ -508,6 +517,9 @@ module TatServicesFacilities
 
   ######## Logging
 
+  LOGGING_TAGS = [:info, :debug, :test, :warn, :error, :fatal, :unknown]
+  OPTIONAL_LOGGING_TAGS = [:info, :debug]
+
   # Object used for error logging
   def error_log
     # (Default to self.log - redefine if separate 'log' and 'error_log'
@@ -517,21 +529,38 @@ module TatServicesFacilities
 
   # Log the specified error (or warning, info, ...) message.
   pre :level_valid do |_, level|
-    [:info, :debug, :warn, :error, :fatal, :unknown].include?(level.to_sym) end
+    LOGGING_TAGS.include?(level.to_sym) end
   pre :msg_exists do |msg| msg != nil end
   def log_error(msg, level = 'warn')
     error_log.method(level.to_sym).call(msg)
   end
 
-  # Logging with category: info, debug, warn, error, fatal, unknown:
-  [ :info, :debug, :warn, :error, :fatal, :unknown].each do |m_name|
-    define_method(m_name) do |msg|
-      log_error(msg, m_name)
+  begin
+
+    is_void = {}
+    if $is_production_run then
+      OPTIONAL_LOGGING_TAGS.each do |sym|
+        is_void[sym] = true
+      end
     end
+    # Logging with category: info, debug, warn, ...:
+    LOGGING_TAGS.each do |m_name|
+      if is_void[m_name] then
+        # (Define as a no-op.)
+        define_method(m_name) {|dummy_arg| }
+      else
+        define_method(m_name) do |msg|
+          log_error(msg, m_name)
+        end
+      end
+    end
+
   end
 
 end
 
+=begin
+#!!!!!!!cleanup/remove:
 orig_verbose = $VERBOSE
 # Suppress the constant re-initialization warnings for the block below:
 $VERBOSE = nil
@@ -552,3 +581,4 @@ end
 
 # And, of course, restore the re-initialization warnings:
 $VERBOSE = orig_verbose
+=end
