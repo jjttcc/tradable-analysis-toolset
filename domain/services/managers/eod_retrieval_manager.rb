@@ -8,6 +8,64 @@ require 'tat_services_facilities'
 require 'eod_data_wrangler'
 require 'data_wrangler_handler'
 
+#!!!!Move to its own file when ready:!!!!!
+# Encapsulation of services intercommunications from the POV of EOD
+# retrieval
+class EODRetrievalInterCommunications
+  public
+
+#!!!!TO-DO: search for and address: #!!!!!!message-broker communication!!!!!!
+#!!!!TO-DO: look for other comms not yet marked/commented, and address!!!!!!!
+  # Symbols still in "our" queue (pending) and thus needing processing
+  # post :our_key_set do our_queue_key == owner.send(owned_queue_key_query) end
+  def pending_symbols
+    @our_queue_key = owner.send(owned_queue_key_query)
+    result = owner.queue_contents(our_queue_key)
+    owner.send(:debug,
+      "#{self.class}.#{__method__}, key: #{our_queue_key} returning #{result}")
+    result
+  end
+
+  # Traverse "our" symbols queue and for each symbol, s, in the queue for
+  # which the associated data has been fully updated, move s to the queue
+  # identified by 'target_queue_key' - that is:
+  #   While we've not traversed the entire queue: for the current head, h:
+  #     o if h is now up to date (yield(h) is true), move h from "our"
+  #       queue to the tail of the target ('target_queue_key') queue
+  #     o else rotate "our" queue so that h becomes the tail of the queue
+  #       and the former second element becomes the head.
+  def process_symbols_queue(target_queue_key)
+owner.send(:debug, "1 [tqk: #{target_queue_key}")
+    if our_queue_key.nil? then
+      @our_queue_key = owner.send(owned_queue_key_query)
+    end
+    count = owner.queue_count(our_queue_key)
+    (0 .. count - 1).each do |i|
+      head = owner.queue_head(our_queue_key)
+      if yield(head) then   # If "we" are finished with 'head'
+#!!!!!Add info note re. why to use move_head_to_tail (Redis atomicity)!!!
+        # (Move the head of "our" queue to the target queue tail.)
+        owner.move_head_to_tail(our_queue_key, target_queue_key)
+      else    # (Not yet finished with 'head')
+        # (Move the head of "our" queue to the tail.)
+        owner.rotate_queue(our_queue_key)
+      end
+    end
+  end
+
+  protected
+
+  attr_accessor :owner
+  attr_accessor :owned_queue_key_query
+  attr_reader   :our_queue_key
+
+  def initialize(owner:, my_key_query:)
+    self.owner = owner
+    self.owned_queue_key_query = my_key_query
+  end
+
+end
+
 # Management of EOD data retrieval logic
 # Subscribes to EOD_CHECK_CHANNEL for "eod-check" notifications; obtains
 # the current list of symbols to be checked and, for each symbol, s:
@@ -27,6 +85,8 @@ class EODRetrievalManager < Subscriber
   attr_reader :eod_check_key
   # List of symbols found to be "ready" upon EOD_CHECK_CHANNEL notice:
   attr_reader :target_symbols_count
+  # Service-intercommunications manager:
+  attr_reader :intercomm
   attr_reader :config
 
   #####  Callback to "configure" the EODDataWrangler
@@ -36,6 +96,7 @@ class EODRetrievalManager < Subscriber
     ! (w.log.nil? || w.error_log.nil? || w.config.nil?) end
   def configure_wrangler(eod_wrangler)
     eod_wrangler.configure(log: log, elog: error_log, config: config)
+    eod_wrangler.intercomm = intercomm
   end
 
   private
@@ -152,6 +213,8 @@ class EODRetrievalManager < Subscriber
     @log = self.config.message_log
     @error_log = self.config.error_log
     @run_state = SERVICE_RUNNING
+    @intercomm = EODRetrievalInterCommunications.new(owner: self,
+                                           my_key_query: :eod_check_key)
     if @service_tag.nil? then
       @service_tag = EOD_DATA_RETRIEVAL
     end

@@ -1,7 +1,6 @@
 require "test_helper"
 
 class FriendlyForwardingTest < ActionDispatch::IntegrationTest
-  include Capybara::DSL
 
   def test_forward_to_edit_page_after_signin
     _, _, user = setup_test_user

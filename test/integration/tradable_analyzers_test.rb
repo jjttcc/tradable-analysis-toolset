@@ -4,7 +4,6 @@ require "date"
 TARGET_SYMBOL = 'ibm'
 
 class TradableAnalyzersTest < ActionDispatch::IntegrationTest
-  include Capybara::DSL
 
   def setup
     @user = signed_in_user

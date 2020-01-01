@@ -1,5 +1,5 @@
-require "admin_tools"
 require "test_helper"
+require "admin_tools"
 
 describe Exchange do
   let(:exchange) { Exchange.new }

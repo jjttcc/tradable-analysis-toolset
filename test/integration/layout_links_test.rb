@@ -1,36 +1,40 @@
 require "test_helper"
 
 class LayoutLinksTest < ActionDispatch::IntegrationTest
-  include Capybara::DSL
 
   test "should have home page at '/'" do
     get '/'
     assert_response :success
-    assert_select 'title', /Home/
+    visit '/'
+    assert page.has_title?('Home')
   end
 
   test "should have about page at '/about'" do
     get '/about'
     assert_response :success
-    assert_select 'title', /About/
+    visit '/about'
+    assert page.has_title?('About')
   end
 
   test "should have help page at '/help'" do
     get '/help'
     assert_response :success
-    assert_select 'title', /Help/
+    visit '/help'
+    assert page.has_title?('Help')
   end
 
   test "should have new login page at '/signup'" do
     get '/signup'
     assert_response :success
-    assert_select 'title', /login/
+    visit '/signup'
+    assert page.has_title?('login')
   end
 
   test "should have sign-in page at '/signin'" do
     get '/signin'
     assert_response :success
-    assert_select 'title', /Log in/
+    visit '/signin'
+    assert page.has_title?('Log in')
   end
 
   test "should have sign-out page at '/signout'" do
@@ -48,9 +52,8 @@ class LayoutLinksTest < ActionDispatch::IntegrationTest
 
   describe "when not logged in" do
     test 'should have a sign-in link' do
-      get '/'
-      assert_select 'a[href=?]', "#{signin_path}",
-        { :count => 1, :text => 'Log in' }
+      visit '/'
+      assert page.has_link?('Log in', href: '/en/signin')
     end
   end
 

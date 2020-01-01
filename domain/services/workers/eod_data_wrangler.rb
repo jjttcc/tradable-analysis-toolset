@@ -4,7 +4,6 @@ require 'publication'
 require 'tat_util'
 require 'tat_services_facilities'
 
-
 # Objects responsible for, once an eod-check-symbols signal has been
 # received (i.e., it's time to check if data is ready for the "target
 # symbols"), managing the polling of the data provider and, when data is
@@ -20,7 +19,8 @@ class EODDataWrangler
 
   #####  Access
 
-  attr_reader :eod_check_key, :data_ready_key, :terminated
+  attr_reader   :eod_check_key, :data_ready_key, :terminated
+  attr_accessor :intercomm
 
   PROC_NAME = "EOD Retrieval"
 
@@ -184,6 +184,61 @@ class EODDataWrangler
   pre :not_finished do ! updates_completed end
   def update_eod_data
     update_interrupted = true
+    retrieve_and_store_data_for(intercomm.pending_symbols)
+    update_interrupted = false
+    intercomm.process_symbols_queue(data_ready_key) do |symbol|
+debug "C sym: #{symbol}"
+      result = update_completed_for(symbol)
+      adjective = (result)? "UP TO DATE": "not yet up to date"
+      test "(data #{adjective} for #{symbol})"
+      result
+    end
+  rescue SocketError => e
+    msg = "Error contacting data provider: #{e}"
+#!!!!!!message-broker communication:!!!!!!
+    send_generic_message(@error_msg_key, "#{@retry_tag}:#{msg}")
+#!!!!!!(Since ^^^^^^^^^ recipient is part of the same service, maybe not)!!!!!!
+    error(msg)
+    # Indicate to parent process that the operation should be retried.
+    exit 2
+  rescue StandardError => e
+    msg = "#{e} [#{caller}]"
+    error(msg)
+    if update_interrupted then
+#!!!!!!message-broker communication:!!!!!!
+      send_generic_message(@error_msg_key, msg)   # (no retry)
+      exit 3
+    end
+  rescue Exception => e
+    msg = "#{self}.#{__method__} caught #{e}"
+    error(msg)
+#!!!!!!message-broker communication:!!!!!!
+    send_generic_message(@error_msg_key, msg)   # (no retry)
+    exit 4
+  end
+
+  # Use 'storage_manager' to retrieve the latest data for 'symbols' and
+  # store it in the configured persistent store.
+  def retrieve_and_store_data_for(symbols)
+    storage_manager.update_data_stores(symbols: symbols)
+  end
+
+  # Has the latest data for 'symbol' been retrieved and stored?
+  def update_completed_for(symbol)
+    storage_manager.data_up_to_date_for(symbol, end_date)
+  end
+
+  post :result_good do |result| result != nil end
+  def new_data_storage_manager
+    owner.config.data_storage_manager
+  end
+
+  private   ########!!!!!! old versions !!!!!!########
+
+  pre :storage_mgr_set do ! storage_manager.nil? end
+  pre :not_finished do ! updates_completed end
+  def orig___update_eod_data
+    update_interrupted = true
     retrieve_and_store_data_for(queue_contents(eod_check_key))
     update_interrupted = false
     # Iterate over each member of the 'eod_check_key' queue.
@@ -231,21 +286,7 @@ class EODDataWrangler
     exit 4
   end
 
-  # Use 'storage_manager' to retrieve the latest data for 'symbols' and
-  # store it in the configured persistent store.
-  def retrieve_and_store_data_for(symbols)
-    storage_manager.update_data_stores(symbols: symbols)
-  end
-
-  # Has the latest data for 'symbol' been retrieved and stored?
-  def update_completed_for(symbol)
-    storage_manager.data_up_to_date_for(symbol, end_date)
-  end
-
-  post :result_good do |result| result != nil end
-  def new_data_storage_manager
-    owner.config.data_storage_manager
-  end
+  ######## [end: old versions] ########
 
   private
 
@@ -288,6 +329,59 @@ class EODDataWrangler
       ! log.nil? && ! data_ready_key.nil? && ! data_ready_key.empty? &&
       ! eod_check_key.nil?
     )
+  end
+
+  pre :storage_mgr_set do ! storage_manager.nil? end
+  pre :not_finished do ! updates_completed end
+  def backup1__remove_soon___update_eod_data
+    update_interrupted = true
+#!!!!retrieve_and_store_data_for(queue_contents(eod_check_key) + ['bopp', 'x'])
+#retrieve_and_store_data_for(intercomm.pending_symbols + ['bopp', 'x'])
+    retrieve_and_store_data_for(intercomm.pending_symbols)
+    update_interrupted = false
+    # Iterate over each member of the 'eod_check_key' queue.
+    (1 .. queue_count(eod_check_key)).each do
+      head = queue_head(eod_check_key)
+      check(head == queue_contents(eod_check_key).first, 'head is first')
+      if ! update_completed_for(head) then
+        test "(data not yet up to date for #{head})"
+        # (Move the head of the 'eod_check_key' queue to the tail.)
+        rotate_queue(eod_check_key)
+        # Comment out (for efficiency) after enough testing!!!!:
+        check(queue_tail(eod_check_key) == head, 'qtail == head')
+      else
+        test "(data UP TO DATE for #{head})"
+        # Update for 'head' was successful, so remove 'head' from the
+        # "check-for-eod" queue and add it to the "eod-data-ready" queue.
+        move_head_to_tail(eod_check_key, data_ready_key)
+        # Remove/comment these (for efficiency) after enough testing!!!!:
+        check(! queue_contents(eod_check_key).include?(head), 'head moved')
+        check(queue_tail(data_ready_key) == head, 'to new tail')
+      end
+      check(queue_count(eod_check_key) == 1 ||
+            queue_head(eod_check_key) != head, 'queue_head(eckey) != head')
+    end
+  rescue SocketError => e
+    msg = "Error contacting data provider: #{e}"
+#!!!!!!message-broker communication:!!!!!!
+    send_generic_message(@error_msg_key, "#{@retry_tag}:#{msg}")
+    error(msg)
+    # Indicate to parent process that the operation should be retried.
+    exit 2
+  rescue StandardError => e
+    msg = "#{e} [#{caller}]"
+    error(msg)
+    if update_interrupted then
+#!!!!!!message-broker communication:!!!!!!
+      send_generic_message(@error_msg_key, msg)   # (no retry)
+      exit 3
+    end
+  rescue Exception => e
+    msg = "#{self}.#{__method__} caught #{e}"
+    error(msg)
+#!!!!!!message-broker communication:!!!!!!
+    send_generic_message(@error_msg_key, msg)   # (no retry)
+    exit 4
   end
 
 end

@@ -44,8 +44,8 @@ class UsersController < ApplicationController
       success = false
       failure_reason = @error_msg
     else
-      @user.create_mas_session(mas_session_key: mas_cl.session_key)
       if @user.save then
+        @user.create_mas_session(mas_session_key: mas_cl.session_key)
         appname = Rails.configuration.application_name
         flash[:success] = "Welcome to #{appname}."
         sign_in(@user)
