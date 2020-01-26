@@ -2,6 +2,7 @@ require 'ruby_contracts'
 require 'eod_data_wrangler'
 
 class TestEODDataWrangler < EODDataWrangler
+  include Publication
 
   private
 

@@ -366,16 +366,24 @@ module TatServicesFacilities
     EOD_COMPLETED_STATUS = ""
     EOD_TIMED_OUT_STATUS = :timed_out
 
+    private
+
+    def eod_completion_key(keybase)
+      "#{keybase}:#{EOD_FINISHED_SUFFIX}"
+    end
+
+  protected
+
     # Send status: EOD-data-retrieval completed successfully.
     def send_eod_retrieval_completed(key)
-      completion_key = "#{key}:#{EOD_FINISHED_SUFFIX}"
+      completion_key = eod_completion_key(key)
       set_message(completion_key, EOD_COMPLETED_STATUS)
     end
 
     # Send status: EOD-data-retrieval ended without completing due to
     # time-out, with ":msg" (if not empty) appended.
     def send_eod_retrieval_timed_out(key, msg)
-      completion_key = "#{key}:#{EOD_FINISHED_SUFFIX}"
+      completion_key = eod_completion_key(key)
       status_msg = EOD_TIMED_OUT_STATUS
       if msg != nil && ! msg.empty? then
         status_msg = "#{status_msg}:#{msg}"
@@ -385,7 +393,7 @@ module TatServicesFacilities
 
     # Status reported by the EOD-data-retrieval service
     def eod_retrieval_completion_status(key)
-      completion_key = "#{key}:#{EOD_FINISHED_SUFFIX}"
+      completion_key = eod_completion_key(key)
       result = retrieved_message(completion_key)
     end
 

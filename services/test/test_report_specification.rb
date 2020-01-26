@@ -2,6 +2,7 @@
 # Test of ReportSpecification
 
 TATDIR = ENV['TATDIR']
+VERBOSE = ENV.has_key?('TESTVERBOSE')
 DOMDIR = 'domain'
 if TATDIR.nil? then
   raise "Environment variable TATDIR is not set."
@@ -9,7 +10,7 @@ end
 
 # Add directories under domain/ to LOAD_PATH:
 %w{services/managers data_retrieval services/support support
-  services/service_coordination
+  services/service_coordination services/reporting
 }.each do |path|
   $LOAD_PATH << "#{TATDIR}/#{DOMDIR}/#{path}"
 end
@@ -22,13 +23,13 @@ include TatUtil
 repkey = :rk
 keys = [:key1, :key2]
 type = ReportSpecification::CREATE_TYPE
-puts "type: #{type}"
+if VERBOSE then puts "type: #{type}" end
 spec0 = ReportSpecification.new(type: type, response_key: :mykey,
                                 key_list: :yourkey)
 check(spec0[:key_list].is_a?(Array))
 spec1 = ReportSpecification.new(type: type, response_key: repkey,
                                 key_list: keys)
-puts "s1tojson: #{spec1.to_json}"
+if VERBOSE then puts "s1tojson: #{spec1.to_json}" end
 spec2 = ReportSpecification.new(spec1.to_json)
 spec3 = ReportSpecification.new(spec2)
 check(spec1[:response_key] == repkey,
@@ -67,3 +68,4 @@ hargs[:new_only] = false
 check(spec4[:new_only] != hargs[:new_only])
 spec5 = ReportSpecification.new(spec4.to_str)
 check(spec5[:response_key] == spec4[:response_key], "same response_key")
+puts "Test complete."

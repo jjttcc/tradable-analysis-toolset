@@ -1,5 +1,7 @@
 # Constants relevant to TAT services
 module TatServicesConstants
+  public
+
   if
     (ENV.has_key?('RAILS_ENV') && ENV['RAILS_ENV'] == 'test') ||
     (ENV.has_key?('TAT_ENV') && ENV['TAT_ENV'] == 'test')

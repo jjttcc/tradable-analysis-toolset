@@ -17,6 +17,7 @@ end
 %w{services/managers data_retrieval services/support support
   services/managers/test services/service_coordination services/admin
   services/workers services/workers/test services/reporting facilities
+  services/communication
 }.each do |path|
   $LOAD_PATH << "#{TATDIR}/#{DOMDIR}/#{path}"
 end

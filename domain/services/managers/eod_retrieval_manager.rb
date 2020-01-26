@@ -7,64 +7,7 @@ require 'service_tokens'
 require 'tat_services_facilities'
 require 'eod_data_wrangler'
 require 'data_wrangler_handler'
-
-#!!!!Move to its own file when ready:!!!!!
-# Encapsulation of services intercommunications from the POV of EOD
-# retrieval
-class EODRetrievalInterCommunications
-  public
-
-#!!!!TO-DO: search for and address: #!!!!!!message-broker communication!!!!!!
-#!!!!TO-DO: look for other comms not yet marked/commented, and address!!!!!!!
-  # Symbols still in "our" queue (pending) and thus needing processing
-  # post :our_key_set do our_queue_key == owner.send(owned_queue_key_query) end
-  def pending_symbols
-    @our_queue_key = owner.send(owned_queue_key_query)
-    result = owner.queue_contents(our_queue_key)
-    owner.send(:debug,
-      "#{self.class}.#{__method__}, key: #{our_queue_key} returning #{result}")
-    result
-  end
-
-  # Traverse "our" symbols queue and for each symbol, s, in the queue for
-  # which the associated data has been fully updated, move s to the queue
-  # identified by 'target_queue_key' - that is:
-  #   While we've not traversed the entire queue: for the current head, h:
-  #     o if h is now up to date (yield(h) is true), move h from "our"
-  #       queue to the tail of the target ('target_queue_key') queue
-  #     o else rotate "our" queue so that h becomes the tail of the queue
-  #       and the former second element becomes the head.
-  def process_symbols_queue(target_queue_key)
-owner.send(:debug, "1 [tqk: #{target_queue_key}")
-    if our_queue_key.nil? then
-      @our_queue_key = owner.send(owned_queue_key_query)
-    end
-    count = owner.queue_count(our_queue_key)
-    (0 .. count - 1).each do |i|
-      head = owner.queue_head(our_queue_key)
-      if yield(head) then   # If "we" are finished with 'head'
-#!!!!!Add info note re. why to use move_head_to_tail (Redis atomicity)!!!
-        # (Move the head of "our" queue to the target queue tail.)
-        owner.move_head_to_tail(our_queue_key, target_queue_key)
-      else    # (Not yet finished with 'head')
-        # (Move the head of "our" queue to the tail.)
-        owner.rotate_queue(our_queue_key)
-      end
-    end
-  end
-
-  protected
-
-  attr_accessor :owner
-  attr_accessor :owned_queue_key_query
-  attr_reader   :our_queue_key
-
-  def initialize(owner:, my_key_query:)
-    self.owner = owner
-    self.owned_queue_key_query = my_key_query
-  end
-
-end
+require 'eod_retrieval_inter_communications'
 
 # Management of EOD data retrieval logic
 # Subscribes to EOD_CHECK_CHANNEL for "eod-check" notifications; obtains
@@ -94,6 +37,8 @@ class EODRetrievalManager < Subscriber
   pre  :good_wrangler do |w| w != nil && w.is_a?(EODDataWrangler) end
   post :configured do |r, w|
     ! (w.log.nil? || w.error_log.nil? || w.config.nil?) end
+  post :intercomm_set do |r, wrangler|
+    wrangler.intercomm == self.intercomm end
   def configure_wrangler(eod_wrangler)
     eod_wrangler.configure(log: log, elog: error_log, config: config)
     eod_wrangler.intercomm = intercomm
@@ -108,7 +53,10 @@ class EODRetrievalManager < Subscriber
   # or being killed), retrieve the associated symbol list, and complete the
   # processing for those symbols (i.e.: handle unfinished processing).
   def prepare_for_main_loop(args = nil)
+#!!!!!likely 'intercomm' operation:
     eod_check_keys = eod_check_contents
+#!!!!TO-DO: A second inspection of this class to find potential "intercomm"
+#!!!!       operations I didn't notice & mark ealier.
     log_key = "#{self.class}.#{__method__}".to_sym
     log_messages({log_key => "eod_check_keys: #{eod_check_keys}"})
     eod_check_keys.each do |key|
@@ -122,6 +70,7 @@ class EODRetrievalManager < Subscriber
         # conflict (Will block [with a default time limit] until
         # acknowledgement is received.):
         order_termination(eod_check_key)
+#!!!!!possible 'intercomm' operation:
         @target_symbols_count = queue_count(eod_check_key)
         handle_data_retrieval
       else
@@ -161,10 +110,14 @@ class EODRetrievalManager < Subscriber
   def wait_for_notification
     debug("[#{self.class}.#{__method__}] subscribing to channel: " +
          "#{default_subscription_channel} (#{self.inspect})")
+#!!!!TO-DO: Further analysis to determine if my suspicion that it makes
+#!!!!      sense to not put this "subcribe..." logic in the "intercomm"
+#!!!(It's probably fine like this.)!!!!
     subscribe_once do
       debug("#{__method__}: (in subscribe_once block) lastmsg: #{last_message}")
       @eod_check_key = last_message
     end
+#!!!!rm:    intercomm.subscribe_to_eod_notification(self)
     debug("[#{self.class}.#{__method__}] end of method")
   end
 
@@ -187,6 +140,7 @@ class EODRetrievalManager < Subscriber
     else
       # Ensure that potential recovery work does not see this
       # 'eod-check-key', since it has 0 associated symbols.
+#!!!!!possible 'intercomm' operation:
       remove_from_eod_check_queue(eod_check_key)
     end
   end
@@ -214,7 +168,7 @@ class EODRetrievalManager < Subscriber
     @error_log = self.config.error_log
     @run_state = SERVICE_RUNNING
     @intercomm = EODRetrievalInterCommunications.new(owner: self,
-                                           my_key_query: :eod_check_key)
+        my_key_query: :eod_check_key)
     if @service_tag.nil? then
       @service_tag = EOD_DATA_RETRIEVAL
     end
@@ -226,7 +180,7 @@ class EODRetrievalManager < Subscriber
     initialize_message_brokers(@config)
     initialize_pubsub_broker(@config)
     set_subscription_callback_lambdas
-    super(EOD_CHECK_CHANNEL)  # i.e., subscribe channel
+    super(intercomm.subscription_channel)  # i.e., set subscribe channel
     create_status_report_timer
     @status_task.execute
   end
