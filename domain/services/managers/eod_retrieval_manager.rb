@@ -53,10 +53,7 @@ class EODRetrievalManager < Subscriber
   # or being killed), retrieve the associated symbol list, and complete the
   # processing for those symbols (i.e.: handle unfinished processing).
   def prepare_for_main_loop(args = nil)
-#!!!!!likely 'intercomm' operation:
-    eod_check_keys = eod_check_contents
-#!!!!TO-DO: A second inspection of this class to find potential "intercomm"
-#!!!!       operations I didn't notice & mark ealier.
+    eod_check_keys = intercomm.eod_check_keys
     log_key = "#{self.class}.#{__method__}".to_sym
     log_messages({log_key => "eod_check_keys: #{eod_check_keys}"})
     eod_check_keys.each do |key|
@@ -70,8 +67,7 @@ class EODRetrievalManager < Subscriber
         # conflict (Will block [with a default time limit] until
         # acknowledgement is received.):
         order_termination(eod_check_key)
-#!!!!!possible 'intercomm' operation:
-        @target_symbols_count = queue_count(eod_check_key)
+        @target_symbols_count = intercomm.eod_symbols_count(eod_check_key)
         handle_data_retrieval
       else
         warn("#{__method__}: eod_check_key == nil")
@@ -110,14 +106,10 @@ class EODRetrievalManager < Subscriber
   def wait_for_notification
     debug("[#{self.class}.#{__method__}] subscribing to channel: " +
          "#{default_subscription_channel} (#{self.inspect})")
-#!!!!TO-DO: Further analysis to determine if my suspicion that it makes
-#!!!!      sense to not put this "subcribe..." logic in the "intercomm"
-#!!!(It's probably fine like this.)!!!!
     subscribe_once do
       debug("#{__method__}: (in subscribe_once block) lastmsg: #{last_message}")
       @eod_check_key = last_message
     end
-#!!!!rm:    intercomm.subscribe_to_eod_notification(self)
     debug("[#{self.class}.#{__method__}] end of method")
   end
 
@@ -140,8 +132,7 @@ class EODRetrievalManager < Subscriber
     else
       # Ensure that potential recovery work does not see this
       # 'eod-check-key', since it has 0 associated symbols.
-#!!!!!possible 'intercomm' operation:
-      remove_from_eod_check_queue(eod_check_key)
+      intercomm.remove_from_eod_check_queue(eod_check_key)
     end
   end
 
@@ -189,7 +180,7 @@ class EODRetrievalManager < Subscriber
   def set_subscription_callback_lambdas
     @subs_callbacks = {}
     @subs_callbacks[:postproc] = lambda do
-      @target_symbols_count = queue_count(eod_check_key)
+      @target_symbols_count = intercomm.eod_symbols_count(eod_check_key)
       debug("[ERM] #{__method__} - tgtsymscnt: #{@target_symbols_count}")
     end
   end

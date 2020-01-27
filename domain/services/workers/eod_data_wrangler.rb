@@ -27,14 +27,15 @@ class EODDataWrangler
   #####  State-changing operations
 
   # For each symbol, s, in the set of symbols associated with 'eod_check_key'
-  # (i.e., queue_contents(eod_check_key)), poll the data provider for the
-  # latest data for s and, when those data become available, retrieve and
-  # store them.  When the data for all symbols in queue_contents(eod_check_key)
-  # are up to date, remove eod_check_key from the messaging queue (i.e.,
-  # call remove_from_eod_check_queue(eod_check_key) and then call 'exit 0' -
-  # i.e., terminate the process normally.
+  # (i.e., intercomm.eod_symbols(eod_check_key)), poll the data provider for
+  # the latest data for s and, when those data become available, retrieve and
+  # store them.  When the data for all symbols in
+  # intercomm.eod_symbols(eod_check_key) are up to date, remove eod_check_key
+  # from the messaging queue (via intercomm.remove_from_eod_check_queue) and
+  # then call 'exit 0' - i.e., terminate the process normally.
   pre  :err_tag do |err_tag, retrytag| err_tag != nil && retrytag != nil end
-  pre  :at_least_1_tradable do queue_count(eod_check_key) > 0 end
+  pre  :at_least_1_tradable do
+    intercomm.eod_symbols_count(eod_check_key) > 0 end
   pre  :check_key_in_queue  do eod_check_queue_contains(eod_check_key) end
   post :key_remains_iff_terminated   do
     terminated == eod_check_queue_contains(eod_check_key) end
@@ -45,7 +46,7 @@ class EODDataWrangler
     @storage_manager = new_data_storage_manager
     test "#{__method__} calling update_data_store [stmgr: #{@storage_manager}]"
     update_data_store
-    remaining_symbols = queue_contents(eod_check_key)
+    remaining_symbols = intercomm.eod_symbols(eod_check_key)
     test "#{__method__} - remaining_symbols: #{remaining_symbols}"
     if terminated then
       msg = "Termination ordered for process #{$$} " +
@@ -125,19 +126,15 @@ class EODDataWrangler
         "following symbols up to date:\n" + remaining_symbols.join(",")
       warn(msg)
       check(remaining_symbols.count > 0, 'updates not completed')
-#!!!!!!message-broker communication:!!!!!!
-#!!!!OLD: send_eod_retrieval_timed_out(data_ready_key, msg)
       intercomm.notify_of_timeout(data_ready_key, msg)
       info("process #{$$}: EOD retrieval timed out (#{data_ready_key}).")
     else
       check(remaining_symbols.count == 0, 'updates completed')
-#!!!!!!message-broker communication:!!!!!!
-#!!!!!OLD: send_eod_retrieval_completed(data_ready_key)
       intercomm.notify_of_completion(data_ready_key)
       info("process #{$$}: EOD retrieval completed (#{data_ready_key}).")
     end
     # Clean up (not 'terminated').
-    remove_from_eod_check_queue(eod_check_key)
+    intercomm.remove_from_eod_check_queue(eod_check_key)
   end
 
   #####  Boolean queries
@@ -145,7 +142,7 @@ class EODDataWrangler
   # Have all tradables assigned to this object been updated and their
   # symbol removed from the 'eod_check_key' queue?
   def updates_completed
-    result = queue_count(eod_check_key) == 0
+    result = intercomm.eod_symbols_count(eod_check_key) == 0
     test "#{__method__} - result, eod_check_key, stack: #{result}, "\
       "#{eod_check_key}\n#{caller.join("\n")}"
     result
@@ -158,22 +155,14 @@ class EODDataWrangler
   pre  :invariant do invariant end
   post :invariant do invariant end
   def perform_update
-    old_count = queue_count(eod_check_key)
+    old_count = intercomm.eod_symbols_count(eod_check_key)
     debug "#{__method__} - old count: #{old_count}"
     update_eod_data
     # If at least one symbol was updated and removed from the queue:
-    if queue_count(eod_check_key) < old_count then
+    if intercomm.eod_symbols_count(eod_check_key) < old_count then
+      # At least one tradable/symbol retrieval was completed:
       intercomm.notify_of_update(data_ready_key,
                                  next_eod_ready_key != data_ready_key, self)
-      # (Note: data_ready_key can be published before all of <self>'s updates
-      # have been completed - The subscriber needs to be aware of that.)
-      # At least one tradable/symbol retrieval was completed:
-#!!!      publish data_ready_key
-#!!!      test "published #{data_ready_key}"
-#!!!      if next_eod_ready_key != data_ready_key then
-#!!!        # Insurance, in case subscriber crashes while processing data_ready_key:
-#!!!        enqueue_eod_ready_key data_ready_key
-#!!!      end
     end
     debug "#{__method__} - returning without apparent error."
   rescue StandardError => e

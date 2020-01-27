@@ -44,7 +44,6 @@ class RedisPubSubBroker
     redis.subscribe channel do |on|
       on.message do |channel, message|
         @last_message = message
-puts "subscriber received message: '#{message}'"
         if block != nil then
           block.call
         end
