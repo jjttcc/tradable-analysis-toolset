@@ -45,7 +45,8 @@ module Service
     end
     main_loop_cleanup(args)
   rescue StandardError => e
-    msg = "Unrecoverable error occurred for service '#{service_tag}':\n#{e}"
+    msg = "Unrecoverable error occurred for service '#{service_tag}':\n'#{e}'"
+    msg += " - stack:\n#{e.backtrace.join("\n")}"
     error(msg)
     raise msg
   end

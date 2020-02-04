@@ -36,9 +36,10 @@ class EODDataWrangler
   pre  :err_tag do |err_tag, retrytag| err_tag != nil && retrytag != nil end
   pre  :at_least_1_tradable do
     intercomm.eod_symbols_count(eod_check_key) > 0 end
-  pre  :check_key_in_queue  do eod_check_queue_contains(eod_check_key) end
+  pre  :check_key_in_queue  do
+    intercomm.eod_check_queue_contains(eod_check_key) end
   post :key_remains_iff_terminated   do
-    terminated == eod_check_queue_contains(eod_check_key) end
+    terminated == intercomm.eod_check_queue_contains(eod_check_key) end
   post :tags_set do |result, err_tag, retrytag|
     @error_msg_key == err_tag && @retry_tag == retrytag end
   def execute(err_tag, retrytag)
@@ -162,11 +163,11 @@ class EODDataWrangler
     if intercomm.eod_symbols_count(eod_check_key) < old_count then
       # At least one tradable/symbol retrieval was completed:
       intercomm.notify_of_update(data_ready_key,
-                                 next_eod_ready_key != data_ready_key, self)
+        intercomm.next_eod_ready_key != data_ready_key)
     end
     debug "#{__method__} - returning without apparent error."
   rescue StandardError => e
-    msg = "#{self.class}.#{__method__} caught #{e}"
+    msg = "#{self.class}.#{__method__} caught #{e}:\n#{e.backtrace.join("\n")}"
     error(msg)
     # Notify the parent (EOD-retrieval service) process of the "issue":
     send_generic_message(@error_msg_key, msg)   # (no retry)
@@ -193,7 +194,7 @@ class EODDataWrangler
     # Indicate to parent process that the operation should be retried.
     exit 2
   rescue StandardError => e
-    msg = "#{e} [#{caller}]"
+    msg = "#{e} - backtrace:\n#{e.backtrace.join("\n")}"
     error(msg)
     if update_interrupted then
       # Notify the parent (EOD-retrieval service) process of the "issue":
@@ -244,7 +245,7 @@ class EODDataWrangler
   def initialize(owner, eod_chkey, enddate)
     @owner = owner
     @owner.configure_wrangler(self)
-    @data_ready_key = new_eod_data_ready_key
+    @data_ready_key = intercomm.new_eod_data_ready_key
     @eod_check_key = eod_chkey
     @end_date = enddate
     @update_retries = 0

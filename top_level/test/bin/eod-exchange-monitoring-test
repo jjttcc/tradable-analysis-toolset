@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+# Test the eod_exchange_monitoring service.
+# Usage: $0 [<symbol>,<symbol>[,...]]
+
+symbols='jcp,goog,f'
+if [ $# -gt 0 ]; then
+    symbols="$1"
+fi
+
+time TEST_SYMBOLS="$symbols" rake test_eod_exchange_monitoring
+status=$?
+if [ $status = 0 ]; then
+    echo "SUCCEEDED" >&2
+else
+    echo "FAILED with status $status" >&2
+    exit $status
+fi

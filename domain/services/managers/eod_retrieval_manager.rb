@@ -119,7 +119,7 @@ class EODRetrievalManager < Subscriber
   pre  :target_syms do
     target_symbols_count != nil && target_symbols_count >= 0 end
   post :empty_symlist_cleanup do implies(target_symbols_count == 0,
-         ! eod_check_queue_contains(eod_check_key)) end
+         ! intercomm.eod_check_queue_contains(eod_check_key)) end
   def handle_data_retrieval
     debug("#{self.class}.#{__method__}: target_symbols_count: "\
           "#{target_symbols_count}")

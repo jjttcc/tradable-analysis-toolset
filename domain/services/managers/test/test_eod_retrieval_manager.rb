@@ -14,10 +14,10 @@ class TestEODRetrievalManager < EODRetrievalManager
   attr_reader :continue_processing
 
   def prepare_for_main_loop(args = nil)
-    if next_eod_check_key != nil then
+    if intercomm.next_eod_check_key != nil then
       # Clean up leftover keys from previous test run.
-      while next_eod_check_key != nil do
-        dequeue_eod_check_key
+      while intercomm.next_eod_check_key != nil do
+        intercomm.dequeue_eod_check_key
       end
     end
     super(args)
@@ -31,7 +31,7 @@ class TestEODRetrievalManager < EODRetrievalManager
     test("#{__method__}#{$$} - test QUEUED: #{TEST_EOD_CHECK_KEY}: #{@symbols}")
     @target_symbols_count = queue_count(TEST_EOD_CHECK_KEY)
     # Pretend to be external service queueing the eod-check key:
-    enqueue_eod_check_key(TEST_EOD_CHECK_KEY)
+    intercomm.enqueue_eod_check_key(TEST_EOD_CHECK_KEY)
     # Publish the 'TEST_EOD_CHECK_KEY' to my "self":
     child = fork do
       sleep 0.75    # Wait to try to make sure subscription occurs.
@@ -55,7 +55,7 @@ class TestEODRetrievalManager < EODRetrievalManager
     @continue_processing = false
     test "#{__method__} - tgtsymcount: #{target_symbols_count}"
     test "eod-chk-queue-contains(#{eod_check_key}): "\
-      "#{eod_check_queue_contains(eod_check_key)}"
+      "#{intercomm.eod_check_queue_contains(eod_check_key)}"
     test "ending #{__method__} - q-count: #{queue_count(eod_check_key)}"
   end
 

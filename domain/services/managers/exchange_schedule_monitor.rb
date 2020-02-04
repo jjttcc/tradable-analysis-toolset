@@ -11,6 +11,7 @@ require 'tat_services_facilities'
 # tradables for exchange 'X', where 'X' has just closed
 class ExchangeScheduleMonitor < Publisher
   include Service
+include EODCommunicationsFacilities ###!!!!<- temporary!!!!
 
   private
 
@@ -29,6 +30,7 @@ class ExchangeScheduleMonitor < Publisher
       # No markets are open today - pause for a "long" time before
       # checking again whether any markets have entered a new day within
       # their timezones.
+      debug "exchange_clock.next_close_time returned nil"
       long_pause
     else
       check(@next_close_time != nil)
@@ -81,6 +83,7 @@ class ExchangeScheduleMonitor < Publisher
   def deadline_reached(utc_time)
     cancel_wait = false
     pause_counter = 0
+    debug("[#{__method__}] time: #{Time.current}, deadline: #{utc_time}.")
     while ! terminated? && ! cancel_wait && Time.current < utc_time do
       pause
       if pause_counter > CHECK_FOR_UPDATES_THRESHOLD then
@@ -125,6 +128,7 @@ class ExchangeScheduleMonitor < Publisher
       if @next_close_time != nil then
         close_time = @next_close_time.utc.to_s
       end
+##!!!!!!!intercomm.xxx:
       send_next_close_time(close_time)
       if
         @long_term_i_count < 0 ||
@@ -134,6 +138,7 @@ class ExchangeScheduleMonitor < Publisher
         open_markets = @exchange_clock.open_exchanges.map do |m|
           m.name
         end
+##!!!!!!!intercomm.xxx:
         send_open_market_info(open_markets)
       end
       @long_term_i_count += 1
@@ -176,14 +181,18 @@ class ExchangeScheduleMonitor < Publisher
   pre :symbols_array do |symbols| ! symbols.nil? && symbols.class == Array end
   def send_check_notification(symbols, closing_date_time)
     debug("#{__method__} - symbols & count: #{symbols}, #{symbols.count}")
+##!!!!!!!intercomm.xxx:
     eod_check_key = new_eod_check_key
     if symbols.count > 0 then
       debug("enqueuing check key: #{eod_check_key}")
       # Insurance - in case subscriber crashes while processing eod_check_key:
+##!!!!!!!intercomm.xxx:
       enqueue_eod_check_key eod_check_key
+##!!!!!!!intercomm.xxx:
       count = queue_messages(eod_check_key, symbols.map {|s| s.symbol},
                      DEFAULT_EXPIRATION_SECONDS)
       debug("calling 'send_close_date' with: #{closing_date_time}")
+##!!!!!!!intercomm.xxx:
       send_close_date(eod_check_key, closing_date_time)
       if count != symbols.count then
         msg = "send_check_notification: add_set returned different count " +
@@ -191,6 +200,8 @@ class ExchangeScheduleMonitor < Publisher
           symbols.first.symbol
         warn(msg)
       end
+##!!!!!!!intercomm.xxx:
+      debug "#{__method__} - publishing #{eod_check_key}"
       publish eod_check_key
     end
   end

@@ -45,4 +45,19 @@ puts "Using test constants" #!!!!
     EOD_CHECK_QUEUE = 'eod-check-queue'
     EOD_READY_QUEUE = 'eod-data-ready-queue'
   end
+
+  EXMON_PAUSE_SECONDS, EXMON_LONG_PAUSE_ITERATIONS = 3, 35
+  RUN_STATE_EXPIRATION_SECONDS, DEFAULT_EXPIRATION_SECONDS,
+    DEFAULT_ADMIN_EXPIRATION_SECONDS, DEFAULT_APP_EXPIRATION_SECONDS =
+      15, 28800, 600, 120
+  # Number of seconds of "margin" to give the exchange monitor before the
+  # next closing time in order to avoid interfering with its operation:
+  PRE_CLOSE_TIME_MARGIN = 300
+  # Number of seconds of "margin" to give the exchange monitor after the
+  # next closing time in order to avoid interfering with its operation:
+  POST_CLOSE_TIME_MARGIN = 90
+  # Default number of seconds to wait for a message acknowledgement before
+  # giving up:
+  MSG_ACK_TIMEOUT = 60  #!!!!tune!!!!
+
 end

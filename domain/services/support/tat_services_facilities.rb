@@ -31,6 +31,7 @@ module TatServicesFacilities
 
   ##### time-related constants
 
+=begin
   EXMON_PAUSE_SECONDS, EXMON_LONG_PAUSE_ITERATIONS = 3, 35
   RUN_STATE_EXPIRATION_SECONDS, DEFAULT_EXPIRATION_SECONDS,
     DEFAULT_ADMIN_EXPIRATION_SECONDS, DEFAULT_APP_EXPIRATION_SECONDS =
@@ -44,9 +45,11 @@ module TatServicesFacilities
   # Default number of seconds to wait for a message acknowledgement before
   # giving up:
   MSG_ACK_TIMEOUT = 60  #!!!!tune!!!!
+=end
 
   ##### messaging-related constants, settings
 
+###!!!!!move this???:::!!!!
   STATUS_KEY, STATUS_VALUE, STATUS_EXPIRE = :status, :value, :expire
 
 =begin
@@ -193,37 +196,7 @@ module TatServicesFacilities
     end
   end
 
-  ######## generated constant-based key values ########
-
-  begin
-
-    BOTTOM_KEY_INT, TOP_KEY_INT = 70_000, 99_999
-    @@key_int_bank = []
-
-    def next_key_int
-      if @@key_int_bank.empty? then
-        bank_size = TOP_KEY_INT - BOTTOM_KEY_INT + 1
-        @@key_int_bank = (BOTTOM_KEY_INT...TOP_KEY_INT).to_a.sample(bank_size)
-      end
-      @@key_int_bank.pop
-    end
-
-    # new key for symbol set associated with "check for eod data" notifications
-    def new_eod_check_key
-      EOD_CHECK_KEY_BASE + next_key_int.to_s
-    end
-
-    # new key for symbol set associated with eod-data-ready notifications
-    def new_eod_data_ready_key
-      EOD_DATA_KEY_BASE + next_key_int.to_s
-    end
-
-    # A new, "semi-random", key starting with 'base'
-    def new_semi_random_key(base)
-      base + next_key_int.to_s
-    end
-
-  end
+  ######## generated constant-based key values!!!!!! ########
 
   ######## Application-related messaging ########
 
@@ -259,76 +232,6 @@ module TatServicesFacilities
     retrieved_set(OPEN_EXCHANGES_KEY)
   end
 
-  begin  ## EOD-data-related messaging ##
-
-    # Add the specified EOD check key-value to the "EOD-check" queue.
-    def enqueue_eod_check_key(key_value)
-      queue_messages(EOD_CHECK_QUEUE, key_value, DEFAULT_EXPIRATION_SECONDS)
-    end
-
-    # Add the specified EOD data-ready key-value to the "EOD-data-ready" queue.
-    def enqueue_eod_ready_key(key_value)
-      queue_messages(EOD_READY_QUEUE, key_value, DEFAULT_EXPIRATION_SECONDS)
-    end
-
-    # Remove the head (i.e., next_eod_check_key) of the "EOD-check" queue.
-    # Return the removed-value/former-head.
-    def dequeue_eod_check_key
-      remove_next_from_queue(EOD_CHECK_QUEUE)
-    end
-
-    # Remove the head (i.e., next_eod_ready_key) of the "EOD-data-ready" queue.
-    # Return the removed-value/former-head.
-    def dequeue_eod_ready_key
-      remove_next_from_queue(EOD_READY_QUEUE)
-    end
-
-    # Remove all occurrences of 'value' from the "EOD-check" queue.
-    # Return the number of removed elements.
-    def remove_from_eod_check_queue(value)
-      remove_from_queue(EOD_CHECK_QUEUE, value)
-    end
-
-    # Remove all occurrences of 'value' from the "EOD-data-ready" queue.
-    # Return the number of removed elements.
-    def remove_from_eod_ready_queue(value)
-      remove_from_queue(EOD_READY_QUEUE, value)
-    end
-
-    # The next EOD check key-value - i.e., the value currently at the
-    # head of the "EOD-check" queue.  nil if the queue is empty.
-    def next_eod_check_key
-      queue_head(EOD_CHECK_QUEUE)
-    end
-
-    # The next EOD data-ready key-value - i.e., the value currently at the
-    # head of the "EOD-data-ready" queue.  nil if the queue is empty.
-    def next_eod_ready_key
-      queue_head(EOD_READY_QUEUE)
-    end
-
-    # The contents, in order, of the "EOD-check" queue
-    def eod_check_contents
-      queue_contents(EOD_CHECK_QUEUE)
-    end
-
-    # The contents, in order, of the "EOD-data-ready" queue
-    def eod_ready_contents
-      queue_contents(EOD_READY_QUEUE)
-    end
-
-    # Does the "EOD-check" queue contain 'value'?
-    def eod_check_queue_contains(value)
-      queue_contains(EOD_CHECK_QUEUE, value)
-    end
-
-    # Does the "EOD-data-ready" queue contain 'value'?
-    def eod_ready_queue_contains(value)
-      queue_contains(EOD_READY_QUEUE, value)
-    end
-
-  end
-
   ##### Service status/info reports #####
 
   # Send the next exchange closing time (to the message broker).
@@ -361,7 +264,8 @@ module TatServicesFacilities
   ##### EOD data retrieval -> triggering services communication #####
 
   begin
-
+=begin
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     EOD_FINISHED_SUFFIX = :finished
     EOD_COMPLETED_STATUS = ""
     EOD_TIMED_OUT_STATUS = :timed_out
@@ -408,7 +312,8 @@ module TatServicesFacilities
     def eod_retrieval_timed_out?(value)
       value =~ /^#{EOD_TIMED_OUT_STATUS}/
     end
-
+#!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+=end
   end
 
   ##### General messaging utilities #####

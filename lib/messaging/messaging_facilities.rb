@@ -151,10 +151,11 @@ module MessagingFacilities
     implies(exp != nil, exp.is_a?(Numeric) && exp >= 0) end
   def queue_messages(key, msgs, expire_secs = nil, admin = false)
     if admin then
-      admin_broker.queue_messages key, msgs, expire_secs
+      result = admin_broker.queue_messages key, msgs, expire_secs
     else
-      broker.queue_messages key, msgs, expire_secs
+      result = broker.queue_messages key, msgs, expire_secs
     end
+    result
   end
 
   # Move the next (head) element from the queue @ key1 to the tail of the
@@ -249,6 +250,26 @@ module MessagingFacilities
   end
 
   alias_method :delete_queue, :delete_object
+
+  #####  Key-related utilities
+
+  BOTTOM_KEY_INTEGER, TOP_KEY_INTEGER = 70_000, 99_999
+  @@key_int_bank = []
+
+  # The "next" randomly-generated integer value
+  def next_key_integer
+    if @@key_int_bank.empty? then
+      bank_size = TOP_KEY_INTEGER - BOTTOM_KEY_INTEGER + 1
+      @@key_int_bank =
+        (BOTTOM_KEY_INTEGER...TOP_KEY_INTEGER).to_a.sample(bank_size)
+    end
+    @@key_int_bank.pop
+  end
+
+  # A new, "semi-random", key starting with 'base'
+  def new_semi_random_key(base)
+    base + next_key_integer.to_s
+  end
 
   #####  Initialization
 
