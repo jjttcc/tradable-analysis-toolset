@@ -2,8 +2,8 @@ require 'publisher'
 require 'eod_communications_facilities'
 require 'tat_services_facilities'
 
-# Encapsulation of services intercommunications from the POV of EOD
-# retrieval
+# Encapsulation of services intercommunications from the POV of end-of-day
+# data retrieval
 class EODRetrievalInterCommunications < Publisher
   include Contracts::DSL, EODCommunicationsFacilities, TatServicesFacilities
 

@@ -7,11 +7,11 @@ if [ $# -gt 0 ]; then
     symbols="$1"
 fi
 
-time TEST_SYMBOLS="$symbols" rake test_eod_exchange_monitoring
+time TEST_SYMBOLS="$symbols" TAT_ENV=test rake test_eod_exchange_monitoring
 status=$?
 if [ $status = 0 ]; then
-    echo "SUCCEEDED" >&2
+    echo "SUCCEEDED"
 else
-    echo "FAILED with status $status" >&2
+    echo "FAILED with status $status"
     exit $status
 fi

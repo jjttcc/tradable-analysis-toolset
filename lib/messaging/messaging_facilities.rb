@@ -218,7 +218,7 @@ module MessagingFacilities
 
   # Remove the next-element/head (i.e., dequeue) of the queue with key 'key'
   # (typically, inserted via 'queue_messages').  Return the value of that
-  # element.
+  # element - nil if the queue is empty or does not exist.
   def remove_next_from_queue(key, admin = false)
     if admin then
       admin_broker.remove_next_from_queue key

@@ -4,26 +4,20 @@ require 'test_eod_data_wrangler'
 
 class TestExchangeScheduleMonitor < ExchangeScheduleMonitor
   include Publication, TatUtil
+  # (Needed for 'dequeue_eod_check_key':)
+  include EODCommunicationsFacilities
 
-  public
+  public :config
+
+  protected
 
   def send_TEST_exchange_schedule_monitor_run_state
     # null op
   end
 
-  protected
-
   attr_reader :continue_processing, :symbols
 
   private
-
-=begin
-#!!!!!remove this:
-  def prepare_for_main_loop(args = nil)
-    # Do nothing. ###!!!!!????[check]!!!! - or??:
-    super(args)
-  end
-=end
 
   def long_pause
     if @next_close_time.nil? then
@@ -50,16 +44,17 @@ class TestExchangeScheduleMonitor < ExchangeScheduleMonitor
   def check_queue_status
     latest_key = dequeue_eod_check_key
     check latest_key != nil, 'Last queued check-key should not be nil.'
-    test "#{self.class}.#{__method__}: first check passed"
-    check queue_count(latest_key) == symbols.count,
-      "Count for #{latest_key} queue should be #{symbols.count}"
-    test "#{self.class}.#{__method__}: second check passed"
+    test "First check passed - key: #{latest_key}"
+    c = queue_count(latest_key)
+    check c == symbols.count,
+      "Count (#{c}) for #{latest_key} queue should be #{symbols.count}"
+    test "Second check passed - symbols queue count: #{c}"
     queued_symbols = queue_contents(latest_key)
     symbols.each do |s|
       check queued_symbols.include?(s),
         "#{latest_key} queue should contain #{s}"
     end
-    test "#{self.class}.#{__method__}: third check (set) passed"
+    test "Third check passed - q'd syms: #{queued_symbols}"
   end
 
   TEST_PREFIX = 'TEST_'
@@ -75,6 +70,7 @@ class TestExchangeScheduleMonitor < ExchangeScheduleMonitor
     @error_log = self.config.error_log
     @refresh_requested = false
     @run_state = SERVICE_RUNNING
+    @intercomm = ExchangeMonitoringInterCommunications.new(self)
     @long_term_i_count = -1
     self.log.change_key(service_tag)
     if @error_log.respond_to?(:change_key) then
@@ -90,9 +86,20 @@ class TestExchangeScheduleMonitor < ExchangeScheduleMonitor
     else
       @symbols = test_symbols
     end
-    @exchange_clock = TestExchangeClock.new(@error_log, test_symbols)
+    @exchange_clock = TestExchangeClock.new(log: @error_log,
+                                            symbols: test_symbols)
     test "#{__method__}#{$$} - service tag, syms: #{@service_tag}, #{@symbols}"
     @default_publishing_channel = EOD_CHECK_CHANNEL
+    prepare_test
+  end
+
+  def prepare_test
+    # Empty the queue, in case it has left-over garbage:
+    report = "queued eod check keys, if any: "
+    while (k = dequeue_eod_check_key) != nil
+      report += "'#{k}' "
+    end
+    debug report
   end
 
 end

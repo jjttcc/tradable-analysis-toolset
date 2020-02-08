@@ -1,9 +1,12 @@
 require 'ruby_contracts'
 require 'eod_retrieval_manager'
 require 'test_eod_data_wrangler'
+require 'exchange_communications_facilities'
 
 class TestEODRetrievalManager < EODRetrievalManager
   include Publication, TatUtil
+  # (Needed for 'enqueue_eod_check_key':)
+  include ExchangeCommunicationsFacilities
 
   def send_TEST_eod_data_retrieval_run_state
     # null op
@@ -31,7 +34,7 @@ class TestEODRetrievalManager < EODRetrievalManager
     test("#{__method__}#{$$} - test QUEUED: #{TEST_EOD_CHECK_KEY}: #{@symbols}")
     @target_symbols_count = queue_count(TEST_EOD_CHECK_KEY)
     # Pretend to be external service queueing the eod-check key:
-    intercomm.enqueue_eod_check_key(TEST_EOD_CHECK_KEY)
+    enqueue_eod_check_key(TEST_EOD_CHECK_KEY)
     # Publish the 'TEST_EOD_CHECK_KEY' to my "self":
     child = fork do
       sleep 0.75    # Wait to try to make sure subscription occurs.

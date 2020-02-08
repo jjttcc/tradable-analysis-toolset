@@ -1,5 +1,4 @@
 SYM_VAR = 'TEST_SYMBOLS'
-ENV['TAT_ENV'] = "test"
 
 def user_supplied_symbols
   if ENV.has_key?(SYM_VAR) && ENV[SYM_VAR] != nil then

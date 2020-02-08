@@ -21,7 +21,9 @@ require 'eod_retrieval_inter_communications'
 class EODRetrievalManager < Subscriber
   include Service
 
-  public
+  public :config
+
+  protected
 
   #####  Access
 
@@ -30,7 +32,6 @@ class EODRetrievalManager < Subscriber
   attr_reader :target_symbols_count
   # Service-intercommunications manager:
   attr_reader :intercomm
-  attr_reader :config
 
   #####  Callback to "configure" the EODDataWrangler
 

@@ -1,11 +1,30 @@
 
-# Facilities used by the end-of-day-data-retrieval service to communicate
-# with other services
-module EODCommunicationsFacilities
+# Facilities used by the exchange-schedule-monitoring service to
+# communicate with other services
+module ExchangeCommunicationsFacilities
   include TatServicesConstants, MessagingFacilities
 
 ##!!!!!TO-DO: Organize: state-changing/non-state-changing, queue....
 
+  # new key for symbol set associated with "check for eod data" notifications
+  def new_eod_check_key
+    EOD_CHECK_KEY_BASE + next_key_integer.to_s
+  end
+
+  # Add the specified EOD check key-value to the "EOD-check" key queue.
+  def enqueue_eod_check_key(key_value)
+    queue_messages(EOD_CHECK_QUEUE, key_value, DEFAULT_EXPIRATION_SECONDS)
+  end
+
+  # Using 'key' as the base of the message key, send the date portion of the
+  # specified exchange-closing-time (datetime) in 'yyyy-mm-dd' format.
+  # The key value used will be "#{key}:close-date"
+  def send_close_date(key, datetime)
+    set_message("#{key}:#{CLOSE_DATE_SUFFIX}", datetime.to_date,
+                DEFAULT_EXPIRATION_SECONDS)
+  end
+
+=begin
   # new key for symbol set associated with eod-data-ready notifications
   def new_eod_data_ready_key
     EOD_DATA_KEY_BASE + next_key_integer.to_s
@@ -23,8 +42,7 @@ module EODCommunicationsFacilities
   end
 
   # Remove the head (i.e., next_eod_check_key) of the "EOD-check" key queue.
-  # Return the removed-value/former-head - nil if the queue is empty or
-  # does not exist.
+  # Return the removed-value/former-head.
   def dequeue_eod_check_key
     remove_next_from_queue(EOD_CHECK_QUEUE)
   end
@@ -125,5 +143,6 @@ module EODCommunicationsFacilities
     end
 
   end
+=end
 
 end

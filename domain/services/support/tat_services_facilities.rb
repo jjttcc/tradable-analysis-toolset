@@ -69,8 +69,6 @@ module TatServicesFacilities
   REPORT_RESPONSE_CHANNEL       = 'status-reporting-response'
 =end
 
-  CLOSE_DATE_SUFFIX             = 'close-date'
-
   EXCH_MONITOR_NEXT_CLOSE_SETTINGS   = {
     STATUS_KEY    => EXCHANGE_CLOSE_TIME_KEY,
     # default:
@@ -198,7 +196,7 @@ module TatServicesFacilities
 
   ######## generated constant-based key values!!!!!! ########
 
-  ######## Application-related messaging ########
+  ######## Application-related messaging!!!!!! ########
 
   ##### Service status/info queries messaging #####
 
@@ -234,18 +232,12 @@ module TatServicesFacilities
 
   ##### Service status/info reports #####
 
+=begin
+###!!!!!!!REMOVE:
   # Send the next exchange closing time (to the message broker).
   def send_next_close_time(time)
     args = eval_settings(EXCH_MONITOR_NEXT_CLOSE_SETTINGS, time)
     set_message(args[0], *args[1..-1])
-  end
-
-  # Using 'key' as the base of the message key, send the date portion of the
-  # specified exchange-closing-time (datetime) in 'yyyy-mm-dd' format.
-  # The key value used will be "#{key}:close-date"
-  def send_close_date(key, datetime)
-    set_message("#{key}:#{CLOSE_DATE_SUFFIX}", datetime.to_date,
-                DEFAULT_EXPIRATION_SECONDS)
   end
 
   # Send the specified list of open exchanges (to the message broker).
@@ -260,6 +252,15 @@ module TatServicesFacilities
       replace_set(key, args.second)
     end
   end
+
+  # Using 'key' as the base of the message key, send the date portion of the
+  # specified exchange-closing-time (datetime) in 'yyyy-mm-dd' format.
+  # The key value used will be "#{key}:close-date"
+  def send_close_date(key, datetime)
+    set_message("#{key}:#{CLOSE_DATE_SUFFIX}", datetime.to_date,
+                DEFAULT_EXPIRATION_SECONDS)
+  end
+=end
 
   ##### EOD data retrieval -> triggering services communication #####
 

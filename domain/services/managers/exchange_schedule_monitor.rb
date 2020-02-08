@@ -11,9 +11,11 @@ require 'tat_services_facilities'
 # tradables for exchange 'X', where 'X' has just closed
 class ExchangeScheduleMonitor < Publisher
   include Service
-include EODCommunicationsFacilities ###!!!!<- temporary!!!!
 
   private
+
+  # Service-intercommunications manager:
+  attr_reader :intercomm
 
   ##### Hook method implementations
 
@@ -38,35 +40,34 @@ include EODCommunicationsFacilities ###!!!!<- temporary!!!!
             "#{exchange_clock.exchanges_for(@next_close_time).map do |e|
               "#{e.name.inspect}/#{e.timezone.inspect}"
             end.join(", ")})")
-#!!!!Consider sending (queue_messages) the list of symbols and the
-#!!!close-date (send_close_date) ahead of time for robustness -
-#!!!If the process dies and is not restarted until after 'next_close_time'
-#!!!occurs, then (on startup) retrieve the key (from where? - the message
-#!!!broker?) and do the 'publish eod_check_key' again.
-      # (Wait until it's '@next_close_time'.)
-      time_to_send = deadline_reached(@next_close_time)
-      debug("eom: time_to_send: #{time_to_send}")
-      if time_to_send then
-        debug("[time_to_send == true] run_state, SR: "\
-              "#{run_state}, #{SERVICE_RUNNING}")
-        if run_state != SERVICE_RUNNING then
-          if run_state == SERVICE_SUSPENDED then
-            debug("{process}run_state == SERVICE_SUSPEND - waiting...")
-            wait_for_resume_command
-            debug("{process}[run_state == SERVICE_SUSPEND] FINISHED waiting")
-          end
-        end
-        if terminated? then
-          debug("{process}We've been terminated!")
-          @continue_monitoring = false
-        else
-          check(run_state == SERVICE_RUNNING, "#{service_tag} is running")
-          # The service (this process) is running and it is "time-to-send",
-          # so send a check-for-EOD-data notification to any subscribers.
-          send_check_notification(
-            exchange_clock.symbols_for(@next_close_time), @next_close_time)
-        end
+      if wait_for_deadline_reached(@next_close_time) then
+        process_close_time_event
       end
+    end
+  end
+
+  # Assume that an exchange has just closed (i.e., @next_close_time has
+  # just occurred) and take appropriate action.  If 'run_state' is
+  # "running", call 'intercomm.send_check_notification'; otherwise, respond
+  # accordingly (pause if "suspended", terminate if "terminated", etc.).
+  def process_close_time_event
+    debug("(deadline was reached) run_state, SR: #{run_state}")
+    if run_state != SERVICE_RUNNING then
+      if run_state == SERVICE_SUSPENDED then
+        debug("{process}run_state == SERVICE_SUSPEND - waiting...")
+        wait_for_resume_command
+        debug("{process}[run_state == SERVICE_SUSPEND] FINISHED waiting")
+      end
+    end
+    if terminated? then
+      debug("{process}We've been terminated!")
+      @continue_monitoring = false
+    else
+      check(run_state == SERVICE_RUNNING, "#{service_tag} is running")
+      # This service is running and @next_close_time was reached, so
+      # send a check-for-EOD-data notification to any subscribers.
+      intercomm.send_check_notification(
+        exchange_clock.symbols_for(@next_close_time), @next_close_time)
     end
   end
 
@@ -80,7 +81,7 @@ include EODCommunicationsFacilities ###!!!!<- temporary!!!!
   # and that 'exchange_clock.exchanges' was reloaded - i.e., is up to date.
   post :time_reached_unless_dead do |result, time|
     implies(result, time <= Time.current || terminated?) end
-  def deadline_reached(utc_time)
+  def wait_for_deadline_reached(utc_time)
     cancel_wait = false
     pause_counter = 0
     debug("[#{__method__}] time: #{Time.current}, deadline: #{utc_time}.")
@@ -128,8 +129,7 @@ include EODCommunicationsFacilities ###!!!!<- temporary!!!!
       if @next_close_time != nil then
         close_time = @next_close_time.utc.to_s
       end
-##!!!!!!!intercomm.xxx:
-      send_next_close_time(close_time)
+      intercomm.send_next_close_time(close_time)
       if
         @long_term_i_count < 0 ||
           @long_term_i_count > LONG_TERM_STATUS_ITERATIONS
@@ -138,8 +138,7 @@ include EODCommunicationsFacilities ###!!!!<- temporary!!!!
         open_markets = @exchange_clock.open_exchanges.map do |m|
           m.name
         end
-##!!!!!!!intercomm.xxx:
-        send_open_market_info(open_markets)
+        intercomm.send_open_market_info(open_markets)
       end
       @long_term_i_count += 1
     end
@@ -173,24 +172,23 @@ include EODCommunicationsFacilities ###!!!!<- temporary!!!!
     end
   end
 
+=begin
+###!!!!!old/rm:
   # Generate a new 'eod_check_key' and send 'symbols', with the new key, as
   # well as the date part of 'closing_date_time'[1] (which is the closing
   # time of the exchange(s) associated with 'symbols'), to the messaging
   # system.  Then publish 'eod_check_key' on the EOD_CHECK_CHANNEL.
   # [1] The key for the closing-date is: "#{eod_check_key}:close-date"
   pre :symbols_array do |symbols| ! symbols.nil? && symbols.class == Array end
-  def send_check_notification(symbols, closing_date_time)
+  def old____send_check_notification(symbols, closing_date_time)
     debug("#{__method__} - symbols & count: #{symbols}, #{symbols.count}")
-##!!!!!!!intercomm.xxx:
-    eod_check_key = new_eod_check_key
+    eod_check_key = intercomm.new_eod_check_key
     if symbols.count > 0 then
       debug("enqueuing check key: #{eod_check_key}")
       # Insurance - in case subscriber crashes while processing eod_check_key:
-##!!!!!!!intercomm.xxx:
-      enqueue_eod_check_key eod_check_key
-##!!!!!!!intercomm.xxx:
-      count = queue_messages(eod_check_key, symbols.map {|s| s.symbol},
-                     DEFAULT_EXPIRATION_SECONDS)
+      intercomm.enqueue_eod_check_key eod_check_key
+      syms = symbols.map {|s| s.symbol}
+      intercomm.fill_symbols_queue(syms)
       debug("calling 'send_close_date' with: #{closing_date_time}")
 ##!!!!!!!intercomm.xxx:
       send_close_date(eod_check_key, closing_date_time)
@@ -205,6 +203,7 @@ include EODCommunicationsFacilities ###!!!!<- temporary!!!!
       publish eod_check_key
     end
   end
+=end
 
   # Sleep for EXMON_PAUSE_SECONDS.
   def pause
@@ -236,7 +235,6 @@ include EODCommunicationsFacilities ###!!!!<- temporary!!!!
     end
   end
 
-
   attr_reader :continue_monitoring, :exchange_clock, :refresh_requested
 
   # While this value is > the number of seconds until the next upcoming
@@ -256,6 +254,7 @@ include EODCommunicationsFacilities ###!!!!<- temporary!!!!
     @refresh_requested = false
     @exchange_clock = config.database::exchange_clock(@error_log)
     @run_state = SERVICE_RUNNING
+    @intercomm = ExchangeMonitoringInterCommunications.new(self)
     @long_term_i_count = -1
     @service_tag = EOD_EXCHANGE_MONITORING
     # Set up to log with the key 'service_tag'.
