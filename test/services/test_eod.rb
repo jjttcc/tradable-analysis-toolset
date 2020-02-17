@@ -1,6 +1,19 @@
+# (load-path settings needed, apparently, to allow this test to be run
+# alone.)
+$is_production_run = false
+paths = %w[domain/services/support ./lib/util domain/services/communication
+./lib/messaging
+]
+paths.each do |path|
+  $LOAD_PATH << "#{ENV["TATDIR"]}/#{path}"
+end
+
+require 'tat_services_facilities'
+require 'exchange_communications_facilities'
 
 class TestEOD
   include TatServicesFacilities
+  include ExchangeCommunicationsFacilities
 
   private
 

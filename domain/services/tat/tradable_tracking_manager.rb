@@ -1,15 +1,21 @@
-# Manager responsible for identifying tradables that are being used and
-# marking them as such in the tradable_symbols table, allowing the
-# ExchangeScheduleMonitor to find the tracked tradables with a quick and
-# simple query (select symbol from tradable_symbols where tracked = true).
-# Note: when updating the database, the TradableTrackingManager suspends
-# the ExchangeScheduleMonitor to avoid conflicts and, when finished, tells
-# it to resume its operation/monitoring.
+# Service responsible for identifying tradables that are being used and
+# making this information available to the ExchangeScheduleMonitor
+# Note: Before "publishing" the latest information regarding which
+# tradables are tracked, the ExchangeScheduleMonitor service is ordered to
+# suspend itself and, after the information is "published", the
+# ExchangeScheduleMonitor service is ordered to resume its operation.
+# Thus these two services are more tightly bound to each other than is the
+# case with most services.
+###!!!!TO-DO: Consider changing this fellow's name to
+###!!!!TradableTracker or TradableTracking!!!!!
 module TAT
   module TradableTrackingManager
     include Contracts::DSL, Service
 
     private
+
+    # Service-intercommunications manager:
+    attr_reader :intercomm
 
     ##### Hook method implementations
 
@@ -34,9 +40,10 @@ module TAT
     attr_reader :last_recorded_close_time
     attr_reader :config
 
+    # Key used for internal tradable-tracking service communication:
     TTM_LAST_TIME_KEY = 'ttm-last-update-time'
 
-    SHORT_PAUSE_SECONDS, MODERATE_PAUSE_SECONDS = 2, 30
+    MODERATE_PAUSE_SECONDS = 30
 
     # Clean up the database with respect to tradables marked as tracked that
     # are no longer tracked:
@@ -54,7 +61,7 @@ module TAT
       end
       @last_update_time = DateTime.current
       @last_cleanup_time = @last_update_time
-      wake_exch_monitor
+      intercomm.wake_exch_monitor
     end
 
     # Query for any tracking-related changes that have occurred since
@@ -63,7 +70,7 @@ module TAT
     pre  :update_time_set do last_update_time != nil end
     post :update_time_set do last_update_time != nil end
     def process_tracking_changes
-      run_in_transaction do   #!!!!TO-DO: abstractify (run_in_transaction)
+      run_in_transaction do
         prepare_for_tracking_update
         if tracking_update_needed then
           wait_until_exch_monitor_ready
@@ -71,7 +78,7 @@ module TAT
           perform_tracking_update
           set_message(TTM_LAST_TIME_KEY, DateTime.current.to_s)
           log_messages({TTM_LAST_TIME_KEY => DateTime.current.to_s})
-          wake_exch_monitor
+          intercomm.wake_exch_monitor
         end
       end
       begin
@@ -89,7 +96,7 @@ module TAT
 
     # Does 'execute_complete_cycle' need to be called?
     def cleanup_needed
-      last_cleanup_time.nil? || (cleanup_is_due && markets_are_closed)
+      last_cleanup_time.nil? || (cleanup_is_due && intercomm.markets_are_closed)
     end
 
     # Has enough time passed since the last cleanup that a new cleanup is
@@ -99,21 +106,11 @@ module TAT
       # I.e.: (secs-since-epoch - secs-since-epoch-of:last-cleanup-time) <
       #          allocated-tracking-cleanup-interval[in-seconds]
       result = DateTime.current.to_i - last_cleanup_time.to_i >
-      config.tracking_cleanup_interval
+        config.tracking_cleanup_interval
       result
     end
 
     protected  ### Exchange-monitor-related querying and control
-
-    # Are all monitored exchanges currently closed?
-    def markets_are_closed
-      open_market_info.empty?
-    end
-
-    # Tell the exchange monitor to start running again.
-    def wake_exch_monitor
-      order_eod_exchange_monitoring_resumption
-    end
 
     # If the current time is within PRE_CLOSE_TIME_MARGIN seconds from the
     # next closing time, sleep until a little while after the closing time
@@ -121,11 +118,11 @@ module TAT
     def wait_until_exch_monitor_ready
       now = DateTime.current
       previous_close_time = last_recorded_close_time
-      @last_recorded_close_time = next_exch_close_datetime
+      @last_recorded_close_time = intercomm.next_exch_close_datetime
       if last_recorded_close_time != nil then
         seconds_until_close = last_recorded_close_time.to_i - now.to_i
         # Check # of seconds after last close in case it's, e.g., 5 seconds
-        # after an exchange just close (i.e., too soon):
+        # after an exchange just closed (i.e., too soon):
         seconds_after_last_close = (
           (previous_close_time != nil) &&
           (previous_close_time != last_recorded_close_time)
@@ -133,9 +130,10 @@ module TAT
         if
           seconds_until_close < PRE_CLOSE_TIME_MARGIN ||
             seconds_after_last_close < POST_CLOSE_TIME_MARGIN
-          then
+        then
           sleep seconds_until_close + POST_CLOSE_TIME_MARGIN
         else
+          debug "#{__method__}: No wait needed."
         end
       else
         check(last_recorded_close_time.nil?)
@@ -145,29 +143,24 @@ module TAT
 
     # Suspend the exchange monitor - Wait and verify that it enters the
     # suspended state before returning.
-    post :suspended do
-      implies(! exch_monitor_is_ill, eod_exchange_monitoring_suspended?) end
+    post :suspended do implies(! exch_monitor_is_ill,
+                             intercomm.eod_exchange_monitoring_suspended?) end
     def suspend_exch_monitor
-      if ! eod_exchange_monitoring_suspended? then
-        order_eod_exchange_monitoring_suspension
-        sleep SHORT_PAUSE_SECONDS
-        pause_count = 0
-        while ! eod_exchange_monitoring_suspended? do
-          if pause_count > 0 && pause_count % 5 == 0 then
-            if
-              eod_exchange_monitoring_unresponsive? ||
-                eod_exchange_monitoring_terminated?
-              then
-              warn("#{EOD_EXCHANGE_MONITORING} service has terminated or " +
-                   "is diseased")
-              @exch_monitor_is_ill = true
-              break
-            end
+      intercomm.suspend_exchange_monitor do
+            |wait_seconds, unresponsive, terminated|
+        msg = "#{EOD_EXCHANGE_MONITORING} service did not suspend."\
+          " (\nWaited for #{wait_seconds} seconds"
+        if unresponsive || terminated then
+          msg += ". Service was "
+          msg += if unresponsive then
+            "unresponsive"
+          else
+            "terminated"
           end
-          # Loop until the reported state actually is "suspended".
-          sleep SHORT_PAUSE_SECONDS
-          pause_count += 1
         end
+        @exch_monitor_is_ill = true
+        msg += ".)"
+        warn msg
       end
     end
 
@@ -177,13 +170,11 @@ module TAT
     def check_and_respond_to_sick_exchmon
       if exch_monitor_is_ill then
         pause_time = MODERATE_PAUSE_SECONDS * 3
-        warn("#{EOD_EXCHANGE_MONITORING} service is not responding - pausing " +
-          "for #{pause_time} seconds to wait for the process to be re-started.")
+        warn("#{EOD_EXCHANGE_MONITORING} service is not responding - pausing "\
+          "for #{pause_time}\nseconds to attempt to wait for the process to "\
+          "recover or be re-started.")
         sleep pause_time
-        if
-          ! (eod_exchange_monitoring_unresponsive? ||
-             eod_exchange_monitoring_terminated?)
-          then
+        if intercomm.eod_exchange_monitor_available then
           # exchange monitor has recovered.
           @exch_monitor_is_ill = false
         end
@@ -221,6 +212,33 @@ module TAT
     # Run (yeild-to) the specified block within a "transaction".
     def run_in_transaction
       raise "Fatal: abstract method: #{self.class} #{__method__}"
+    end
+
+    #####  Initialization
+
+    pre  :config_exists do |config| config != nil end
+    post :log_config_etc_set do invariant end
+    def initialize(config)
+      initialize_message_brokers(config)
+      @config = config
+      @log = config.message_log
+      @error_log = config.error_log
+      @last_update_time = nil
+      @intercomm = TradableTrackingInterCommunications.new(self)
+      @service_tag = MANAGE_TRADABLE_TRACKING
+      # Set up to log with the key 'service_tag'.
+      self.log.change_key(service_tag)
+      if @error_log.respond_to?(:change_key) then
+        @error_log.change_key(service_tag)
+      end
+      set_message(TTM_LAST_TIME_KEY, nil)
+      @last_cleanup_time = nil
+      @last_recorded_close_time = intercomm.next_exch_close_datetime
+      @continue_processing = true
+      @exch_monitor_is_ill = false
+      create_status_report_timer(status_manager: intercomm)
+      # The 'status_task' will asynchronously periodically report our status.
+      @status_task.execute
     end
 
   end

@@ -1,11 +1,13 @@
 require 'publisher'
 require 'eod_communications_facilities'
 require 'tat_services_facilities'
+require 'service_state_facilities'
 
 # Encapsulation of services intercommunications from the POV of end-of-day
 # data retrieval
 class EODRetrievalInterCommunications < Publisher
   include Contracts::DSL, EODCommunicationsFacilities, TatServicesFacilities
+  include ServiceStateFacilities
 
   public
 
@@ -14,8 +16,12 @@ class EODRetrievalInterCommunications < Publisher
   attr_reader :subscription_channel, :publication_channel
   attr_reader :owned_queue_key_query
 
-#!!!!TO-DO: search for and address: #!!!!!!message-broker communication!!!!!!
-#!!!!TO-DO: look for other comms not yet marked/commented, and address!!!!!!!
+
+  # The close-date (exchange-closing date) based on 'key'
+  # The key value used for the retrieval will be "#{key}:close-date"
+  def close_date(key)
+    retrieved_message("#{key}:#{CLOSE_DATE_SUFFIX}")
+  end
 
   # Symbols still in "our" queue (pending) and thus needing processing
   def pending_symbols
@@ -130,13 +136,15 @@ class EODRetrievalInterCommunications < Publisher
     initialize_message_brokers(owner.config)
     initialize_pubsub_broker(owner.config)
     super(publication_channel)
+    @run_state = SERVICE_RUNNING
+    @service_tag = EOD_DATA_RETRIEVAL
   end
 
   #####  Invariant
 
   # (self has an owner and an owned_queue_key_query.)
   def invariant
-    self.owner != nil && self.owned_queue_key_query != nil
+    self.owner != nil && self.owned_queue_key_query != nil && super
   end
 
 end

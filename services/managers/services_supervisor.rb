@@ -66,12 +66,15 @@ class ServicesSupervisor
   def initialized_service_managers
     result = []
     result << MessageBrokerManager.new(config)
+##!!!!![moved here: (check)]:
+result << ExternalManager.new(config, STATUS_REPORTING)
 #!!!eh?: result << MasServerMonitor.new(config, MAS_SERVER_MONITOR)
+
     result << RakeManager.new(config, EOD_EXCHANGE_MONITORING)
     result << RakeManager.new(config, MANAGE_TRADABLE_TRACKING)
     result << ExternalManager.new(config, EOD_DATA_RETRIEVAL)
-    result << RakeManager.new(config, EOD_EVENT_TRIGGERING)
-    result << ExternalManager.new(config, STATUS_REPORTING)
+##XXX!!!    result << RakeManager.new(config, EOD_EVENT_TRIGGERING)
+
 #result << RakeManager.new(config, TRIGGER_PROCESSING)
 #result << RakeManager.new(config, NOTIFICATION_PROCESSING)
   end

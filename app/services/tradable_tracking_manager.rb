@@ -1,4 +1,7 @@
-# Implementation of templates in TAT::TradableTrackingManager
+# Implementation of the tradable-tracking service (
+# TAT::TradableTrackingManager) using a database and ActiveRecord
+# The tradable_symbols table is used to store the information as to which
+# tradables are "tracked".
 class TradableTrackingManager
   include Contracts::DSL, TAT::TradableTrackingManager
 
@@ -125,31 +128,12 @@ class TradableTrackingManager
   post :log_config_etc_set do invariant end
   post :logging_off do ! logging_on end
   def initialize(config)
+    super(config)
     turn_off_logging
-    initialize_message_brokers(config)
-    @config = config
-    @log = config.message_log
-    @error_log = config.error_log
-    @last_update_time = nil
-    @run_state = SERVICE_RUNNING
-    @service_tag = MANAGE_TRADABLE_TRACKING
-    # Set up to log with the key 'service_tag'.
-    self.log.change_key(service_tag)
-    if @error_log.respond_to?(:change_key) then
-      @error_log.change_key(service_tag)
-    end
-    set_message(TTM_LAST_TIME_KEY, nil)
-    @last_cleanup_time = nil
-    @last_recorded_close_time = next_exch_close_datetime
-    @continue_processing = true
-    @exch_monitor_is_ill = false
     @do_not_re_establish_connection = true
     # Explicitly close the database connection so that the parent process
     # does not hold onto the database. (See ForkedDatabaseExecution .)
     ActiveRecord::Base.remove_connection
-    create_status_report_timer
-    # The 'status_task' will asynchronously periodically report our status.
-    @status_task.execute
   end
 
 end

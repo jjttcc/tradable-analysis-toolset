@@ -11,10 +11,6 @@ class TestExchangeScheduleMonitor < ExchangeScheduleMonitor
 
   protected
 
-  def send_TEST_exchange_schedule_monitor_run_state
-    # null op
-  end
-
   attr_reader :continue_processing, :symbols
 
   private
@@ -69,7 +65,6 @@ class TestExchangeScheduleMonitor < ExchangeScheduleMonitor
     @log = self.config.message_log
     @error_log = self.config.error_log
     @refresh_requested = false
-    @run_state = SERVICE_RUNNING
     @intercomm = ExchangeMonitoringInterCommunications.new(self)
     @long_term_i_count = -1
     self.log.change_key(service_tag)
@@ -91,6 +86,8 @@ class TestExchangeScheduleMonitor < ExchangeScheduleMonitor
     test "#{__method__}#{$$} - service tag, syms: #{@service_tag}, #{@symbols}"
     @default_publishing_channel = EOD_CHECK_CHANNEL
     prepare_test
+    create_status_report_timer(status_manager: intercomm)
+    @status_task.execute
   end
 
   def prepare_test

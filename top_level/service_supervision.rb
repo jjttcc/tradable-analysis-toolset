@@ -10,7 +10,7 @@ end
 %w{. lib/util config/tat lib/messaging external/data_retrieval
   external/messaging external/utility domain/data_retrieval
   domain/services/support domain/services/admin domain/services/reporting
-  domain/support domain/facilities
+  domain/support domain/facilities domain/services/communication
 }.each do |path|
   $LOAD_PATH << "#{TATDIR}/#{path}"
 end

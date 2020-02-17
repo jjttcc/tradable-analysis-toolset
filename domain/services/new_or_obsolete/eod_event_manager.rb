@@ -13,6 +13,7 @@
 # need to be changed re. EODEventManager (e.g., eod_check_key)!!!!!]
 class EODEventManager < Subscriber
   include Service
+include ServiceStateFacilities    ###!!!!!!!<= temporary!!!!
 
   public
 
@@ -90,7 +91,7 @@ class EODEventManager < Subscriber
     initialize_pubsub_broker(config)
     set_subscription_callback_lambdas
     super(EOD_DATA_CHANNEL)  # i.e., subscribe channel
-    create_status_report_timer
+    create_status_report_timer(status_manager: nil)   ##!!!!!<- FIX!!!
     @status_task.execute
   end
 

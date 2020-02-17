@@ -77,9 +77,9 @@ class EODRetrievalManager < Subscriber
   end
 
   def continue_processing
-    o_r_state = ordered_eod_data_retrieval_run_state
-    result = o_r_state != SERVICE_TERMINATED
-    debug "#{__method__}: result: #{result} [orstate: #{o_r_state}]"
+    intercomm.update_run_state
+    result = ! intercomm.terminated?
+    debug "#{__method__}: result: #{result}"
     result
   end
 
@@ -140,7 +140,7 @@ class EODRetrievalManager < Subscriber
   pre  :eod_check_key do eod_check_key != nil end
   post :result do |result| result != nil end
   def new_data_wrangler
-    close = close_date(eod_check_key)
+    close = intercomm.close_date(eod_check_key)
     debug("close for #{eod_check_key}: #{close.inspect}")
     if close.nil? then
       msg = "No close date found for '#{eod_check_key}'"
@@ -158,14 +158,13 @@ class EODRetrievalManager < Subscriber
     @config = config
     @log = self.config.message_log
     @error_log = self.config.error_log
-    @run_state = SERVICE_RUNNING
     @intercomm = EODRetrievalInterCommunications.new(owner: self,
         my_key_query: :eod_check_key)
     if @service_tag.nil? then
       @service_tag = EOD_DATA_RETRIEVAL
     end
     # Set up to log with the key 'service_tag'.
-    self.log.change_key(service_tag)
+    log.change_key(service_tag)
     if @error_log.respond_to?(:change_key) then
       @error_log.change_key(service_tag)
     end
@@ -173,7 +172,7 @@ class EODRetrievalManager < Subscriber
     initialize_pubsub_broker(@config)
     set_subscription_callback_lambdas
     super(intercomm.subscription_channel)  # i.e., set subscribe channel
-    create_status_report_timer
+    create_status_report_timer(status_manager: intercomm)
     @status_task.execute
   end
 

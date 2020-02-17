@@ -1,10 +1,12 @@
 require 'concurrent-ruby'
 require 'tat_services_facilities'
+require 'service_state_facilities'
 
 # Responsible for service management - starting the service and monitoring
 # it to ensure that it is always running, restarting if necessary.
 class ServiceManager
   include Contracts::DSL, TatServicesFacilities
+  include ServiceStateFacilities
 
   public
 

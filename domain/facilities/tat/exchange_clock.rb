@@ -152,8 +152,6 @@ module TAT
     # Otherwise ('exchngs'.nil?), list of symbols identifying all tradables
     # that are currently being "tracked"
     post :enumerable do |result| result != nil && result.is_a?(Enumerable) end
-    post :empty_if_0_exchanges do |result, exchngs| implies(exchngs != nil &&
-        exchngs.count == 0, result != nil && result.count == 0) end
     def tracked_tradables(exchngs = nil)
       raise "Fatal: abstract method: #{self.class} #{__method__}"
     end

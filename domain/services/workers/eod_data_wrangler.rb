@@ -84,7 +84,7 @@ class EODDataWrangler
   pre  :good_hash do |hash| hash != nil && hash.count >= 3 end
   pre  :good_args do |hash|
     ! (hash[:log].nil? || hash[:elog].nil? || hash[:config].nil?) end
-  post :configured do |r, hash| self.log == hash[:log] &&
+  post :configured do |r, hash| log == hash[:log] &&
     self.error_log == hash[:elog] && self.config == hash[:config] end
   def configure(log:, elog:, config:)
     self.log = log

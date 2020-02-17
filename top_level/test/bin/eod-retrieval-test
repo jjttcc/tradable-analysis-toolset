@@ -94,7 +94,7 @@ EOM
             exit 1
         fi
     done
-    echo "SUCCEEDED" >&2
+    figlet "SUCCEEDED" >&2
 }
 
 prepare $@

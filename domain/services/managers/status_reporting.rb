@@ -6,21 +6,22 @@ require 'time_utilities'
 require 'logging_facilities'
 require 'report_specification'
 require 'status_report'
-
+require 'status_reporting_inter_communications'
 
 # Management of administrative status reporting - e.g., for debugging,
 # statistics, etc.
 class StatusReporting < PublisherSubscriber
   include Service, TimeUtilities, LoggingFacilities
 
-  protected
+  private
 
-  attr_reader :config
+  # Service-intercommunications manager:
+  attr_reader :intercomm
 
   ##### Hook method implementations
 
   def continue_processing
-    ordered_status_reporting_run_state != SERVICE_TERMINATED
+    ! intercomm.terminated?
   end
 
   def process(args = nil)
@@ -61,7 +62,7 @@ class StatusReporting < PublisherSubscriber
     @log = config.message_log
     @error_log = config.error_log
     self.time_utilities_implementation = config.time_utilities
-    @run_state = SERVICE_RUNNING
+    @intercomm = StatusReportingInterCommunications.new(self)
     @service_tag = STATUS_REPORTING
     # Set up to log with the key 'service_tag'.
     self.log.change_key(service_tag)
@@ -73,7 +74,7 @@ class StatusReporting < PublisherSubscriber
     set_subscription_callback_lambdas
     init_pubsub(default_subchan: STATUS_REPORTING_CHANNEL,
                 default_pubchan: REPORT_RESPONSE_CHANNEL)
-    create_status_report_timer
+    create_status_report_timer(status_manager: intercomm)
     @status_task.execute
   end
 

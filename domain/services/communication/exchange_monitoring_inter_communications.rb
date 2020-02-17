@@ -1,19 +1,17 @@
 require 'publisher'
-require 'eod_communications_facilities'
 require 'tat_services_facilities'
 
 # Encapsulation of services intercommunications from the POV of
 # exchange-schedule monitoring
 class ExchangeMonitoringInterCommunications < Publisher
-  include Contracts::DSL, ExchangeCommunicationsFacilities,
-    TatServicesFacilities
+  include Contracts::DSL, ExchangeCommunicationsFacilities
+  include TatServicesFacilities, ServiceStateFacilities
 
   public
 
   #####  Access
 
   attr_reader :publication_channel
-#!!!!!RM:   attr_reader :subscription_channel
 
   #####  Message-broker queue modification
 
@@ -79,12 +77,12 @@ class ExchangeMonitoringInterCommunications < Publisher
   def initialize(owner)
     # For 'debug', 'error', ...:
     self.error_log = owner.send(:error_log)
-debug "owner: #{owner.inspect}"
-#!!!!rm:    @subscription_channel = TatServicesConstants::EOD_CHECK_CHANNEL
     @publication_channel = TatServicesConstants::EOD_CHECK_CHANNEL
     initialize_message_brokers(owner.send(:config))
     initialize_pubsub_broker(owner.send(:config))
     super(publication_channel)
+    @run_state = SERVICE_RUNNING
+    @service_tag = EOD_EXCHANGE_MONITORING
   end
 
 end

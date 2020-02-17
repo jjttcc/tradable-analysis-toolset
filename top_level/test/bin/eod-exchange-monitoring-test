@@ -10,8 +10,8 @@ fi
 time TEST_SYMBOLS="$symbols" TAT_ENV=test rake test_eod_exchange_monitoring
 status=$?
 if [ $status = 0 ]; then
-    echo "SUCCEEDED"
+    figlet "SUCCEEDED"
 else
-    echo "FAILED with status $status"
+    figlet "FAILED with status $status"
     exit $status
 fi
