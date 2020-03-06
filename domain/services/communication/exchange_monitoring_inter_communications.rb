@@ -13,7 +13,7 @@ class ExchangeMonitoringInterCommunications < Publisher
 
   attr_reader :publication_channel
 
-  #####  Message-broker queue modification
+  #####  Message-broker queue/state-changing operations
 
   # Generate a new 'eod_check_key' and, via the message-broker:
   #   - Queue 'symbols' (with 'eod_check_key' as the queue key).
@@ -21,6 +21,7 @@ class ExchangeMonitoringInterCommunications < Publisher
   #     the exchange(s) associated with 'symbols').
   #   - Publish the 'eod_check_key' on the EOD_CHECK_CHANNEL.
   # [1] The key for the closing-date is: "#{eod_check_key}:close-date"
+  pre :is_running do running? end
   pre :syms_enu do |symbols| symbols != nil && symbols.is_a?(Enumerable) end
   def send_check_notification(symbols, closing_date_time)
     debug("#{__method__} - symbols & count: #{symbols}, #{symbols.count}")
@@ -46,31 +47,7 @@ class ExchangeMonitoringInterCommunications < Publisher
     end
   end
 
-  #####  Message-broker state-changing operations
-
-###!!!!!!TO-DO: Figure out if some of these methods should move
-###!!!!!!       into ExchangeCommunicationsFacilities.
-
-  # Send the next exchange closing time (to the message broker).
-  def send_next_close_time(time)
-    args = eval_settings(EXCH_MONITOR_NEXT_CLOSE_SETTINGS, time)
-    set_message(args[0], *args[1..-1])
-  end
-
-  # Send the specified list of open exchanges (to the message broker).
-  pre :markets_exist do |open_markets| open_markets != nil end
-  def send_open_market_info(open_markets)
-    args = eval_settings(EXCH_MONITOR_OPEN_MARKET_SETTINGS, open_markets)
-    key = args.first
-    if open_markets.nil? || open_markets.empty? then
-      # No open markets, so simply delete the set:
-      delete_object(key)
-    else
-      replace_set(key, args.second)
-    end
-  end
-
-  protected
+  private
 
   attr_accessor :error_log
 

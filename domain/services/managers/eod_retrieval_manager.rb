@@ -171,7 +171,7 @@ class EODRetrievalManager < Subscriber
     initialize_message_brokers(@config)
     initialize_pubsub_broker(@config)
     set_subscription_callback_lambdas
-    super(intercomm.subscription_channel)  # i.e., set subscribe channel
+    super(EOD_CHECK_CHANNEL)  # i.e., set subscribe channel
     create_status_report_timer(status_manager: intercomm)
     @status_task.execute
   end

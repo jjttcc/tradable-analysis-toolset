@@ -27,24 +27,6 @@ module TatServicesFacilities
     raise "Fatal: '$is_production_run' is nil or not defined."
   end
 
-  ##### messaging-related constants, settings
-
-###!!!!!move this???:::!!!!
-  STATUS_KEY, STATUS_VALUE, STATUS_EXPIRE = :status, :value, :expire
-
-###!!!!!!!!Should these 2 constants be moved?:
-  EXCH_MONITOR_NEXT_CLOSE_SETTINGS   = {
-    STATUS_KEY    => EXCHANGE_CLOSE_TIME_KEY,
-    # default:
-    STATUS_VALUE  => 'no markets open today',
-    STATUS_EXPIRE => EXMON_PAUSE_SECONDS + 1
-  }
-  EXCH_MONITOR_OPEN_MARKET_SETTINGS = {
-    STATUS_KEY    => OPEN_EXCHANGES_KEY,
-    STATUS_VALUE  => '',
-    STATUS_EXPIRE => nil
-  }
-
   ##### General messaging utilities #####
 
   # Send a "generic" application message ('msg'), using 'key', with
@@ -105,29 +87,6 @@ module TatServicesFacilities
   end
 
   ######## Utilities
-
-  # Evaluation (Array) of the Hash 'settings_hash'
-  def eval_settings(settings_hash, replacement_value = nil,
-                    replacement_expiration_seconds = nil)
-    _, value, expire = 0, 1, 2
-    result = [settings_hash[STATUS_KEY], settings_hash[STATUS_VALUE],
-              settings_hash[STATUS_EXPIRE]]
-    if replacement_value != nil then
-      result[value] = replacement_value
-    end
-    if replacement_expiration_seconds != nil then
-      result[expire] = replacement_expiration_seconds
-    end
-    # If the 'value' is a lambda/Proc, use its result:
-    if result[value].respond_to?(:call) then
-      result[value] = result[value].call
-    end
-    # If the expiration period is nil, no expiration is to be used:
-    if result[expire].nil? then
-      result.pop
-    end
-    result
-  end
 
   # Create the timer (task) responsible for periodic reporting of 'run_state'.
   post :task_exists do @status_task != nil end

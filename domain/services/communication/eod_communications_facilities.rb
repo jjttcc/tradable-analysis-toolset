@@ -4,7 +4,9 @@
 module EODCommunicationsFacilities
   include TatServicesConstants, MessagingFacilities
 
-##!!!!!TO-DO: Organize: state-changing/non-state-changing, queue....
+  ##### Queries
+
+  public
 
   # new key for symbol set associated with eod-data-ready notifications
   def new_eod_data_ready_key
@@ -12,9 +14,39 @@ module EODCommunicationsFacilities
   end
 
   # The contents, in order, of the "EOD-check" key queue
-  def eod_check_contents
+  def eod_check_keys
     queue_contents(EOD_CHECK_QUEUE)
   end
+
+  # The contents, in order, of the "EOD-data-ready" key queue
+  def eod_ready_keys
+    queue_contents(EOD_READY_QUEUE)
+  end
+
+  # Does the "EOD-check" key queue contain 'value'?
+  def eod_check_queue_contains(value)
+    queue_contains(EOD_CHECK_QUEUE, value)
+  end
+
+  # Does the "EOD-data-ready" key queue contain 'value'?
+  def eod_ready_queue_contains(value)
+    queue_contains(EOD_READY_QUEUE, value)
+  end
+
+  # The next EOD check key-value - i.e., the value currently at the
+  # head of the "EOD-check" key queue.  nil if the queue is empty.
+  def next_eod_check_key
+    queue_head(EOD_CHECK_QUEUE)
+  end
+
+  # The next EOD data-ready key-value - i.e., the value currently at the
+  # head of the "EOD-data-ready" key queue.  nil if the queue is empty.
+  def next_eod_ready_key
+    queue_head(EOD_READY_QUEUE)
+  end
+
+
+  #####  Message-broker queue modification
 
   # Add the specified EOD data-ready key-value to the "EOD-data-ready" key
   # queue.
@@ -32,6 +64,7 @@ module EODCommunicationsFacilities
   # Remove the head (i.e., next_eod_ready_key) of the "EOD-data-ready" key
   # queue.
   # Return the removed-value/former-head.
+###!!!!Note: This method might not belong in this module:
   def dequeue_eod_ready_key
     remove_next_from_queue(EOD_READY_QUEUE)
   end
@@ -44,50 +77,24 @@ module EODCommunicationsFacilities
 
   # Remove all occurrences of 'value' from the "EOD-data-ready" key queue.
   # Return the number of removed elements.
+###!!!!Note: This method might not belong in this module:
   def remove_from_eod_ready_queue(value)
     remove_from_queue(EOD_READY_QUEUE, value)
   end
 
-  # The next EOD check key-value - i.e., the value currently at the
-  # head of the "EOD-check" key queue.  nil if the queue is empty.
-  def next_eod_check_key
-    queue_head(EOD_CHECK_QUEUE)
-  end
-
-  # The next EOD data-ready key-value - i.e., the value currently at the
-  # head of the "EOD-data-ready" key queue.  nil if the queue is empty.
-  def next_eod_ready_key
-    queue_head(EOD_READY_QUEUE)
-  end
-
-  # The contents, in order, of the "EOD-data-ready" key queue
-  def eod_ready_contents
-    queue_contents(EOD_READY_QUEUE)
-  end
-
-  # Does the "EOD-check" key queue contain 'value'?
-  def eod_check_queue_contains(value)
-    queue_contains(EOD_CHECK_QUEUE, value)
-  end
-
-  # Does the "EOD-data-ready" key queue contain 'value'?
-  def eod_ready_queue_contains(value)
-    queue_contains(EOD_READY_QUEUE, value)
-  end
-
   begin
+
+    private
+
+    #####  Implementation
 
     EOD_FINISHED_SUFFIX = :finished
     EOD_COMPLETED_STATUS = ""
     EOD_TIMED_OUT_STATUS = :timed_out
 
-    private
-
     def eod_completion_key(keybase)
       "#{keybase}:#{EOD_FINISHED_SUFFIX}"
     end
-
-  protected
 
     # Send status: EOD-data-retrieval completed successfully.
     def send_eod_retrieval_completed(key)

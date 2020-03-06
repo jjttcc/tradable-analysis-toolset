@@ -57,7 +57,8 @@ class ReportProcessor
         end
       end
       parser.on("-k", "--keys=lbl1[,lbl2,...]",
-                "restrict report to the specified Keys.") do |k|
+                "restrict report to the specified Keys." +
+                  "\n#{" " * 37}('*' = all keys)") do |k|
         key_args = k.split(/,/)
         if key_args.include?("*") then
           @report_args[:keys] = ['*']

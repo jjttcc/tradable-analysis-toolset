@@ -1,5 +1,5 @@
 
-# Encapsulation of services intercommunications from the POV of
+# Encapsulation of services intercommunications from the point-of-view of
 # the "tradable-tracking" service
 class TradableTrackingInterCommunications
   include Contracts::DSL

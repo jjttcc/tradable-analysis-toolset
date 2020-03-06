@@ -13,7 +13,6 @@
 # need to be changed re. EODEventManager (e.g., eod_check_key)!!!!!]
 class EODEventManager < Subscriber
   include Service
-include ServiceStateFacilities    ###!!!!!!!<= temporary!!!!
 
   public
 
@@ -25,6 +24,9 @@ include ServiceStateFacilities    ###!!!!!!!<= temporary!!!!
 
   private
 
+  # Service-intercommunications manager:
+  attr_reader :intercomm
+
   ##### Hook method implementations
 
   def prepare_for_main_loop(args = nil)
@@ -32,8 +34,10 @@ include ServiceStateFacilities    ###!!!!!!!<= temporary!!!!
   end
 
   def continue_processing
-#!!!template method needed (ordered_eod_event_triggering_run_state -> xxx):
-    ordered_eod_event_triggering_run_state != SERVICE_TERMINATED
+    intercomm.update_run_state
+    result = ! intercomm.terminated?
+    debug "#{__method__}: result: #{result}"
+    result
   end
 
   def process(args = nil)
@@ -54,18 +58,21 @@ include ServiceStateFacilities    ###!!!!!!!<= temporary!!!!
   end
 
   post :target_symbols_count do ! target_symbols_count.nil? end
-#!!!templatize:
-  post :key_set do data_ready_key != nil end
+  post :key_set do eod_data_ready_key != nil end
   def wait_for_notification
     debug("#{self.class} subscribing to channel: " +
          "#{default_subscription_channel} (#{self.inspect})")
     subscribe_once do
-#!!!templatize:
       @eod_data_ready_key = last_message
     end
   end
 
   def handle_the_work____template_method
+  end
+
+  def some_kind_of_template_method
+debug "!!!!some_kind_of_template_method called!!!!!!"
+true
   end
 
   private
@@ -80,7 +87,7 @@ include ServiceStateFacilities    ###!!!!!!!<= temporary!!!!
     @config = config
     @log = self.config.message_log
     @error_log = self.config.error_log
-    @run_state = SERVICE_RUNNING
+    @intercomm = EODEventInterCommunications.new(self)
     @service_tag = EOD_EVENT_TRIGGERING
     # Set up to log with the key 'service_tag'.
     self.log.change_key(service_tag)
@@ -91,7 +98,7 @@ include ServiceStateFacilities    ###!!!!!!!<= temporary!!!!
     initialize_pubsub_broker(config)
     set_subscription_callback_lambdas
     super(EOD_DATA_CHANNEL)  # i.e., subscribe channel
-    create_status_report_timer(status_manager: nil)   ##!!!!!<- FIX!!!
+    create_status_report_timer(status_manager: intercomm)
     @status_task.execute
   end
 
@@ -101,7 +108,8 @@ include ServiceStateFacilities    ###!!!!!!!<= temporary!!!!
     @subs_callbacks[:postproc] = lambda do
       #!!!!figure out the right *_key!!!:
       @target_symbols_count = queue_count(eod_something_or_other_template_key)
-error_log.debug("[ERM] #{__method__} - tgtsymscnt: #{@target_symbols_count}")
+      error_log.debug("[ERM] #{__method__} - tgtsymscnt: "\
+                      "#{@target_symbols_count}")
     end
   end
 

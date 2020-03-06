@@ -11,7 +11,7 @@ class TestExchangeScheduleMonitor < ExchangeScheduleMonitor
 
   protected
 
-  attr_reader :continue_processing, :symbols
+  attr_reader :symbols
 
   private
 
@@ -26,7 +26,7 @@ class TestExchangeScheduleMonitor < ExchangeScheduleMonitor
   end
 
   def post_process(args = nil)
-    if self.continue_processing then
+    if continue_processing then
       test "#{self.class}.#{__method__} - continuing..."
     else
       test "#{self.class}.#{__method__}: checking data (symbols: #{symbols})"

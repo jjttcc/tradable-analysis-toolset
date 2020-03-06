@@ -19,8 +19,11 @@ class ExchangeScheduleMonitor
 
   # Perform any needed pre-processing.
   def prepare_for_main_loop(args = nil)
-##!!!!!TO-DO: Check: Should '@continue_monitoring' be '@continue__processing'?
-    @continue_monitoring = true
+#!!!!NOTE: @continue_processing, in this file, used to be @continue_monitoring
+#!!!!(e.g.:
+#    @continue_monitoring = true
+#!!!!), which has to be wrong.  Verify that and then remove this comment!!!!!
+    @continue_processing = true
     send_status_info
   end
 
@@ -59,7 +62,7 @@ class ExchangeScheduleMonitor
     end
     if intercomm.terminated? then
       debug("#{__method__} - We've been terminated!")
-      @continue_monitoring = false
+      @continue_processing = false
     else
       check(intercomm.running?, "#{service_tag} is running")
       # This service is running and @next_close_time was reached, so
@@ -145,14 +148,14 @@ class ExchangeScheduleMonitor
   end
 
   # Check if a new run-state has been ordered (by another service) and, if
-  # it has and the new state is 'terminated', set 'continue_monitoring' to
+  # it has and the new state is 'terminated', set 'continue_processing' to
   # false.
   post :termination_side_effect do
-    implies(intercomm.terminated?, ! continue_monitoring) end
+    implies(intercomm.terminated?, ! continue_processing) end
   def process_ordered_run_state
     intercomm.update_run_state
     if intercomm.terminated? then
-      @continue_monitoring = false
+      @continue_processing = false
     end
   end
 
@@ -196,7 +199,7 @@ class ExchangeScheduleMonitor
     end
   end
 
-  attr_reader :continue_monitoring, :exchange_clock, :refresh_requested
+  attr_reader :continue_processing, :exchange_clock, :refresh_requested
 
   # While this value is > the number of seconds until the next upcoming
   # market-close time, any new market/exchange updates will be ignored.

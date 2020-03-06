@@ -13,7 +13,7 @@ class EODRetrievalInterCommunications < Publisher
 
   #####  Access
 
-  attr_reader :subscription_channel, :publication_channel
+  attr_reader :publication_channel
   attr_reader :owned_queue_key_query
 
 
@@ -30,11 +30,6 @@ class EODRetrievalInterCommunications < Publisher
     debug("#{self.class}.#{__method__}, key: "\
                "#{q_key} returning #{result}")
     result
-  end
-
-  # contents of the "EOD-check"-key queue
-  def eod_check_keys
-    eod_check_contents
   end
 
   # Count of symbols "our" 'EOD-check' symbols queue
@@ -131,7 +126,6 @@ class EODRetrievalInterCommunications < Publisher
     # For 'debug', 'error', ...:
     self.error_log = owner.send(:error_log)
     self.owned_queue_key_query = my_key_query
-    @subscription_channel = TatServicesConstants::EOD_CHECK_CHANNEL
     @publication_channel = TatServicesConstants::EOD_DATA_CHANNEL
     initialize_message_brokers(owner.config)
     initialize_pubsub_broker(owner.config)

@@ -38,7 +38,7 @@ class TestEODRetrievalManager < EODRetrievalManager
     # Publish the 'TEST_EOD_CHECK_KEY' to my "self":
     child = fork do
       sleep 0.75    # Wait to try to make sure subscription occurs.
-      publish TEST_EOD_CHECK_KEY, intercomm.subscription_channel
+      publish TEST_EOD_CHECK_KEY, TatServicesConstants::EOD_CHECK_CHANNEL
     end
     Process.detach(child)
     super   # (Subscribe to the above-scheduled publication.)

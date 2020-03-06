@@ -1,11 +1,9 @@
-#require 'tat_services_facilities'
 require 'service_state_facilities'
 
 # Encapsulation of services intercommunications from the POV of
 # status reporting
 class StatusReportingInterCommunications
   include Contracts::DSL
-#!!!!?:  include TatServicesFacilities
   include MessagingFacilities
   include ServiceStateFacilities
 

@@ -9,9 +9,6 @@ require 'message_broker_manager'
 # top-level control of [threaded?] monitoring/control of service processes)
 class ServicesSupervisor
   include Contracts::DSL, ServiceTokens
-# start/monitor EODRetrievalManager
-# start/monitor ExchangeScheduleMonitor
-# start/monitor TradableTrackingManager
 
   private
 
@@ -66,15 +63,14 @@ class ServicesSupervisor
   def initialized_service_managers
     result = []
     result << MessageBrokerManager.new(config)
-##!!!!![moved here: (check)]:
-result << ExternalManager.new(config, STATUS_REPORTING)
+    result << ExternalManager.new(config, STATUS_REPORTING)
+    # Attempt to allow the reporting service to get a "head start":
+    sleep 0.2
 #!!!eh?: result << MasServerMonitor.new(config, MAS_SERVER_MONITOR)
-
     result << RakeManager.new(config, EOD_EXCHANGE_MONITORING)
     result << RakeManager.new(config, MANAGE_TRADABLE_TRACKING)
     result << ExternalManager.new(config, EOD_DATA_RETRIEVAL)
-##XXX!!!    result << RakeManager.new(config, EOD_EVENT_TRIGGERING)
-
+    result << RakeManager.new(config, EOD_EVENT_TRIGGERING)
 #result << RakeManager.new(config, TRIGGER_PROCESSING)
 #result << RakeManager.new(config, NOTIFICATION_PROCESSING)
   end
