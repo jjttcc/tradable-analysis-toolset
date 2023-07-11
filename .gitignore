@@ -33,7 +33,6 @@ tags
 .*token*
 Gemfile.lock.*
 /bin/
-doc/
 vim*
 
 /bin/runtest_tee
